@@ -1,5 +1,5 @@
 {
-  "name": "velfi-backend",
+  "name": "backend",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -9,11 +9,16 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.96.0",
+    "@mysten/sui.js": "^0.50.1",
+    "@supabase/supabase-js": "^2.108.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "google-auth-library": "^10.7.0",
+    "jsonwebtoken": "^9.0.3",
+    "resend": "^6.12.4",
+    "uuid": "^14.0.0"
   }
 }

@@ -126,6 +126,8 @@ module velfi::stream {
         let start_time = clock::timestamp_ms(clock);
         let end_time = start_time + duration_ms;
         let total_amount = coin::value(&coin);
+        assert!(total_amount > 0, ENoFunds);
+        assert!(duration_ms > 0, EWrongLength);
 
         let stream = Stream {
             id: object::new(ctx),
@@ -427,7 +429,14 @@ module velfi::stream {
         let total_stages = std::vector::length(&stage_amounts);
         assert!(total_stages > 0, EWrongLength);
         let total_amount = coin::value(&coin);
-
+        assert!(total_amount > 0, ENoFunds);
+        let mut sum = 0u64;
+        let mut j = 0u64;
+        while (j < total_stages) {
+            sum = sum + *std::vector::borrow(&stage_amounts, j);
+            j = j + 1;
+        };
+        assert!(sum == total_amount, EWrongLength);
         let stage = StagePay {
             id: object::new(ctx),
             sender: tx_context::sender(ctx),
