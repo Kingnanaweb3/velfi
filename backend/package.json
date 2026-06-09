@@ -12,6 +12,7 @@
   "type": "module",
   "dependencies": {
     "@mysten/sui.js": "^0.50.1",
+    "@mysten/zklogin": "^0.8.1",
     "@supabase/supabase-js": "^2.108.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",

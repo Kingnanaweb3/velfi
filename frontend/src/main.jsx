@@ -1,27 +1,36 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { SuiClientProvider, WalletProvider } from '@mysten/dapp-kit'
-import { getFullnodeUrl } from '@mysten/sui/client'
-import '@mysten/dapp-kit/dist/index.css'
-import './index.css'
+import { BrowserRouter } from 'react-router-dom'
+import { AuthProvider } from './context/AuthContext.jsx'
 import App from './App.jsx'
+import './index.css'
 
-const queryClient = new QueryClient()
-
-const networks = {
-  testnet: { url: getFullnodeUrl('testnet') },
-  mainnet: { url: getFullnodeUrl('mainnet') },
+function applyTheme() {
+  const saved = localStorage.getItem('velfi_theme')
+  if (saved) {
+    document.documentElement.setAttribute('data-theme', saved)
+  } else {
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+    document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light')
+  }
 }
+
+applyTheme()
+
+// Listen for system theme changes
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+  const saved = localStorage.getItem('velfi_theme')
+  if (!saved) {
+    document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light')
+  }
+})
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <SuiClientProvider networks={networks} defaultNetwork="testnet">
-        <WalletProvider autoConnect>
-          <App />
-        </WalletProvider>
-      </SuiClientProvider>
-    </QueryClientProvider>
-  </StrictMode>,
+    <BrowserRouter>
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    </BrowserRouter>
+  </StrictMode>
 )
