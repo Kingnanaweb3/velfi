@@ -46,7 +46,7 @@ export default function App() {
         <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
-      {user && <BottomNav />}
+      {user && user.username && <BottomNav />}
     </>
   )
 }

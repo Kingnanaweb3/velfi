@@ -38,6 +38,12 @@
   --radius-btn: 999px;
 
   color-scheme: dark;
+  --login-bg: #000000;
+  --login-text: #FFFFFF;
+  --login-sub: #666680;
+  --login-btn-bg: #1A1A1A;
+  --login-btn-border: rgba(255,255,255,0.1);
+  --login-btn-text: #FFFFFF;
 }
 
 /* ── LIGHT THEME ── */
@@ -71,6 +77,12 @@
   --radius-btn: 999px;
 
   color-scheme: light;
+  --login-bg: #FFFFFF;
+  --login-text: #000000;
+  --login-sub: #888899;
+  --login-btn-bg: #F0F0F0;
+  --login-btn-border: rgba(0,0,0,0.08);
+  --login-btn-text: #000000;
 }
 
 html, body {
