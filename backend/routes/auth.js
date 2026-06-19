@@ -1,7 +1,7 @@
 import express from 'express'
 import jwt from 'jsonwebtoken'
 import { OAuth2Client } from 'google-auth-library'
-import supabase from '../lib/supabase.js'
+import supabase from '../lib/supabaseAdmin.js'
 import { getUserSalt, computeSuiAddress } from '../lib/zklogin.js'
 import dotenv from 'dotenv'
 dotenv.config()

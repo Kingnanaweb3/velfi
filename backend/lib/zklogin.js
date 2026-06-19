@@ -2,7 +2,7 @@ import { createRequire } from 'module'
 const require = createRequire(import.meta.url)
 const { computeZkLoginAddress, genAddressSeed, getZkLoginSignature } = require('@mysten/zklogin')
 const { jwtToAddress } = require('@mysten/zklogin')
-import supabase from './supabase.js'
+import supabase from './supabaseAdmin.js'
 import crypto from 'crypto'
 import dotenv from 'dotenv'
 dotenv.config()
