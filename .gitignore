@@ -1,5 +1,39 @@
-node_modules
+# dependencies
+node_modules/
+**/node_modules/
+
+# secrets / env  — NEVER commit these
 .env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+*.pem
+*.key
+*.keypair
+*-keypair.json
+deployer.json
+secret*.json
+
+# builds / caches
+dist/
+build/
+**/dist/
+**/build/
+.vite/
+**/.vite/
+.cache/
+.vercel/
+**/.vercel/
+
+# logs
+*.log
+npm-debug.log*
+
+# os / editor
 .DS_Store
-dist
-build
+Thumbs.db
+.vscode/
+.idea/
+*.local
+*.bak

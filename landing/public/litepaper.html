@@ -1,0 +1,635 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Velfi Litepaper — Tell your money what to do.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400;1,9..40,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --aubergine: #2a1a3a;
+    --aubergine-2: #3a2a4d;
+    --lavender-bg: #EFEDF7;
+    --paper: #FBFAFE;
+    --accent: #7B4FFF;
+    --muted-accent: #6a5a8a;
+    --soft-lav: #b4a8d0;
+    --ink: #1a1226;
+    --ink-2: #4a4560;
+    --ink-3: #6a6480;
+    --hair: rgba(42,26,58,0.12);
+    --hair-light: rgba(255,255,255,0.14);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---- shared page shell ---- */
+  .page {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 0 28px;
+  }
+
+  /* ---- cover ---- */
+  .cover {
+    background: var(--lavender-bg);
+    padding: 120px 0 100px;
+    border-bottom: 1px solid var(--hair);
+  }
+
+  .cover-inner {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 0 28px;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    margin-bottom: 72px;
+  }
+
+  .logo-mark {
+    width: 30px;
+    height: 30px;
+  }
+
+  .logo-word {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--aubergine);
+  }
+
+  .doc-kicker {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted-accent);
+    margin-bottom: 26px;
+  }
+
+  .doc-title {
+    font-family: 'DM Sans', sans-serif;
+    font-size: clamp(44px, 7vw, 76px);
+    font-weight: 600;
+    line-height: 1.02;
+    letter-spacing: -0.035em;
+    color: var(--aubergine);
+    margin-bottom: 28px;
+  }
+
+  .doc-title em {
+    font-style: normal;
+    color: var(--muted-accent);
+  }
+
+  .doc-sub {
+    font-size: 19px;
+    font-weight: 500;
+    color: var(--ink-2);
+    max-width: 540px;
+    margin-bottom: 56px;
+  }
+
+  .doc-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    border-top: 1px solid var(--hair);
+    padding-top: 26px;
+  }
+
+  .doc-meta div {
+    padding-right: 48px;
+  }
+
+  .doc-meta dt {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin-bottom: 5px;
+  }
+
+  .doc-meta dd {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--aubergine);
+  }
+
+  /* ---- body sections ---- */
+  .body {
+    padding: 84px 0 40px;
+  }
+
+  section {
+    margin-bottom: 72px;
+    scroll-margin-top: 40px;
+  }
+
+  .sec-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+    display: block;
+    margin-bottom: 12px;
+  }
+
+  h2 {
+    font-family: 'DM Sans', sans-serif;
+    font-size: clamp(28px, 4vw, 40px);
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    color: var(--aubergine);
+    margin-bottom: 26px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--hair);
+  }
+
+  h3 {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--aubergine);
+    margin: 38px 0 14px;
+  }
+
+  p {
+    font-size: 16.5px;
+    color: var(--ink-2);
+    margin-bottom: 20px;
+  }
+
+  p strong { color: var(--ink); font-weight: 600; }
+
+  a { color: var(--accent); text-decoration: none; border-bottom: 1px solid rgba(123,79,255,0.3); }
+  a:hover { border-bottom-color: var(--accent); }
+
+  code, .handle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.88em;
+    background: rgba(123,79,255,0.08);
+    color: var(--muted-accent);
+    padding: 2px 7px;
+    border-radius: 5px;
+  }
+
+  ul, ol { margin: 0 0 22px 0; padding-left: 0; list-style: none; }
+
+  ul li, ol li {
+    font-size: 16.5px;
+    color: var(--ink-2);
+    margin-bottom: 12px;
+    padding-left: 26px;
+    position: relative;
+  }
+
+  ul li::before {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 11px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  ol { counter-reset: item; }
+  ol li { counter-increment: item; }
+  ol li::before {
+    content: counter(item);
+    position: absolute;
+    left: 0;
+    top: 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  blockquote {
+    border-left: 2px solid var(--accent);
+    padding: 4px 0 4px 24px;
+    margin: 28px 0;
+    font-size: 17px;
+    font-style: italic;
+    color: var(--ink);
+  }
+
+  .callout {
+    background: var(--lavender-bg);
+    border: 1px solid var(--hair);
+    border-radius: 16px;
+    padding: 24px 26px;
+    margin: 28px 0;
+  }
+
+  .callout p:last-child { margin-bottom: 0; }
+
+  .callout-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted-accent);
+    margin-bottom: 10px;
+    font-weight: 500;
+  }
+
+  /* comparison table */
+  .cmp {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 28px 0;
+    font-size: 15px;
+  }
+  .cmp th, .cmp td {
+    text-align: left;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--hair);
+  }
+  .cmp thead th {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    font-weight: 500;
+  }
+  .cmp tbody td:first-child { font-weight: 600; color: var(--aubergine); }
+  .cmp tbody td { color: var(--ink-2); }
+  .cmp .yes { color: var(--accent); font-weight: 600; }
+
+  /* command bubble */
+  .cmd {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14.5px;
+    background: var(--aubergine);
+    color: #fff;
+    padding: 16px 20px;
+    border-radius: 14px 14px 14px 4px;
+    margin: 14px 0 26px;
+    line-height: 1.5;
+  }
+  .cmd::before { content: '› '; color: var(--soft-lav); }
+
+  /* ---- dark sections (conclusion + references) ---- */
+  .dark {
+    background: var(--aubergine);
+    color: #fff;
+  }
+  .dark .page { padding-top: 84px; padding-bottom: 84px; }
+  .dark h2 {
+    color: #fff;
+    border-bottom-color: var(--hair-light);
+  }
+  .dark .sec-num { color: var(--soft-lav); }
+  .dark p { color: rgba(255,255,255,0.74); }
+  .dark p strong { color: #fff; }
+  .dark h3 { color: #fff; }
+  .dark a { color: var(--soft-lav); border-bottom-color: rgba(180,168,208,0.4); }
+  .dark ul li { color: rgba(255,255,255,0.74); }
+  .dark ul li::before { background: var(--soft-lav); }
+  .dark code { background: rgba(255,255,255,0.1); color: var(--soft-lav); }
+
+  /* references */
+  .refs { counter-reset: ref; }
+  .refs li {
+    counter-increment: ref;
+    padding-left: 38px;
+    position: relative;
+    font-size: 14.5px;
+    color: rgba(255,255,255,0.7);
+    margin-bottom: 16px;
+    line-height: 1.55;
+  }
+  .refs li::before {
+    content: '[' counter(ref) ']';
+    position: absolute;
+    left: 0;
+    top: 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--soft-lav);
+    background: none;
+    width: auto;
+    height: auto;
+    border-radius: 0;
+  }
+
+  /* footer */
+  .doc-foot {
+    background: var(--aubergine);
+    border-top: 1px solid var(--hair-light);
+    padding: 40px 0;
+    text-align: center;
+  }
+  .doc-foot p {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: rgba(255,255,255,0.5);
+    margin: 0;
+    letter-spacing: 0.04em;
+  }
+
+  /* reading progress */
+  .progress {
+    position: fixed;
+    top: 0; left: 0;
+    height: 3px;
+    width: 0%;
+    background: var(--accent);
+    z-index: 100;
+    transition: width 0.1s linear;
+  }
+
+  @media (max-width: 600px) {
+    .cover { padding: 72px 0 60px; }
+    .body { padding: 56px 0 30px; }
+    .doc-meta div { padding-right: 28px; padding-bottom: 16px; }
+    .cmp { font-size: 13px; }
+    .cmp th, .cmp td { padding: 10px 10px; }
+  }
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<!-- COVER -->
+<header class="cover">
+  <div class="cover-inner">
+    <div class="logo">
+      <svg class="logo-mark" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect x="34" y="22" width="9" height="56" rx="3" fill="#2a1a3a"/>
+        <rect x="48" y="22" width="9" height="56" rx="3" fill="#2a1a3a"/>
+        <rect x="62" y="22" width="9" height="56" rx="3" fill="#2a1a3a"/>
+        <rect x="22" y="46" width="56" height="9" rx="3" fill="#2a1a3a"/>
+      </svg>
+      <span class="logo-word">Velfi</span>
+    </div>
+
+    <div class="doc-kicker">Litepaper · v1.0</div>
+    <h1 class="doc-title">Tell your money <em>what to do.</em></h1>
+    <p class="doc-sub">An AI money agent that turns a single text instruction into on-chain financial workflows — built on Sui.</p>
+
+    <dl class="doc-meta">
+      <div>
+        <dt>Author</dt>
+        <dd>Kingnana</dd>
+      </div>
+      <div>
+        <dt>Version</dt>
+        <dd>1.0</dd>
+      </div>
+      <div>
+        <dt>Date</dt>
+        <dd>June 11, 2026</dd>
+      </div>
+      <div>
+        <dt>Network</dt>
+        <dd>Sui</dd>
+      </div>
+    </dl>
+  </div>
+</header>
+
+<!-- BODY -->
+<main class="body">
+  <div class="page">
+
+    <section id="abstract">
+      <h2>Abstract</h2>
+      <p>Velfi is an AI money agent. A user signs in with Google, claims a handle of the form <span class="handle">alice.vel</span>, and instructs their money in plain language. "Split rent three ways." "Pay my designer every Friday." "Hold this in escrow until the work ships." Velfi reads the instruction, builds the on-chain workflow, and executes it — with a single confirmation.</p>
+      <p>The user holds no gas token, writes down no seed phrase, and never sees a wallet address, a swap screen, or the word "blockchain." Underneath, Velfi is a non-custodial Sui wallet. Identity is <strong>zkLogin</strong>. The handle is a name you own. Payments settle as <strong>Move</strong> smart contracts with sub-second finality and near-zero fees. The intelligence that turns words into workflows is a language model, retrained on financial logic, that proposes the transaction — but never holds the keys.</p>
+      <p>This document describes the problem Velfi solves, how the system is built, why it runs on Sui, how it stays secure and non-custodial, how it sustains itself, and what comes next.</p>
+    </section>
+
+    <section id="overview">
+      <h2>Overview</h2>
+      <p>Most money movement follows patterns. Salaries recur. Rent splits the same way every month. Savings should happen automatically but rarely do. Subscriptions, contractor payouts, escrow on deals — these are repeated, rule-based actions. Yet for most people, each one is still a manual task: open an app, re-enter details, confirm, repeat.</p>
+      <p>Velfi treats a financial instruction as a sentence, not a form. You describe the outcome you want, and the agent assembles the steps. Velfi covers a spectrum of flows from one text:</p>
+      <ul>
+        <li><strong>Send</strong> — instant transfers to a <span class="handle">.vel</span> handle, or to an email address the recipient later claims.</li>
+        <li><strong>Split</strong> — one payment divided across many recipients with custom percentage allocations.</li>
+        <li><strong>Stream</strong> — continuous payout over time, for salaries and vesting.</li>
+        <li><strong>Schedule</strong> — recurring payments on a cadence you set.</li>
+        <li><strong>Escrow</strong> — funds held until a condition is met, releasable or cancelable anytime.</li>
+        <li><strong>Automate</strong> — rules that trigger on events, like saving a percentage of every inbound payment.</li>
+      </ul>
+      <p>The interface is conversation. The settlement is on-chain. The keys are yours.</p>
+    </section>
+
+    <section id="problem">
+      <h2>The Problem</h2>
+      <p>Two problems sit on top of each other: money management is manual, and the on-chain tools meant to fix that are too hard for normal people to use.</p>
+
+      <h3>Money management is still manual labor</h3>
+      <p>Even with modern fintech, recurring financial intent requires repeated human effort. Standing orders handle only the simplest cases and break the moment a flow needs logic — a split, a condition, a percentage. People manage money the way they managed it a decade ago: one transaction, one screen, one confirmation at a time.</p>
+
+      <h3>Crypto made it harder, not easier</h3>
+      <p>Self-custodial finance promised programmable money but shipped a punishing user experience. Seed phrases are a single point of catastrophic failure — lose them and funds are gone forever; leak them and funds are stolen. Gas tokens force users to hold a second asset just to move the first. Wallet addresses are unreadable strings that invite costly mistakes. Industry research has repeatedly identified key management and transaction complexity as the central barriers to mainstream self-custody adoption. <a href="#references">[1]</a> <a href="#references">[2]</a></p>
+
+      <h3>AI advises but does not act</h3>
+      <p>The current wave of "AI finance" tools summarize, categorize, and recommend — but they stop at advice. They cannot safely execute, because handing an autonomous model custody of funds is dangerous, and because most chains have no clean way for an agent to propose a transaction that a human signs without surrendering control. The gap between <em>knowing what to do with your money</em> and <em>having it done</em> remains unbridged.</p>
+
+      <div class="callout">
+        <div class="callout-label">The gap</div>
+        <p>People want to instruct money in plain language and have it execute safely. Manual fintech can't automate the logic. Self-custody is too hard to use. AI tools can't act. Velfi closes all three at once.</p>
+      </div>
+    </section>
+
+    <section id="solution">
+      <h2>The Solution</h2>
+      <p>Velfi is an agent that sits between human intent and on-chain settlement. The flow is four steps, and only the first time involves any setup at all.</p>
+
+      <ol>
+        <li><strong>Sign in with Google.</strong> zkLogin derives a self-custodial Sui wallet from the Google account through a zero-knowledge proof. No seed phrase exists to lose or leak. Switch devices, sign in again, and the same wallet returns.</li>
+        <li><strong>Claim a <span class="handle">.vel</span> name.</strong> A human-readable handle replaces wallet addresses — for the user and for anyone paying them.</li>
+        <li><strong>Tell Velfi what you want.</strong> The instruction is written in plain English. The agent interprets it and builds the corresponding on-chain workflow.</li>
+        <li><strong>Confirm once.</strong> The user approves with a single tap. Velfi executes, and for recurring flows, keeps executing automatically.</li>
+      </ol>
+
+      <h3>How an instruction becomes a transaction</h3>
+      <p>When a user writes "stream $4,000 to alex.vel over 30 days," the agent parses intent, resolves the handle, selects the correct payment primitive, fills the parameters, and presents a structured transaction for the user to sign. The model proposes; the user disposes. Funds never move without an explicit, key-backed signature from the account owner.</p>
+
+      <div class="cmd">Send $50 to jordan@gmail.com — they claim it when they sign up.</div>
+      <p>An email recipient who isn't yet a user receives a claimable transfer. They sign in, claim a handle, and the funds land — turning every payment into an invitation.</p>
+    </section>
+
+    <section id="why-sui">
+      <h2>Why We Built on Sui</h2>
+      <p>An agent that executes money on a user's behalf needs a settlement layer that is fast, cheap, safe to program, and able to abstract its own complexity away. Sui was built for exactly this.</p>
+
+      <h3>Sub-second finality</h3>
+      <p>Simple payments on Sui confirm in well under a second through its consensus design. <a href="#references">[3]</a> For a conversational money agent, instant settlement is the difference between "it's done" and "please wait." The interaction has to feel like sending a message, not submitting a request.</p>
+
+      <h3>Near-zero fees and gaslessness</h3>
+      <p>Sui's low fees and support for sponsored transactions let Velfi remove the gas token from the user's mental model entirely. The user never holds, sees, or thinks about a fee asset — the chain becomes invisible plumbing.</p>
+
+      <h3>The Move language</h3>
+      <p>Velfi's payment primitives are written in <strong>Move</strong>, a language designed for safe asset handling, where digital assets are first-class resources that cannot be accidentally copied or destroyed. <a href="#references">[4]</a> For software that moves real money on a schedule and without per-action human review, this safety model is foundational.</p>
+
+      <h3>zkLogin and object storage, natively</h3>
+      <p>zkLogin is a native Sui primitive: it lets a user authenticate with an existing Web2 identity provider and derive a wallet from a zero-knowledge proof, with no seed phrase. <a href="#references">[5]</a> Payment receipts and workflow metadata are stored on <strong>Walrus</strong>, Sui's decentralized storage layer, keeping records verifiable without a central database.</p>
+    </section>
+
+    <section id="different">
+      <h2>What Makes Velfi Different</h2>
+      <p>Traditional payment apps and existing crypto wallets each solve half the problem. Velfi is the combination they can't reach: the simplicity of a chat app, the programmability of a smart contract, and the safety of self-custody.</p>
+
+      <table class="cmp">
+        <thead>
+          <tr><th>Capability</th><th>Traditional app</th><th>Crypto wallet</th><th>Velfi</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Plain-language instructions</td><td>No</td><td>No</td><td class="yes">Yes</td></tr>
+          <tr><td>Programmable flows (split, stream, escrow)</td><td>Limited</td><td>Manual</td><td class="yes">Native</td></tr>
+          <tr><td>No seed phrase</td><td>n/a</td><td>No</td><td class="yes">Yes</td></tr>
+          <tr><td>No gas token to hold</td><td>n/a</td><td>No</td><td class="yes">Yes</td></tr>
+          <tr><td>Self-custodial</td><td>No</td><td>Yes</td><td class="yes">Yes</td></tr>
+          <tr><td>Human-readable handles</td><td>Yes</td><td>No</td><td class="yes">Yes</td></tr>
+          <tr><td>Instant global settlement</td><td>No</td><td>Varies</td><td class="yes">Yes</td></tr>
+        </tbody>
+      </table>
+
+      <p>A traditional app is easy but closed, custodial, and cannot express conditional logic. A raw wallet is open and programmable but hostile to use and unforgiving of error. Velfi is the first surface where a non-technical person can express a sophisticated financial instruction in one sentence and have it settle safely on-chain.</p>
+    </section>
+
+    <section id="security">
+      <h2>Security</h2>
+      <p>Velfi's security model rests on a single principle: <strong>the agent proposes, the user disposes, and only the user holds the keys.</strong></p>
+
+      <h3>Non-custodial by construction</h3>
+      <p>Velfi never takes custody of funds. Every transaction is signed by the user's own key, derived via zkLogin. The agent can assemble a transaction but cannot move money without an explicit signature from the account owner. There is no admin key that can sweep balances.</p>
+
+      <h3>No seed phrase to compromise</h3>
+      <p>Because identity is derived from a zero-knowledge proof over an existing Google login rather than a stored secret phrase, the classic attack surface — phishing a seed phrase, finding a written-down backup, draining via a leaked key — is removed at the design level. <a href="#references">[5]</a></p>
+
+      <h3>Safe-by-default contract logic</h3>
+      <p>Payment primitives are implemented in Move, whose resource model prevents whole classes of asset bugs — double-spends, accidental loss, reentrancy patterns — by construction. <a href="#references">[4]</a> Recurring and conditional flows run as deterministic contract logic, not as an autonomous model with spending power.</p>
+
+      <h3>The AI cannot spend</h3>
+      <p>The language model's role is strictly interpretation and proposal. It converts words into a structured transaction for human approval. It has no key, no signing authority, and no path to move funds on its own. A compromised or mistaken model cannot drain a user — the worst case is a proposed transaction the user simply rejects.</p>
+
+      <h3>On-chain and verifiable</h3>
+      <p>Every executed flow is a transaction on Sui, and receipts are recorded on Walrus. Nothing about a user's payment history depends on trusting Velfi's servers — it is independently verifiable on-chain.</p>
+    </section>
+
+    <section id="model">
+      <h2>How Velfi Earns</h2>
+      <p>Velfi has no token. Its economics are built on usage, not speculation, so incentives stay aligned with users actually moving money.</p>
+
+      <h3>Transaction margin</h3>
+      <p>Sending value between <span class="handle">.vel</span> handles is effectively free. Velfi earns a small, transparent spread only where real-world value conversion happens — when money enters or leaves the system, or crosses currencies — comparable to how modern remittance products price, only thinner because settlement runs on Sui rather than a chain of correspondent banks.</p>
+
+      <h3>Premium automation</h3>
+      <p>Advanced and high-volume workflows — business payroll, treasury-style scheduled flows, larger escrow arrangements — are offered under a premium tier for teams and power users, while everyday personal use stays free.</p>
+
+      <h3>Handle and namespace value</h3>
+      <p>The <span class="handle">.vel</span> namespace is a durable asset. Premium and reserved handles create a sustainable, non-extractive revenue line that grows with the network rather than taxing ordinary payments.</p>
+
+      <div class="callout">
+        <div class="callout-label">Principle</div>
+        <p>Velfi makes money when users successfully move money. There is no token to inflate, no yield to manufacture, and no incentive misaligned with the product simply working.</p>
+      </div>
+    </section>
+
+    <section id="roadmap">
+      <h2>Roadmap</h2>
+      <p>Velfi ships in stages, each one widening what a single instruction can do.</p>
+
+      <h3>Now — Foundation</h3>
+      <ul>
+        <li>zkLogin authentication and self-custodial wallet derivation.</li>
+        <li>The <span class="handle">.vel</span> handle system.</li>
+        <li>Core payment primitives in Move: send, split, stream, schedule, escrow.</li>
+        <li>The AI agent that turns plain-language instructions into proposed transactions.</li>
+        <li>Email-to-claim transfers that onboard new users through payments.</li>
+      </ul>
+
+      <h3>Next — Intelligence and reach</h3>
+      <ul>
+        <li>A financial-domain model, retrained on payment logic, for more accurate and nuanced instruction handling.</li>
+        <li>Conditional and trigger-based automation expanded to richer rule sets.</li>
+        <li>A beneficiary and continuity layer for shared and delegated flows.</li>
+        <li>Mobile app release.</li>
+      </ul>
+
+      <h3>Later — Platform</h3>
+      <ul>
+        <li>A developer SDK so other payment apps can integrate Velfi's primitives and agent directly.</li>
+        <li>Broader currency support and additional on/off-ramp partners.</li>
+        <li>Team and treasury tooling for businesses.</li>
+      </ul>
+    </section>
+
+  </div>
+</main>
+
+<!-- CONCLUSION (dark) -->
+<section class="dark" id="conclusion">
+  <div class="page">
+    <h2>Conclusion</h2>
+    <p>For most of history, instructing money meant doing the work yourself, one action at a time. Programmable money promised to change that, then buried the promise under seed phrases, gas tokens, and addresses no human should have to read.</p>
+    <p>Velfi removes the work and the friction at the same time. You say what you want in a sentence; the agent builds the workflow; the chain settles it in under a second; and the keys never leave your hands. Sign in with Google, claim a name, and tell your money what to do.</p>
+    <p>The interface is conversation. The settlement is on-chain. The control is yours. That is the whole idea — and everything on this roadmap is in service of making that one sentence true for more people, in more places, doing more things with their money than they ever could by hand.</p>
+    <p><strong>Tell your money what to do.</strong></p>
+  </div>
+</section>
+
+<!-- REFERENCES (dark) -->
+<section class="dark" id="references">
+  <div class="page">
+    <h2>References &amp; Notes</h2>
+    <p style="font-size:14.5px;">The following sources support claims made in this document. Citations marked for review will be finalized in a subsequent revision.</p>
+    <ol class="refs">
+      <li>Industry analyses of self-custody adoption barriers, identifying key management as a primary obstacle to mainstream use. <em>(Reference to be finalized.)</em></li>
+      <li>User-experience research on transaction complexity in self-custodial wallets. <em>(Reference to be finalized.)</em></li>
+      <li>Mysten Labs, "Sui Documentation — Consensus and Finality." <a href="https://docs.sui.io">docs.sui.io</a></li>
+      <li>Mysten Labs, "The Move Programming Language." <a href="https://docs.sui.io">docs.sui.io</a></li>
+      <li>Mysten Labs, "zkLogin." Sui Documentation. <a href="https://docs.sui.io/concepts/cryptography/zklogin">docs.sui.io/concepts/cryptography/zklogin</a></li>
+    </ol>
+    <p style="font-size:13px; color:rgba(255,255,255,0.5); margin-top:32px;">This litepaper describes Velfi as designed and in active development. Features, parameters, and economics are subject to change as the product evolves. This document is informational and is not financial, investment, or legal advice.</p>
+  </div>
+</section>
+
+<footer class="doc-foot">
+  <p>Velfi Litepaper v1.0 · June 11, 2026 · Kingnana</p>
+</footer>
+
+<script>
+  // reading progress bar
+  const bar = document.getElementById('progress');
+  function onScroll() {
+    const h = document.documentElement;
+    const scrolled = h.scrollTop / (h.scrollHeight - h.clientHeight);
+    bar.style.width = (scrolled * 100) + '%';
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+</script>
+</body>
+</html>

@@ -4,13 +4,16 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@mysten/deepbook-v3": "^0.17.0",
+    "@mysten/sui": "^1.38.0",
     "@mysten/sui.js": "^0.50.1",
     "@mysten/zklogin": "^0.8.1",
     "@supabase/supabase-js": "^2.108.0",

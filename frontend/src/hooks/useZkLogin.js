@@ -4,9 +4,9 @@ import { Ed25519Keypair } from '@mysten/sui.js/keypairs/ed25519'
 import { SuiClient, getFullnodeUrl } from '@mysten/sui.js/client'
 import { generateRandomness, generateNonce, getExtendedEphemeralPublicKey } from '@mysten/zklogin'
 
-const BACKEND = 'http://localhost:3001'
+const BACKEND = '/api'
 const GOOGLE_CLIENT_ID = '819258422444-6h33ugl352hmp4bn7gk9vbkj3cmh28j6.apps.googleusercontent.com'
-const REDIRECT_URI = 'http://localhost:5173/auth/callback'
+const REDIRECT_URI = `${window.location.origin}/auth/callback`
 
 export function useZkLogin() {
   const { login } = useAuth()
@@ -68,7 +68,7 @@ export function useZkLogin() {
       console.log('Calling zklogin with token length:', idToken?.length)
       const authRes = await fetch(`${BACKEND}/auth/zklogin`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
         body: JSON.stringify({ idToken })
       })
       const authData = await authRes.json()
@@ -78,7 +78,7 @@ export function useZkLogin() {
 
       const proverRes = await fetch(`${BACKEND}/auth/prover`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
         body: JSON.stringify({
           jwt: idToken,
           extendedEphemeralPublicKey,

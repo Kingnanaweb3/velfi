@@ -1,9 +1,11 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from './context/AuthContext.jsx'
 import Home from './pages/Home.jsx'
+import Flows from './pages/Flows.jsx'
 import Invest from './pages/Invest.jsx'
 import Activity from './pages/Activity.jsx'
 import Account from './pages/Account.jsx'
+import Chat from './pages/Chat.jsx'
 import Login from './pages/Login.jsx'
 import Register from './pages/Register.jsx'
 import AuthCallback from './pages/AuthCallback.jsx'
@@ -33,6 +35,7 @@ function PublicRoute({ children }) {
 
 export default function App() {
   const { user } = useAuth()
+  const location = useLocation()
   return (
     <>
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
@@ -41,12 +44,14 @@ export default function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+        <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+        <Route path="/flows" element={<ProtectedRoute><Flows /></ProtectedRoute>} />
         <Route path="/invest" element={<ProtectedRoute><Invest /></ProtectedRoute>} />
         <Route path="/activity" element={<ProtectedRoute><Activity /></ProtectedRoute>} />
         <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
-      {user && user.username && <BottomNav />}
+      {user && user.username && location.pathname !== '/chat' && <BottomNav />}
     </>
   )
 }

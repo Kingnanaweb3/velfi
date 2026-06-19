@@ -1,6 +1,7 @@
 import express from 'express'
 import supabase from '../lib/supabase.js'
 import { getSuiBalance } from '../lib/sui.js'
+import { getAllBalances } from '../lib/balances.js'
 import { requireAuth } from '../middleware/auth.js'
 
 const router = express.Router()
@@ -42,6 +43,16 @@ router.get('/notifications', requireAuth, async (req, res) => {
 
     if (error) throw error
     res.json({ notifications: data })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+router.get('/balances', requireAuth, async (req, res) => {
+  try {
+    const tokens = await getAllBalances(req.user.address)
+    const total_usd = tokens.reduce((s, t) => s + (t.usd || 0), 0)
+    res.json({ address: req.user.address, total_usd, tokens })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }

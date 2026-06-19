@@ -10,6 +10,8 @@ import paymentsRouter from './routes/payments.js'
 import streamsRouter from './routes/streams.js'
 import scheduleRouter from './routes/schedule.js'
 import agentRouter from './routes/agent.js'
+import { startStreamRunner } from './lib/streams.js'
+import { startScheduleRunner } from './lib/schedule.js'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -35,5 +37,7 @@ app.use('/schedule', scheduleRouter)
 app.use('/agent', agentRouter)
 
 app.listen(PORT, () => {
+  startStreamRunner()
+  startScheduleRunner()
   console.log(`Vel.fi backend running on port ${PORT}`)
 })
