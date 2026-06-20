@@ -40,10 +40,15 @@ async function runOne(sc) {
   return r.digest
 }
 
+let _ticking = false
 export async function tickSchedules() {
-  const { data } = await supabaseAdmin.from('scheduled_payments').select('*')
-    .eq('status', 'active').lte('next_run_at', new Date().toISOString())
-  for (const sc of data || []) { try { await runOne(sc) } catch (e) { console.error('sched tick', sc.id, e.message) } }
+  if (_ticking) return
+  _ticking = true
+  try {
+    const { data } = await supabaseAdmin.from('scheduled_payments').select('*')
+      .eq('status', 'active').lte('next_run_at', new Date().toISOString())
+    for (const sc of data || []) { try { await runOne(sc) } catch (e) { console.error('sched tick', sc.id, e.message) } }
+  } finally { _ticking = false }
 }
 
 let _runner = null

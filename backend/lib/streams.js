@@ -51,9 +51,14 @@ async function tickOne(s) {
   return r.digest
 }
 
+let _ticking = false
 export async function tickStreams() {
-  const { data } = await supabaseAdmin.from('streams').select('*').eq('status', 'active')
-  for (const s of data || []) { try { await tickOne(s) } catch (e) { console.error('tick error', s.id, e.message) } }
+  if (_ticking) return            // skip if the previous tick is still running
+  _ticking = true
+  try {
+    const { data } = await supabaseAdmin.from('streams').select('*').eq('status', 'active')
+    for (const s of data || []) { try { await tickOne(s) } catch (e) { console.error('tick error', s.id, e.message) } }
+  } finally { _ticking = false }
 }
 
 let _runner = null

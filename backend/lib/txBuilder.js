@@ -60,13 +60,25 @@ export function buildExecuteMandate({ mandateId, amountMist, recipient, coinType
   return txb
 }
 
-// agent signs + executes (autopilot path)
+// Agent-wallet transactions are serialized through one queue so two payouts never
+// grab the same coin/gas object at once (Sui locks it -> "already locked by a
+// different transaction"). Each tx waits for local execution, so the next one builds
+// against settled, up-to-date object versions.
+let _walletChain = Promise.resolve()
+function withWalletLock(fn) {
+  const result = _walletChain.then(() => fn())
+  _walletChain = result.then(() => {}, () => {})   // keep the queue alive on error
+  return result
+}
+
+// agent signs + executes (autopilot path) — serialized, waits for settlement
 export async function signAndRun(txb) {
-  return provider.signAndExecuteTransactionBlock({
+  return withWalletLock(() => provider.signAndExecuteTransactionBlock({
     signer: getDeployerKeypair(),
     transactionBlock: txb,
     options: { showEffects: true, showObjectChanges: true },
-  })
+    requestType: 'WaitForLocalExecution',
+  }))
 }
 
 // serialize for user signing (assisted path)
