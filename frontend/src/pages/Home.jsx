@@ -75,7 +75,7 @@ export default function Home() {
   const usd = bals?.total_usd ?? 0
   const ngn = usd * NGN_RATE_FALLBACK
   const tokenLine = bals?.tokens?.length
-    ? bals.tokens.slice(0, 2).map(t => `${t.human >= 1 ? t.human.toFixed(2) : t.human.toPrecision(3)} ${t.symbol}`).join(' · ')
+    ? [...bals.tokens].sort((a, b) => (a.symbol === 'SUI' ? -1 : b.symbol === 'SUI' ? 1 : 0)).slice(0, 2).map(t => `${t.human >= 1 ? Number(t.human.toFixed(2)) : Number(t.human.toPrecision(3))} ${t.symbol}`).join(' · ')
     : "0.00 SUI"
 
   const _emptyParam = new URLSearchParams(window.location.search).has('empty')
@@ -199,13 +199,15 @@ function RecentActivity({ token, navigate, onSeeAll }) {
           <div className="vh-act-empty">No transactions yet</div>
         ) : rows.map((t, i) => {
           const out = t.direction === 'out'
+          const action = t.type === 'stream' ? 'Streamed' : t.type === 'schedule' ? 'Scheduled' : (out ? 'Sent' : 'Received')
+          const who = (t.counterparty || (t.label || '').replace(/^(Streamed to|Scheduled payment to|Sent to|Received from)\s*/i, '') || 'someone')
           return (
             <div className="vh-act" key={i} style={{ borderTop: i ? '1px solid var(--v-card-bd)' : 'none' }}>
               <div className="vh-act-l">
-                <span className="vh-act-av">{(t.label || '?').charAt(0).toUpperCase()}</span>
+                <span className="vh-act-av">{who.charAt(0).toUpperCase()}</span>
                 <div>
-                  <p className="vh-act-name">{out ? 'Sent to' : 'Received from'} {t.label || 'someone'}</p>
-                  <p className="vh-act-sub">{rel(t.created_at)}</p>
+                  <p className="vh-act-name">{who}</p>
+                  <p className="vh-act-sub">{action}</p>
                 </div>
               </div>
               <div className="vh-act-r">
@@ -246,14 +248,14 @@ function HomeFlows({ token, navigate }) {
       {items.slice(0, 3).map(f => (
         <div className="vh-flow" key={f.id} onClick={() => navigate('/flows')}>
           <div className="vh-flow-top">
-            <span className="vh-flow-kind">{f.kind === 'stream' ? 'Streaming' : 'Scheduled'}</span>
+            <span className="vh-flow-kind">{f.type === 'stream' ? 'Streaming' : 'Scheduled'}</span>
             <span className="vh-flow-to">{f.to}</span>
           </div>
           <div className="vh-flow-bar"><span style={{ width: f.pct + '%' }} /></div>
           <div className="vh-flow-sub">
-            {f.kind === 'stream'
-              ? `${Number(f.streamed).toFixed(4)} / ${f.total} ${f.token} · ${f.pct}%`
-              : `${f.done}/${f.total || '∞'} sent · ${f.amount} ${f.token} ${f.frequency}`}
+            {f.type === 'stream'
+              ? `${Number(f.done || 0).toFixed(3)} / ${f.total} ${f.token} · ${f.pct}%`
+              : `${f.occurrences_done || 0}/${f.occurrences || '∞'} sent · ${f.amount} ${f.token} ${f.frequency}`}
           </div>
         </div>
       ))}
@@ -262,8 +264,8 @@ function HomeFlows({ token, navigate }) {
 }
 
 const HOME_CSS = `
-.vhome{ background:var(--v-bg); font-family:'DM Sans',system-ui,sans-serif; color:var(--v-ink); }
-.vh-wrap{ padding:54px 18px 24px; }
+.vhome{ background:var(--v-bg); font-family:var(--font-body); color:var(--v-ink); }
+.vh-wrap{ padding:calc(env(safe-area-inset-top, 0px) + 14px) 18px 24px; }
 
 .vh-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
 .vh-brand{ display:flex; align-items:center; gap:9px; color:var(--v-ink); }
@@ -296,19 +298,19 @@ const HOME_CSS = `
 .vh-recv-ic{ width:22px; height:22px; border-radius:50%; background:rgba(255,255,255,0.16); display:flex; align-items:center; justify-content:center; }
 
 .vh-cmd{ display:flex; align-items:center; gap:10px; border-radius:22px; padding:9px 9px 9px 18px; margin-bottom:18px; background:var(--v-glass); -webkit-backdrop-filter:blur(20px) saturate(140%); backdrop-filter:blur(20px) saturate(140%); border:1px solid var(--v-glass-bd); box-shadow:0 8px 24px -14px rgba(42,26,58,0.16), inset 0 1px 0 rgba(255,255,255,0.45); }
-.vh-cmd input{ flex:1; min-width:0; background:none; border:none; outline:none; font-family:'DM Sans',sans-serif; font-size:15px; color:var(--v-ink); }
+.vh-cmd input{ flex:1; min-width:0; background:none; border:none; outline:none; font-family:var(--font-body); font-size:15px; color:var(--v-ink); }
 .vh-cmd input::placeholder{ color:var(--v-sub); }
 .vh-send{ width:46px; height:46px; border-radius:50%; flex-shrink:0; background:var(--v-accent); display:flex; align-items:center; justify-content:center; box-shadow:0 6px 16px -4px rgba(123,79,255,0.5); }
 
 .vh-actions{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:22px; }
-.vh-action{ display:flex; flex-direction:row; align-items:center; justify-content:center; gap:9px; padding:9px 4px; background:none; border:none; }
-.vh-action-ic{ width:38px; height:38px; border-radius:12px; background:var(--v-chip); color:var(--v-accent); display:flex; align-items:center; justify-content:center; }
-.vh-action-l{ font-size:15px; font-weight:500; letter-spacing:-0.1px; color:var(--v-ink); }
+.vh-action{ display:flex; flex-direction:row; align-items:center; gap:9px; padding:12px 10px; background:var(--v-card-solid); border:1px solid var(--v-card-bd); border-radius:16px; box-shadow:var(--shadow); }
+.vh-action-ic{ width:34px; height:34px; border-radius:11px; background:var(--v-chip); color:var(--v-accent); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.vh-action-l{ font-size:13px; font-weight:500; letter-spacing:-0.1px; color:var(--v-ink); }
 
 .vh-sec{ display:flex; align-items:center; justify-content:space-between; margin:0 2px 10px; }
 .vh-sec > span{ font-size:15px; font-weight:600; color:var(--v-ink); }
 .vh-sec-more{ background:none; color:var(--v-sub); display:flex; }
-.vh-sec-link{ background:none; color:var(--v-accent); font-size:13px; font-weight:600; font-family:'DM Sans',sans-serif; }
+.vh-sec-link{ background:none; color:var(--v-accent); font-size:13px; font-weight:600; font-family:var(--font-body); }
 .vh-empty{ padding:14px 2px 22px; font-size:13px; color:var(--v-sub); line-height:1.45; background:none; border:none; }
 
 .vh-list{ padding:0 2px; background:none; border:none; }
@@ -337,4 +339,5 @@ const HOME_CSS = `
 .vh-flow-bar{ height:6px; border-radius:999px; background:var(--v-chip); overflow:hidden; }
 .vh-flow-bar span{ display:block; height:100%; border-radius:999px; background:var(--v-accent); transition:width .5s ease; }
 .vh-flow-sub{ font-size:12px; color:var(--v-sub); margin-top:7px; }
+.vh-bal-amt,.vh-act-amt,.vh-bal-fiat,.vh-tok-txt{ font-variant-numeric:tabular-nums; }
 `
