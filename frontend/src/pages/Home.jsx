@@ -267,7 +267,7 @@ const HOME_CSS = `
 
 .vh-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
 .vh-brand{ display:flex; align-items:center; gap:9px; color:var(--v-ink); }
-.vh-word{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:22px; letter-spacing:-0.5px; }
+.vh-word{ font-family:var(--font-display); font-weight:500; font-size:23px; letter-spacing:0.2px; }
 .vh-head-r{ display:flex; align-items:center; gap:10px; }
 .vh-iconbtn{ position:relative; width:42px; height:42px; display:flex; align-items:center; justify-content:center; color:var(--v-ink); background:none; border:none; }
 .vh-dot{ position:absolute; top:10px; right:11px; width:7px; height:7px; border-radius:50%; background:var(--v-accent); }
@@ -280,7 +280,7 @@ const HOME_CSS = `
 
 .vh-bal-top{ display:flex; align-items:center; gap:8px; color:#cbbfe0; font-size:13px; }
 .vh-bal-top button{ background:none; color:#cbbfe0; display:flex; }
-.vh-bal-amt{ margin-top:8px; font-size:clamp(32px,11vw,44px); font-weight:700; letter-spacing:-1px; color:#fff; line-height:1.05; }
+.vh-bal-amt{ margin-top:8px; font-size:clamp(34px,11vw,42px); font-weight:600; letter-spacing:-0.5px; color:#fff; line-height:1.05; }
 .vh-bal-fiat{ margin-top:4px; font-size:14px; color:#b4a8d0; }
 .vh-bal-row{ display:flex; gap:10px; margin-top:18px; position:relative; }
 .vh-tokenchip{ display:flex; flex:1; min-width:0; align-items:center; gap:7px; padding:9px 12px; border-radius:999px;

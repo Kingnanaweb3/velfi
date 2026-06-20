@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Bell, Eye, Plus, Users, Send, Waves, ChevronRight, ArrowUp } from 'lucide-react'
+import { Bell, Eye, Plus, Wallet, Users, Send, Waves, ChevronRight, ArrowUp } from 'lucide-react'
 import otterHero from '../assets/otter-hero.png'
 import otterAvatar from '../assets/otter-avatar.png'
 import ReceiveSheet from './ReceiveSheet.jsx'
@@ -45,9 +45,12 @@ export default function EmptyHome({ user, navigate }) {
             <div className="ve-bal-amt">$0.00</div>
             <div className="ve-bal-fiat">&#8776; &#8358;0</div>
           </div>
-          <button className="ve-addmoney" onClick={() => setRecvOpen(true)}>
-            Add money <span className="ve-add-ic"><Plus size={14} strokeWidth={2.8} /></span>
-          </button>
+          <div className="ve-bal-r">
+            <span className="ve-wallet"><Wallet size={22} strokeWidth={1.7} /></span>
+            <button className="ve-addmoney" onClick={() => setRecvOpen(true)}>
+              Add money <span className="ve-add-ic"><Plus size={14} strokeWidth={2.8} /></span>
+            </button>
+          </div>
         </div>
 
         <div className="ve-hero">
@@ -83,23 +86,26 @@ const EMPTY_CSS = `
 .ve-wrap{ padding:calc(env(safe-area-inset-top, 0px) + 14px) 18px 24px; }
 .ve-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
 .ve-brand{ display:flex; align-items:center; gap:9px; color:var(--v-ink); }
-.ve-word{ font-family:var(--font-display); font-weight:700; font-size:21px; letter-spacing:-0.4px; }
+.ve-word{ font-family:var(--font-display); font-weight:500; font-size:23px; letter-spacing:0.2px; }
 .ve-head-r{ display:flex; align-items:center; gap:10px; }
 .ve-iconbtn{ position:relative; width:42px; height:42px; display:flex; align-items:center; justify-content:center; color:var(--v-ink); background:none; }
 .ve-dot{ position:absolute; top:10px; right:11px; width:7px; height:7px; border-radius:50%; background:var(--v-accent); }
 .ve-avatar{ width:44px; height:44px; border-radius:50%; overflow:hidden; border:1px solid var(--v-card-bd); background:var(--v-chip); }
 .ve-avatar img{ width:100%; height:100%; object-fit:cover; }
 
-.ve-balance{ display:flex; align-items:center; justify-content:space-between; gap:12px; border-radius:24px; padding:18px 20px; margin-bottom:6px; background:var(--v-card-solid); border:1px solid var(--v-card-bd); box-shadow:var(--shadow); }
+.ve-balance{ display:flex; align-items:stretch; justify-content:space-between; gap:12px; border-radius:24px; padding:22px 20px; min-height:150px; margin-bottom:4px; background:var(--v-card-solid); border:1px solid var(--v-card-bd); box-shadow:var(--shadow); }
+.ve-bal-l{ display:flex; flex-direction:column; justify-content:center; }
+.ve-bal-r{ display:flex; flex-direction:column; align-items:flex-end; justify-content:space-between; }
+.ve-wallet{ width:46px; height:46px; border-radius:14px; background:var(--v-chip); color:var(--v-accent); display:flex; align-items:center; justify-content:center; }
 .ve-bal-top{ display:flex; align-items:center; gap:7px; color:var(--v-sub); font-size:12px; }
-.ve-bal-amt{ font-family:var(--font-display); font-weight:700; font-size:32px; letter-spacing:-1px; color:var(--v-ink); line-height:1.05; margin-top:5px; }
+.ve-bal-amt{ font-family:var(--font-display); font-weight:600; font-size:34px; letter-spacing:-0.5px; color:var(--v-ink); line-height:1.05; margin-top:5px; }
 .ve-bal-fiat{ font-size:12px; color:var(--v-sub); margin-top:2px; }
 .ve-addmoney{ display:flex; align-items:center; gap:8px; flex-shrink:0; padding:11px 16px; border-radius:999px; background:var(--v-ink); color:var(--v-bg); font-family:var(--font-body); font-size:14px; font-weight:600; }
 .ve-add-ic{ width:20px; height:20px; border-radius:50%; background:rgba(150,150,170,0.25); display:flex; align-items:center; justify-content:center; }
 
-.ve-hero{ position:relative; margin:0 -18px 8px; }
-.ve-otter{ display:block; width:100%; height:auto; }
-.ve-hero-txt{ position:absolute; top:18px; right:20px; width:50%; z-index:1; }
+.ve-hero{ margin:6px 0 -10px; }
+.ve-otter{ display:block; width:calc(100% + 36px); margin:8px -18px 0; height:auto; }
+.ve-hero-txt{ padding:0 2px; }
 .ve-hi{ font-size:13px; color:var(--v-sub); }
 .ve-ready{ font-family:var(--font-display); font-weight:700; font-size:23px; line-height:1.12; letter-spacing:-0.5px; color:var(--v-ink); margin:3px 0 7px; }
 .ve-ready span{ color:var(--v-accent); }
