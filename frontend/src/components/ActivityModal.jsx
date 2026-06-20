@@ -46,13 +46,14 @@ export default function ActivityModal({ open, onClose, token }) {
             : list.length === 0 ? <div className="am-empty">No transactions yet</div>
             : list.map(t => {
               const out = t.direction === 'out'
-              const who = t.label || (out ? 'recipient' : 'sender')
+              const action = t.type === 'stream' ? 'Streamed' : t.type === 'schedule' ? 'Scheduled' : (out ? 'Sent' : 'Received')
+              const who = t.counterparty || (t.label || '').replace(/^(Sent to|Received from|Streamed to|Scheduled to|Sent|Received|Streamed|Scheduled)\s*/i, '').trim() || (out ? 'recipient' : 'sender')
               return (
                 <div className="am-row" key={t.id}>
                   <span className={`am-ic ${out ? 'out' : 'in'}`}>{out ? <ArrowUpRight size={20} /> : <ArrowDownLeft size={20} />}</span>
                   <div className="am-mid">
-                    <p className="am-name">{out ? 'Sent to' : 'Received from'} {who}</p>
-                    <p className="am-meta">{t.amount != null ? `${fmtAmt(t.amount)} ${t.token || ''}` : (t.type || '')}</p>
+                    <p className="am-name">{who}</p>
+                    <p className="am-meta">{action}{t.amount != null ? ` · ${fmtAmt(t.amount)} ${t.token || ''}` : ''}</p>
                     <p className="am-time">{dateLabel(t.created_at)}</p>
                   </div>
                   <div className="am-right">
@@ -71,7 +72,7 @@ export default function ActivityModal({ open, onClose, token }) {
 const AM_CSS = `
 .am-wrap{ position:fixed; inset:0; z-index:300; background:rgba(20,12,30,0.45); -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); display:flex; align-items:flex-end; justify-content:center; animation:amf .2s; }
 @keyframes amf{ from{opacity:0} to{opacity:1} }
-.am-sheet{ width:100%; max-width:430px; max-height:88vh; display:flex; flex-direction:column; background:var(--v-bg); border-radius:28px 28px 0 0; padding:10px 18px calc(20px + env(safe-area-inset-bottom)); animation:amu .28s cubic-bezier(.2,.9,.3,1); box-shadow:0 -20px 60px -20px rgba(20,12,30,0.4); font-family:'DM Sans',system-ui,sans-serif; }
+.am-sheet{ width:100%; max-width:430px; max-height:88vh; display:flex; flex-direction:column; background:var(--v-bg); border-radius:28px 28px 0 0; padding:10px 18px calc(20px + env(safe-area-inset-bottom)); animation:amu .28s cubic-bezier(.2,.9,.3,1); box-shadow:0 -20px 60px -20px rgba(20,12,30,0.4); font-family:var(--font-body); }
 @keyframes amu{ from{transform:translateY(100%)} to{transform:translateY(0)} }
 .am-grab{ width:40px; height:4px; border-radius:2px; background:var(--v-card-bd); margin:0 auto 14px; }
 .am-head{ display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:14px; }
