@@ -29,6 +29,17 @@ export function validateSplit(recipients) {
   if (!Array.isArray(recipients) || recipients.length < 2)
     return { ok: false, error: 'needs 2+ recipients' }
 
+  // "X takes 40%, Y takes the rest": some shares set, others null and no amounts.
+  // Fill the blanks with the leftover so they sum to 100 before checking.
+  if (recipients.some(r => r.share != null) && !recipients.some(r => r.amount != null)) {
+    const namedSum = recipients.reduce((s, r) => s + (r.share != null ? Number(r.share) : 0), 0)
+    const missing = recipients.filter(r => r.share == null)
+    if (missing.length && namedSum < 100) {
+      const each = (100 - namedSum) / missing.length
+      missing.forEach(r => { r.share = each })
+    }
+  }
+
   const haveAmounts = recipients.every(r => r.amount != null)
   const haveShares = recipients.every(r => r.share != null)
 
@@ -101,6 +112,8 @@ export function normalizeSplit(pay) {
   const haveAmt = rs.every(r => r.amount != null)
   const haveShare = rs.every(r => r.share != null)
   if (haveAmt || haveShare) return
+  // Don't clobber a partial split (e.g. "X takes 40%, Y takes the rest").
+  if (rs.some(r => r.share != null || r.amount != null)) return
   const total = Number(pay.amount)
   if (Number.isFinite(total) && total > 0) {
     const each = total / rs.length

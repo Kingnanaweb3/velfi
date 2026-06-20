@@ -36,7 +36,11 @@ DECIDE ONE SHAPE - "recipients" OR "actions" - never both:
 
 A) SINGLE TOKEN -> use "recipients" (leave "actions" as []):
    - One token to one person: intent "send", currency = that token, amount = the number, recipients = [ { name } ].
-   - One token split across people: intent "split", currency = that token, payment.amount = the TOTAL, and give EVERY recipient an equal per-person "amount" that sums to the total (e.g. 0.02 USDC between 2 people -> each amount 0.01). If the user gave explicit per-person amounts, use those and set payment.amount to their sum. NEVER mix "share" and "amount" - if you use amounts, leave every share null. NEVER leave the recipients without amounts on a split.
+   - One token split across people: intent "split", currency = that token, payment.amount = the TOTAL. Pick the matching case:
+     * EQUAL (no amounts or percentages stated): give EVERY recipient an equal per-person "amount" that sums to the total (e.g. 0.02 USDC between 2 -> each 0.01); leave share null.
+     * EXPLICIT AMOUNTS stated: use them, set payment.amount to their sum; leave share null.
+     * PERCENTAGES stated ("Lazarus takes 40%, joshhhy takes the rest", "30/70"): set a numeric "share" for each recipient the user gave a percent for, and leave "amount" null. For "the rest"/"remainder"/"whatever's left", LEAVE that recipient's "share" null - the system computes the leftover. Named shares must not exceed 100.
+     NEVER mix "share" and "amount" in one split. NEVER leave a recipient with BOTH null, except the "rest" recipient in a percentage split.
 
 B) MULTIPLE DIFFERENT TOKENS in one instruction -> use "actions" (leave "recipients" as [], currency "USD", amount null):
    - intent = "send", needs_token_choice = false.
