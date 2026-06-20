@@ -147,7 +147,7 @@ a { text-decoration: none; }
   --font-body:'Roboto',-apple-system,system-ui,sans-serif;
   --v-bg:#0E0F14;
   --v-ink:#F4F2FA; --v-sub:#9b90b5;
-  --v-accent:#AC83D4; --v-accent-2:#9466bf;
+  --v-accent:#7B4FFF; --v-accent-2:#8B6BFF;
   --v-card-solid:#17131f; --v-card-bd:rgba(255,255,255,0.07);
   --v-glass:rgba(124,109,255,0.08); --v-glass-bd:rgba(124,109,255,0.18);
   --v-chip:rgba(124,109,255,0.16);
@@ -156,7 +156,7 @@ a { text-decoration: none; }
 [data-theme="light"]{
   --v-bg:#EFEDF7;
   --v-ink:#1a1226; --v-sub:#6a5a8a;
-  --v-accent:#9163B5; --v-accent-2:#7d4fa0;
+  --v-accent:#7B4FFF; --v-accent-2:#8B6BFF;
   --v-card-solid:#FBFAFE; --v-card-bd:rgba(42,26,58,0.08);
   --v-glass:rgba(255,255,255,0.6); --v-glass-bd:rgba(255,255,255,0.7);
   --v-chip:rgba(123,79,255,0.10);
