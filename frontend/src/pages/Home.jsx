@@ -11,6 +11,7 @@ import suiCoin from '../assets/sui_coin.png'
 import usdcCoin from '../assets/usdc_coin.png'
 import ActivityModal from '../components/ActivityModal.jsx'
 import ReceiveSheet from '../components/ReceiveSheet.jsx'
+import EmptyHome from '../components/EmptyHome.jsx'
 
 const RPC = 'https://fullnode.testnet.sui.io'
 const SUI_PRICE_FALLBACK = 3.2   // TODO: pull from backend /pricing
@@ -76,6 +77,10 @@ export default function Home() {
   const tokenLine = bals?.tokens?.length
     ? bals.tokens.slice(0, 2).map(t => `${t.human >= 1 ? t.human.toFixed(2) : t.human.toPrecision(3)} ${t.symbol}`).join(' · ')
     : "0.00 SUI"
+
+  const _emptyParam = new URLSearchParams(window.location.search).has('empty')
+  const isEmpty = !loading && (_emptyParam || (usd === 0 && !(bals?.tokens?.length)))
+  if (isEmpty) return <EmptyHome user={user} navigate={navigate} />
 
   function submit() {
     const t = msg.trim(); if (!t) return
