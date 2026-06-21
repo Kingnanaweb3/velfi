@@ -3,11 +3,20 @@ import jwt from 'jsonwebtoken'
 import { OAuth2Client } from 'google-auth-library'
 import supabase from '../lib/supabaseAdmin.js'
 import { getUserSalt, computeSuiAddress } from '../lib/zklogin.js'
+import { agentAddress } from '../lib/txBuilder.js'
 import dotenv from 'dotenv'
 dotenv.config()
 
 const router = express.Router()
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
+
+// GET /auth/demo — no-signup demo session on the shared agent wallet
+router.get('/demo', (req, res) => {
+  const address = agentAddress()
+  const user = { address, username: 'demo', email: null, demo: true }
+  const token = jwt.sign({ ...user }, process.env.JWT_SECRET, { expiresIn: '7d' })
+  res.json({ token, user })
+})
 
 // POST /auth/zklogin
 // Called after Google OAuth — verifies JWT, derives salt, computes Sui address

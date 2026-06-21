@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import Demo from './pages/Demo.jsx'
 import { useAuth } from './context/AuthContext.jsx'
 import Home from './pages/Home.jsx'
 import Flows from './pages/Flows.jsx'
@@ -42,6 +43,7 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
         <Route path="/register" element={<Register />} />
+        <Route path="/demo" element={<Demo />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
         <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
