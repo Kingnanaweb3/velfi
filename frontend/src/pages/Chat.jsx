@@ -93,7 +93,11 @@ export default function Chat() {
       const r = await fetch(`${API}/agent/run/${pending.id}`, { method: 'POST', headers: h(token), body: '{}' })
       const d = await r.json()
       if (d.success) { setSheet({ type: 'success', digest: d.digest, payment: pending.payment, intent: pending.intent }); push({ role: 'assistant', done: { digest: d.digest, payment: pending.payment, intent: pending.intent } }); setPending(null) }
-      else { setSheet(null); push({ role: 'assistant', text: d.error || 'That didn’t go through on-chain.' }) }
+      else {
+        setMessages(prev => prev.map(m => (m.proposal && m.proposal.id === pending.id) ? { ...m, proposal: null } : m))
+        setSheet(null); setPending(null)
+        push({ role: 'assistant', text: d.error || 'That did not go through on-chain.', txDigest: d.digest || null })
+      }
     } catch { setSheet(null); push({ role: 'assistant', text: 'Network error while signing — nothing was sent.' }) }
   }
 
@@ -163,6 +167,7 @@ function Msg({ m, onConfirm, onCancel, onRevise, onSend }) {
       <img className="vc-bubava" src={otterAgent} alt="" />
       <div className="vc-astack">
         {m.text && <div className="vc-bubble assistant">{renderRich(m.text)}<span className="vc-time">{m.time}</span></div>}
+          {m.txDigest && <a className="vc-done-link" href={SUISCAN(m.txDigest)} target="_blank" rel="noreferrer">View on Sui <ExternalLink size={12} /></a>}
         {m.tokens && <div className="vc-tokpick">{m.tokens.map(tk => <button key={tk} className="vc-tokbtn" onClick={() => onSend(tk)}>{tk}</button>)}</div>}
         {m.proposal && <ProposalCard p={m.proposal} onConfirm={onConfirm} onCancel={onCancel} onRevise={onRevise} />}
         {m.done && <DoneCard done={m.done} />}
