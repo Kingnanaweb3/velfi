@@ -158,12 +158,39 @@ function Msg({ m, onConfirm, onCancel, onRevise, onSend }) {
     </div>
   )
 }
+function guardianChecks(p, d, bals) {
+  const out = []
+  const pay = p.payment || {}
+  const recs = pay.recipients || []
+  if (recs.some(r => (r.resolved?.address || r.address) && !(r.name || r.email || r.resolved?.label)))
+    out.push("You're paying a raw wallet address — if it's even slightly off, the funds can't be recovered.")
+  if (d.kind !== 'swap' && bals?.tokens) {
+    const tok = sym(pay)
+    const total = recipientsOf(pay).reduce((a, r) => a + (Number(r.amount) || 0), 0)
+    const held = bals.tokens.find(t => String(t.symbol || '').toUpperCase() === String(tok).toUpperCase())?.human || 0
+    if (held > 0 && total / held >= 0.5) out.push(`This moves ${Math.round((total / held) * 100)}% of your ${tok} balance in one transaction.`)
+  }
+  if (d.kind === 'swap') out.push('Swaps fill at the live market price — the amount you receive can shift with slippage before it lands.')
+  return out
+}
 function ProposalCard({ p, onConfirm, onCancel, onRevise }) {
   const d = desc(p)
+  const { token } = useAuth()
+  const [bals, setBals] = useState(null)
+  useEffect(() => {
+    if (!token) return
+    fetch(`${API}/account/balances`, { headers: h(token) }).then(r => r.json()).then(setBals).catch(() => {})
+  }, [token])
+  const warns = guardianChecks(p, d, bals)
   return (
     <div className="vc-prop">
       <div className="vc-prop-rows">{d.rows.map((r, i) => <div className="vc-prop-row" key={i}><span className="vc-prop-to">{r.label}</span><span className="vc-prop-amt">{r.amount}</span></div>)}</div>
       {d.note && <div className="vc-prop-note">{d.note}</div>}
+      <div className={`vc-guard-box ${warns.length ? 'warn' : 'ok'}`}>
+        {warns.length === 0
+          ? <div className="vc-guard-row vc-guard-ok"><ShieldCheck size={14} /> Guardian checked — no risks flagged</div>
+          : warns.map((w, i) => <div className="vc-guard-row" key={i}><AlertTriangle size={14} /> <span>{w}</span></div>)}
+      </div>
       <div className="vc-prop-meta"><span>Network fee</span><span>≈ 0.003 SUI</span></div>
       <button className="vc-confirm" onClick={onConfirm}>Confirm</button>
       <div className="vc-prop-sub"><button onClick={onRevise}>Revise</button><span>·</span><button onClick={onCancel}>Cancel</button></div>
@@ -272,6 +299,13 @@ const CHAT_CSS = `
 .vc-prop-to{ font-size:14px; font-weight:600; } .vc-prop-amt{ font-size:14px; font-weight:700; }
 .vc-prop-meta{ display:flex; justify-content:space-between; font-size:12px; color:var(--v-sub); margin:12px 0; padding-top:10px; border-top:1px solid var(--v-card-bd); }
 .vc-confirm{ width:100%; padding:12px; border-radius:14px; background:var(--v-accent); color:#fff; font-size:15px; font-weight:700; }
+.vc-guard-box{ margin:10px 0 2px; padding:10px 12px; border-radius:12px; display:flex; flex-direction:column; gap:6px; }
+.vc-guard-box.ok{ background:rgba(29,184,102,0.08); }
+.vc-guard-box.warn{ background:rgba(224,152,42,0.12); }
+.vc-guard-row{ display:flex; align-items:flex-start; gap:7px; font-size:12.5px; line-height:1.4; color:var(--v-ink); }
+.vc-guard-row svg{ flex-shrink:0; margin-top:1px; color:#E0982A; }
+.vc-guard-ok{ color:var(--v-sub); }
+.vc-guard-ok svg{ color:var(--v-success); }
 .vc-done{ display:flex; align-items:center; gap:10px; background:var(--v-card-solid); border:1px solid var(--v-card-bd); border-radius:16px; padding:12px 14px; }
 .vc-done-ic{ width:30px; height:30px; border-radius:50%; background:var(--v-success); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 .vc-done-h{ font-size:14px; font-weight:700; }
