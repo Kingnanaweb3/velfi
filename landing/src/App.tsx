@@ -193,7 +193,7 @@ function App() {
           </div>
           <h1 className="hero-headline">Tell Your Money<br />What To Do.</h1>
           <p className="hero-body">The AI money agent that lets you perform sophisticated and complex transactions by just texting them into on-chain financial workflows.</p>
-          <a href="#waitlist" className="hero-cta">Test Demo</a>
+          <a href="https://app.velfi.xyz/demo" className="hero-cta">Test Demo</a>
         </div>
       </section>
 
