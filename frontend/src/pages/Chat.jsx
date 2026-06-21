@@ -98,8 +98,20 @@ export default function Chat() {
   }
 
   function newChat() { setMessages([]); setPending(null); setSheet(null); try { localStorage.removeItem(STORE) } catch {} setTimeout(() => inputRef.current?.focus(), 100) }
-  function cancel() { if (pending) { fetch(`${API}/agent/cancel/${pending.id}`, { method: 'POST', headers: h(token), body: '{}' }).catch(() => {}) } setPending(null); setSheet(null); push({ role: 'assistant', text: 'Okay, cancelled \u2014 nothing was sent.' }) }
-  function revise() { setSheet(null); setTimeout(() => inputRef.current?.focus(), 50) }
+  function cancel() {
+    if (pending) fetch(`${API}/agent/cancel/${pending.id}`, { method: 'POST', headers: h(token), body: '{}' }).catch(() => {})
+    setMessages(prev => prev.map(m => (m.proposal && pending && m.proposal.id === pending.id) ? { ...m, proposal: null } : m))
+    setPending(null); setSheet(null)
+    push({ role: 'assistant', text: 'Okay, cancelled \u2014 nothing was sent.' })
+  }
+  function revise() {
+    if (pending) fetch(`${API}/agent/cancel/${pending.id}`, { method: 'POST', headers: h(token), body: '{}' }).catch(() => {})
+    const lastUser = [...messages].reverse().find(m => m.role === 'user')
+    setMessages(prev => prev.map(m => (m.proposal && pending && m.proposal.id === pending.id) ? { ...m, proposal: null } : m))
+    setPending(null); setSheet(null)
+    if (lastUser?.text) setInput(lastUser.text)
+    setTimeout(() => inputRef.current?.focus(), 50)
+  }
 
   const chips = ['What can I do?', 'Check my balance', 'Recent activity']
   let lastDay = null
