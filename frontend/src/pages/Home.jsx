@@ -59,6 +59,7 @@ export default function Home() {
   const [msg, setMsg] = useState('')
   const [actOpen, setActOpen] = useState(false)
   const [recvOpen, setRecvOpen] = useState(false)
+  const [tokOpen, setTokOpen] = useState(false)
 
   useEffect(() => { if (token) loadBalance() }, [token])
 
@@ -122,7 +123,7 @@ export default function Home() {
           <div className="vh-bal-amt">{loading ? '—' : hidden ? '••••••' : '$' + fmtUsd(usd)}</div>
           <div className="vh-bal-fiat">{hidden || loading ? '\u00A0' : '\u2248 \u20A6' + Math.round(ngn).toLocaleString()}</div>
           <div className="vh-bal-row">
-            <button className="vh-tokenchip" onClick={() => navigate('/chat')}>
+            <button className="vh-tokenchip" onClick={() => setTokOpen(true)}>
               <span className="vh-coin"><img src={suiCoin} alt="SUI" /></span><span className="vh-coin"><img src={usdcCoin} alt="USDC" /></span>
               <span className="vh-tok-txt">{tokenLine}</span>
               <ChevronRight size={15} strokeWidth={2.2} />
@@ -163,9 +164,57 @@ export default function Home() {
       </div>
       <ActivityModal open={actOpen} onClose={() => setActOpen(false)} token={token} />
       <ReceiveSheet open={recvOpen} onClose={() => setRecvOpen(false)} username={user?.username} />
+      <TokensModal open={tokOpen} onClose={() => setTokOpen(false)} tokens={bals?.tokens} usd={usd} />
     </div>
   )
 }
+
+function TokensModal({ open, onClose, tokens, usd }) {
+  if (!open) return null
+  const list = [...(tokens || [])].sort((a, b) => (a.symbol === 'SUI' ? -1 : b.symbol === 'SUI' ? 1 : 0))
+  const icon = (sym) => sym === 'SUI' ? suiCoin : sym === 'USDC' ? usdcCoin : null
+  const amt = (t) => t.human >= 1 ? Number(t.human.toFixed(2)) : Number(t.human.toPrecision(3))
+  return (
+    <div className="tm-wrap" onClick={onClose}>
+      <style>{TM_CSS}</style>
+      <div className="tm-sheet" onClick={e => e.stopPropagation()}>
+        <div className="tm-grab" />
+        <div className="tm-head"><p className="tm-title">Your tokens</p><p className="tm-sub">${fmtUsd(usd)} total</p></div>
+        <div className="tm-list">
+          {list.length === 0 && <div className="tm-empty">No tokens yet</div>}
+          {list.map((t, i) => (
+            <div className="tm-row" key={i}>
+              <span className="tm-ic">{icon(t.symbol) ? <img src={icon(t.symbol)} alt={t.symbol} /> : <span className="tm-letter">{(t.symbol || '?')[0]}</span>}</span>
+              <div className="tm-meta"><p className="tm-sym">{t.symbol}</p><p className="tm-amt">{amt(t)} {t.symbol}</p></div>
+              <span className="tm-usd">${fmtUsd(t.usd || 0)}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+const TM_CSS = `
+.tm-wrap{ position:fixed; inset:0; z-index:300; background:rgba(20,12,30,0.45); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); display:flex; align-items:flex-end; justify-content:center; animation:tmf .2s; }
+@keyframes tmf{ from{opacity:0} to{opacity:1} }
+.tm-sheet{ width:100%; max-width:430px; background:var(--v-bg); border-radius:28px 28px 0 0; padding:10px 20px calc(24px + env(safe-area-inset-bottom)); animation:tmu .28s cubic-bezier(.2,.9,.3,1); box-shadow:0 -20px 60px -20px rgba(20,12,30,0.4); font-family:var(--font-body); }
+@keyframes tmu{ from{transform:translateY(100%)} to{transform:translateY(0)} }
+.tm-grab{ width:40px; height:4px; border-radius:2px; background:var(--v-card-bd); margin:0 auto 16px; }
+.tm-head{ margin-bottom:12px; }
+.tm-title{ font-size:20px; font-weight:700; color:var(--v-ink); }
+.tm-sub{ font-size:13px; color:var(--v-sub); margin-top:2px; font-variant-numeric:tabular-nums; }
+.tm-list{ display:flex; flex-direction:column; }
+.tm-row{ display:flex; align-items:center; gap:12px; padding:13px 0; border-top:1px solid var(--v-card-bd); }
+.tm-row:first-child{ border-top:none; }
+.tm-ic{ width:38px; height:38px; border-radius:50%; overflow:hidden; flex-shrink:0; display:flex; align-items:center; justify-content:center; background:var(--v-chip); }
+.tm-ic img{ width:100%; height:100%; object-fit:cover; }
+.tm-letter{ font-size:15px; font-weight:700; color:var(--v-accent); }
+.tm-meta{ flex:1; min-width:0; }
+.tm-sym{ font-size:15px; font-weight:700; color:var(--v-ink); }
+.tm-amt{ font-size:12px; color:var(--v-sub); margin-top:1px; font-variant-numeric:tabular-nums; }
+.tm-usd{ font-size:15px; font-weight:700; color:var(--v-ink); font-variant-numeric:tabular-nums; }
+.tm-empty{ text-align:center; color:var(--v-sub); font-size:13px; padding:20px 0; }
+`
 
 function RecentActivity({ token, navigate, onSeeAll }) {
   const [rows, setRows] = useState([])
