@@ -102,6 +102,7 @@ export default function Home() {
       <style>{HOME_CSS}</style>
       <div className="vh-wrap">
 
+        {user?.demo && <div style={{ margin: '0 0 12px', padding: '8px 12px', borderRadius: 10, background: 'rgba(123,79,255,0.12)', color: 'var(--v-accent)', fontSize: 12, fontWeight: 600, textAlign: 'center', fontFamily: 'var(--font-body)' }}>Demo wallet · real users sign in with zkLogin (no seed phrase)</div>}
         <div className="vh-head">
           <div className="vh-brand"><TallyLogo /><span className="vh-word">Velfi</span></div>
           <div className="vh-head-r">
