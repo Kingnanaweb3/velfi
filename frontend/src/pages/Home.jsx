@@ -75,8 +75,10 @@ export default function Home() {
 
   const usd = bals?.total_usd ?? 0
   const ngn = usd * NGN_RATE_FALLBACK
-  const tokenLine = bals?.tokens?.length
-    ? [...bals.tokens].sort((a, b) => (a.symbol === 'SUI' ? -1 : b.symbol === 'SUI' ? 1 : 0)).slice(0, 2).map(t => `${t.human >= 1 ? Number(t.human.toFixed(2)) : Number(t.human.toPrecision(3))} ${t.symbol}`).join(' · ')
+  const topTok = bals?.tokens?.length ? [...bals.tokens].sort((a, b) => (b.usd || 0) - (a.usd || 0))[0] : null
+  const topIcon = topTok?.symbol === 'SUI' ? suiCoin : topTok?.symbol === 'USDC' ? usdcCoin : null
+  const tokenLine = topTok
+    ? `${topTok.human >= 1 ? Number(topTok.human.toFixed(2)) : Number(topTok.human.toPrecision(3))} ${topTok.symbol}`
     : "0.00 SUI"
 
   const _emptyParam = new URLSearchParams(window.location.search).has('empty')
@@ -124,7 +126,7 @@ export default function Home() {
           <div className="vh-bal-fiat">{hidden || loading ? '\u00A0' : '\u2248 \u20A6' + Math.round(ngn).toLocaleString()}</div>
           <div className="vh-bal-row">
             <button className="vh-tokenchip" onClick={() => setTokOpen(true)}>
-              <span className="vh-coin"><img src={suiCoin} alt="SUI" /></span><span className="vh-coin"><img src={usdcCoin} alt="USDC" /></span>
+              <span className="vh-coin">{topIcon ? <img src={topIcon} alt={topTok.symbol} /> : <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--v-accent)' }}>{(topTok?.symbol || '?')[0]}</span>}</span>
               <span className="vh-tok-txt">{tokenLine}</span>
               <ChevronRight size={15} strokeWidth={2.2} />
             </button>
