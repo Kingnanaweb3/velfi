@@ -92,7 +92,7 @@ export default function Chat() {
     try {
       const r = await fetch(`${API}/agent/run/${pending.id}`, { method: 'POST', headers: h(token), body: '{}' })
       const d = await r.json()
-      if (d.success) { setSheet({ type: 'success', digest: d.digest, payment: pending.payment, intent: pending.intent }); push({ role: 'assistant', done: { digest: d.digest, payment: pending.payment, intent: pending.intent } }); setPending(null) }
+      if (d.success) { setMessages(prev => prev.map(m => (m.proposal && pending && m.proposal.id === pending.id) ? { ...m, proposal: null } : m)); setSheet({ type: 'success', digest: d.digest, payment: pending.payment, intent: pending.intent }); push({ role: 'assistant', done: { digest: d.digest, payment: pending.payment, intent: pending.intent } }); setPending(null) }
       else {
         setMessages(prev => prev.map(m => (m.proposal && m.proposal.id === pending.id) ? { ...m, proposal: null } : m))
         setSheet(null); setPending(null)

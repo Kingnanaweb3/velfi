@@ -825,24 +825,8 @@ router.post('/run/:id', requireAuth, async (req, res) => {
     }
 
     if (pending.intent === 'swap') {
-      const sw = pending.payment?.swap || {}
-      const from = String(sw.from_token || '').toUpperCase()
-      const to = String(sw.to_token || '').toUpperCase()
-      const sr = await runSwap({ fromToken: from, toToken: to, amount: sw.amount })
-      if (sr.status !== 'success')
-        return res.status(400).json({ error: 'swap failed on-chain', digest: sr.digest })
       await supabaseAdmin.from('agent_conversations').update({ pending_tx: null }).eq('user_address', req.user.address)
-      const { error: _swErr } = await supabaseAdmin.from('transactions').insert({
-        user_address: req.user.address, digest: sr.digest, type: 'swap',
-        label: `Swapped ${sw.amount} ${from} \u2192 ${to}`, sub_label: `~${(sr.expectedOut || 0).toFixed(3)} ${to}`,
-        amount: sw.amount, token: from, direction: 'out', counterparty: 'DeepBook',
-      })
-      if (_swErr) console.error('swap log failed (non-fatal):', _swErr.message)
-      await supabaseAdmin.from('notifications').insert({
-        user_address: req.user.address, type: 'swap_done', title: 'Swap complete',
-        body: 'Swap settled on DeepBook', action_url: `https://suiscan.xyz/testnet/tx/${sr.digest}`,
-      })
-      return res.json({ success: true, digest: sr.digest, explorer: `https://suiscan.xyz/testnet/tx/${sr.digest}` })
+      return res.status(400).json({ error: 'Swaps go live on mainnet \u2014 DeepBook pools are not liquid on testnet yet, so nothing was charged.' })
     }
 
     const result = await signAndRun(await buildFromProposal(pending))

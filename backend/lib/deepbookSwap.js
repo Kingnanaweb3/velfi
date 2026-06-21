@@ -24,12 +24,14 @@ export function swapAddress() { return keypair().getPublicKey().toSuiAddress() }
 const ROUTES = {
   'SUI>DEEP': { poolKey: 'DEEP_SUI', dir: 'quoteForBase' },
   'DEEP>SUI': { poolKey: 'DEEP_SUI', dir: 'baseForQuote' },
+  'USDC>DEEP': { poolKey: 'DEEP_USDC', dir: 'quoteForBase' },
+  'DEEP>USDC': { poolKey: 'DEEP_USDC', dir: 'baseForQuote' },
 }
 
 export async function quoteSwap({ fromToken, toToken, amount }) {
   const key = `${String(fromToken).toUpperCase()}>${String(toToken).toUpperCase()}`
   const route = ROUTES[key]
-  if (!route) throw new Error(`Swap ${fromToken}→${toToken} isn't available yet (liquid testnet pair: SUI↔DEEP).`)
+  if (!route) throw new Error(`Swaps go live on mainnet \u2014 DeepBook pools are not liquid on testnet yet.`)
   const db = new DeepBookClient({ address: swapAddress(), env: 'testnet', client, balanceManagers: {} })
   const r = route.dir === 'quoteForBase'
     ? await db.getBaseQuantityOut(route.poolKey, amount)
