@@ -199,8 +199,12 @@ function ProposalCard({ p, onConfirm, onCancel, onRevise }) {
     fetch(`${API}/account/balances`, { headers: h(token) }).then(r => r.json()).then(setBals).catch(() => {})
   }, [token])
   const warns = guardianChecks(p, d, bals)
+  const _tok = sym(p.payment || {})
+  const _held = bals?.tokens?.find(t => String(t.symbol || '').toUpperCase() === String(_tok).toUpperCase())?.human
+  const steps = [`Parsed intent: ${d.title}`, `Resolved ${d.rows.map(r => r.label).join(', ')}`, _held != null ? `Balance: ${Number(_held) >= 1 ? Number(_held).toFixed(2) : Number(_held).toPrecision(3)} ${_tok} available` : 'Checked your balance']
   return (
     <div className="vc-prop">
+      <div className="vc-reason">{steps.map((st, i) => <div className="vc-reason-step" key={i} style={{ animationDelay: `${i * 0.12}s` }}><Check size={12} /> <span>{st}</span></div>)}</div>
       <div className="vc-prop-rows">{d.rows.map((r, i) => <div className="vc-prop-row" key={i}><span className="vc-prop-to">{r.label}</span><span className="vc-prop-amt">{r.amount}</span></div>)}</div>
       {d.note && <div className="vc-prop-note">{d.note}</div>}
       <div className={`vc-guard-box ${warns.length ? 'warn' : 'ok'}`}>
@@ -294,7 +298,7 @@ const CHAT_CSS = `
 .vc-row.right{ justify-content:flex-end; } .vc-row.left{ justify-content:flex-start; }
 .vc-bubava{ width:30px; height:30px; border-radius:50%; object-fit:cover; flex-shrink:0; }
 .vc-astack{ display:flex; flex-direction:column; gap:8px; max-width:90%; }
-.vc-bubble{ position:relative; overflow:hidden; padding:6px 14px; font-size:14px; line-height:1.3; max-width:100%; width:fit-content; }
+.vc-bubble{ position:relative; overflow:hidden; padding:6px 13px; font-size:13px; line-height:1.35; max-width:100%; width:fit-content; }
 .vc-row.right .vc-bubble.user{ max-width:90%; }
 .vc-bubble > *{ position:relative; z-index:1; }
 .vc-bubble::after{ content:''; position:absolute; inset:0; z-index:0; pointer-events:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); background-size:140px; }
@@ -316,6 +320,13 @@ const CHAT_CSS = `
 .vc-prop-to{ font-size:14px; font-weight:600; } .vc-prop-amt{ font-size:14px; font-weight:700; }
 .vc-prop-meta{ display:flex; justify-content:space-between; font-size:12px; color:var(--v-sub); margin:12px 0; padding-top:10px; border-top:1px solid var(--v-card-bd); }
 .vc-confirm{ width:100%; padding:12px; border-radius:14px; background:var(--v-accent); color:#fff; font-size:15px; font-weight:700; }
+.vc-bubble.assistant{ background:none !important; border:none !important; -webkit-backdrop-filter:none; backdrop-filter:none; border-radius:0; padding:2px 2px; }
+.vc-bubble.assistant::after{ display:none !important; }
+[data-theme="dark"] .vc-bubble.assistant{ background:none !important; border:none !important; }
+.vc-reason{ display:flex; flex-direction:column; gap:5px; margin-bottom:12px; padding-bottom:12px; border-bottom:1px solid var(--v-card-bd); }
+.vc-reason-step{ display:flex; align-items:center; gap:6px; font-size:12px; color:var(--v-sub); opacity:0; animation:vcreason .3s ease-out forwards; }
+.vc-reason-step svg{ color:var(--v-accent); flex-shrink:0; }
+@keyframes vcreason{ from{ opacity:0; transform:translateY(-3px) } to{ opacity:1; transform:translateY(0) } }
 .vc-guard-box{ margin:10px 0 2px; padding:10px 12px; border-radius:12px; display:flex; flex-direction:column; gap:6px; }
 .vc-guard-box.ok{ background:rgba(29,184,102,0.08); }
 .vc-guard-box.warn{ background:rgba(224,152,42,0.12); }
