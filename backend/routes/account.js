@@ -2,6 +2,7 @@ import express from 'express'
 import supabase from '../lib/supabase.js'
 import { getSuiBalance } from '../lib/sui.js'
 import { getAllBalances } from '../lib/balances.js'
+import { agentAddress } from '../lib/txBuilder.js'
 import { requireAuth } from '../middleware/auth.js'
 
 const router = express.Router()
@@ -9,7 +10,7 @@ const router = express.Router()
 router.get('/stats', requireAuth, async (req, res) => {
   try {
     const address = req.user.address
-    const balance = await getSuiBalance(address)
+    const balance = await getSuiBalance(agentAddress())
 
     const { data: streams } = await supabase
       .from('streams')
@@ -50,9 +51,10 @@ router.get('/notifications', requireAuth, async (req, res) => {
 
 router.get('/balances', requireAuth, async (req, res) => {
   try {
-    const tokens = await getAllBalances(req.user.address)
+    const address = agentAddress()
+    const tokens = await getAllBalances(address)
     const total_usd = tokens.reduce((s, t) => s + (t.usd || 0), 0)
-    res.json({ address: req.user.address, total_usd, tokens })
+    res.json({ address, total_usd, tokens })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
