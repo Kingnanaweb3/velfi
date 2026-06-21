@@ -336,7 +336,7 @@ const HOME_CSS = `
 .vh-bal-amt{ margin-top:8px; font-size:clamp(34px,11vw,42px); font-weight:600; letter-spacing:-0.5px; color:#fff; line-height:1.05; }
 .vh-bal-fiat{ margin-top:4px; font-size:14px; color:#b4a8d0; }
 .vh-bal-row{ display:flex; gap:10px; margin-top:18px; position:relative; }
-.vh-tokenchip{ display:flex; flex:1; min-width:0; align-items:center; gap:7px; padding:9px 12px; border-radius:999px;
+.vh-tokenchip{ display:flex; flex:0 0 auto; min-width:0; align-items:center; gap:7px; padding:9px 12px; border-radius:999px;
   background:rgba(255,255,255,0.10); border:1px solid rgba(255,255,255,0.12); color:#fff; backdrop-filter:blur(8px); }
 .vh-coin{ width:20px; height:20px; border-radius:50%; overflow:hidden; display:flex; align-items:center; justify-content:center; margin-left:-8px; border:1.5px solid #2a1a3a; }
 .vh-coin img{ width:100%; height:100%; object-fit:cover; display:block; }
