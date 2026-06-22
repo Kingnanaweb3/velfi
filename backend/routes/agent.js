@@ -16,7 +16,7 @@ import {
 } from '../lib/agentValidators.js'
 import { buildSummary } from '../lib/summarize.js'
 import { TransactionBlock } from '@mysten/sui.js/transactions'
-import { buildSend, buildSplit, signAndRun, addTransfer, agentAddress } from '../lib/txBuilder.js'
+import { buildSend, buildSplit, signAndRun, addTransfer, addMultiTransfer, agentAddress } from '../lib/txBuilder.js'
 import { runSwap, quoteSwap } from '../lib/deepbookSwap.js'
 import { startStream, tickStreams } from '../lib/streams.js'
 import { createSchedule, tickSchedules } from '../lib/schedule.js'
@@ -62,8 +62,7 @@ async function buildFromProposal(pending) {
     return txb
   }
   if (pending.intent === 'split') {
-    for (const r of recips)
-      await addTransfer(txb, { sender, recipient: r.address, amount: r.amount, token })
+    await addMultiTransfer(txb, { sender, legs: recips.map(r => ({ recipient: r.address, amount: r.amount })), token })
     return txb
   }
   throw new Error(`Execution for "${pending.intent}" isn't wired yet.`)

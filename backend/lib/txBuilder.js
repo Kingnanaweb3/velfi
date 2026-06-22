@@ -115,3 +115,31 @@ export async function addTransfer(txb, { sender, recipient, amount, token }) {
   txb.transferObjects([part], txb.pure(recipient))
   return txb
 }
+
+// Multi-recipient transfer of ONE token in a single PTB. Merges the coin once,
+// splits every leg from it at once (fixes per-leg re-merge of a spent coin).
+export async function addMultiTransfer(txb, { sender, legs, token }) {
+  if (!token?.coinType || token.coinType.startsWith('TODO'))
+    throw new Error(`${token?.symbol || 'That token'} isn't wired for execution yet.`)
+  const scaledLegs = legs.map(l => {
+    const scaled = Math.round(Number(l.amount) * 10 ** token.decimals)
+    if (!(scaled > 0)) throw new Error('Amount must be greater than zero.')
+    return { recipient: l.recipient, scaled }
+  })
+  if (token.coinType === SUI) {
+    const parts = txb.splitCoins(txb.gas, scaledLegs.map(l => txb.pure(l.scaled)))
+    scaledLegs.forEach((l, i) => txb.transferObjects([parts[i]], txb.pure(l.recipient)))
+    return txb
+  }
+  const { data: coins } = await provider.getCoins({ owner: sender, coinType: token.coinType })
+  if (!coins.length) throw new Error(`No ${token.symbol} balance to send.`)
+  const total = coins.reduce((s, c) => s + BigInt(c.balance), 0n)
+  const need = scaledLegs.reduce((s, l) => s + BigInt(l.scaled), 0n)
+  if (total < need) throw new Error(`Not enough ${token.symbol} to cover the split.`)
+  const primary = txb.object(coins[0].coinObjectId)
+  if (coins.length > 1)
+    txb.mergeCoins(primary, coins.slice(1).map(c => txb.object(c.coinObjectId)))
+  const parts = txb.splitCoins(primary, scaledLegs.map(l => txb.pure(l.scaled)))
+  scaledLegs.forEach((l, i) => txb.transferObjects([parts[i]], txb.pure(l.recipient)))
+  return txb
+}
