@@ -54,7 +54,12 @@ export function validateSplit(recipients) {
   }
 
   if (haveShares) {
-    const sum = recipients.reduce((s, r) => s + Number(r.share || 0), 0)
+    let sum = recipients.reduce((s, r) => s + Number(r.share || 0), 0)
+    // model sometimes returns fractions (0.5/0.5) instead of percentages: rescale to 100
+    if (sum > 0 && sum <= 1.0001 && recipients.every(r => Number(r.share) <= 1)) {
+      recipients.forEach(r => { r.share = Number(r.share) * 100 })
+      sum = recipients.reduce((s, r) => s + Number(r.share || 0), 0)
+    }
     if (Math.abs(sum - 100) > 0.01)
       return { ok: false, error: `shares sum to ${sum}, must be 100` }
     return { ok: true, mode: 'shares' }
