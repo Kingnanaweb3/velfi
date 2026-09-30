@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Velfi Docs</title>
+<meta name="description" content="Velfi documentation: how to sign in, claim your .vel name, and tell your money what to do." />
+<link rel="icon" href="/favicon.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<style>
+  :root { --bg:#EFEDF7; --ink:#2a1a3a; --text:#0a0010; --text2:#4a4560; --muted:#8a82a0; --soft:#5b5470; --accent:#7B4FFF; --lav:#b4a8d0; --line:rgba(42,26,58,.10); --surface:#FBFAFE; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html,body { background:var(--bg); color:var(--text); font-family:'DM Sans',system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
+  a { color:inherit; }
+
+  .top { position:sticky; top:0; z-index:50; height:64px; display:flex; align-items:center; gap:16px; padding:0 24px; background:rgba(239,237,247,.85); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); border-bottom:1px solid var(--line); }
+  .brand { display:flex; align-items:center; gap:9px; text-decoration:none; font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:19px; color:var(--ink); letter-spacing:-.5px; }
+  .brand img { width:24px; height:24px; object-fit:contain; }
+  .brand span.tag { font-family:'DM Sans',sans-serif; font-weight:500; font-size:13px; color:var(--muted); letter-spacing:0; margin-left:2px; }
+  .top-right { margin-left:auto; display:flex; align-items:center; gap:20px; }
+  .top-right a.back { font-size:14px; font-weight:500; color:var(--ink); text-decoration:none; }
+  .top-right a.back:hover { opacity:.7; }
+  .cta { font-size:13px; font-weight:600; color:#fff; background:var(--ink); padding:9px 20px; border-radius:999px; text-decoration:none; }
+  .cta:hover { opacity:.85; }
+  .menu-btn { display:none; background:none; border:none; cursor:pointer; width:36px; height:36px; }
+  .menu-btn span { display:block; width:20px; height:2px; background:var(--ink); margin:4px auto; border-radius:2px; }
+
+  .layout { display:grid; grid-template-columns:280px minmax(0,1fr); max-width:1240px; margin:0 auto; }
+  .side { position:sticky; top:64px; height:calc(100vh - 64px); overflow-y:auto; padding:28px 20px 40px 24px; border-right:1px solid var(--line); }
+  .search { width:100%; font:inherit; font-size:14px; padding:10px 16px; border-radius:999px; border:1px solid var(--line); background:#fff; color:var(--ink); outline:none; margin-bottom:22px; }
+  .search:focus { border-color:var(--lav); }
+  .grp { font-size:12px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); margin:18px 0 8px 10px; }
+  .grp:first-of-type { margin-top:0; }
+  .side a { display:block; font-size:14.5px; color:var(--soft); text-decoration:none; padding:7px 10px; border-radius:9px; line-height:1.35; }
+  .side a:hover { background:rgba(42,26,58,.05); color:var(--ink); }
+  .side a.active { background:#fff; color:var(--ink); font-weight:600; box-shadow:0 1px 8px rgba(40,20,60,.06); }
+  .side .empty { font-size:14px; color:var(--muted); padding:0 10px; }
+
+  main { padding:48px 56px 96px; min-width:0; }
+  #content { max-width:760px; }
+  #content h1 { font-size:clamp(32px,4vw,46px); font-weight:600; letter-spacing:-.03em; line-height:1.08; color:var(--ink); margin-bottom:20px; }
+  #content h2 { font-size:26px; font-weight:600; letter-spacing:-.02em; color:var(--ink); margin:44px 0 14px; }
+  #content h3 { font-size:20px; font-weight:600; letter-spacing:-.01em; color:var(--ink); margin:36px 0 12px; }
+  #content p, #content li { font-size:16.5px; line-height:1.75; color:var(--text2); }
+  #content p { margin-bottom:16px; }
+  #content ul, #content ol { padding-left:22px; margin-bottom:18px; }
+  #content li { margin-bottom:6px; }
+  #content strong { color:var(--ink); font-weight:600; }
+  #content a { color:var(--accent); text-decoration:underline; text-underline-offset:3px; }
+  #content code { font-family:'SF Mono',Menlo,monospace; font-size:.88em; background:rgba(123,79,255,.08); color:var(--ink); padding:2px 6px; border-radius:6px; }
+  #content pre { background:var(--ink); color:#e1dcfa; padding:18px 20px; border-radius:14px; overflow-x:auto; margin:0 0 20px; }
+  #content pre code { background:none; color:inherit; padding:0; }
+  #content blockquote { border-left:3px solid var(--lav); background:rgba(255,255,255,.6); padding:12px 18px; border-radius:0 12px 12px 0; margin:0 0 14px; }
+  #content blockquote p { margin:0; color:var(--ink); font-weight:500; }
+  #content table { border-collapse:collapse; width:100%; margin:0 0 20px; font-size:15px; display:block; overflow-x:auto; }
+  #content th, #content td { text-align:left; padding:10px 14px; border-bottom:1px solid var(--line); color:var(--text2); }
+  #content th { color:var(--ink); font-weight:600; }
+  #content img { max-width:100%; border-radius:14px; }
+  #content hr { border:none; border-top:1px solid var(--line); margin:32px 0; }
+  .hint { border-radius:14px; padding:16px 20px 2px; margin:0 0 20px; border:1px solid; }
+  .hint-info { background:rgba(123,79,255,.07); border-color:rgba(123,79,255,.22); }
+  .hint-success { background:rgba(31,138,85,.07); border-color:rgba(31,138,85,.25); }
+  .hint-warning { background:rgba(214,140,0,.08); border-color:rgba(214,140,0,.28); }
+  .hint-danger { background:rgba(192,57,43,.07); border-color:rgba(192,57,43,.25); }
+
+  .pager { max-width:760px; display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:56px; }
+  .pager a { display:block; text-decoration:none; background:#fff; border:1px solid var(--line); border-radius:16px; padding:16px 20px; transition:border-color .2s, transform .2s; }
+  .pager a:hover { border-color:var(--lav); transform:translateY(-2px); }
+  .pager small { display:block; font-size:12px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:4px; }
+  .pager span { font-size:16px; font-weight:600; color:var(--ink); }
+  .pager .next { text-align:right; grid-column:2; }
+
+  .foot { max-width:760px; margin-top:48px; padding-top:24px; border-top:1px solid var(--line); font-size:13px; color:var(--muted); }
+
+  @media (max-width:900px) {
+    .layout { grid-template-columns:1fr; }
+    .menu-btn { display:block; }
+    .top-right a.back { display:none; }
+    .side { position:fixed; top:64px; left:0; bottom:0; width:min(86vw,320px); height:auto; background:var(--bg); z-index:40; transform:translateX(-105%); transition:transform .3s cubic-bezier(.22,1,.36,1); box-shadow:8px 0 30px rgba(40,20,60,.12); }
+    .side.open { transform:none; }
+    main { padding:32px 22px 72px; }
+  }
+</style>
+</head>
+<body>
+  <header class="top">
+    <button class="menu-btn" id="menuBtn" aria-label="Menu"><span></span><span></span><span></span></button>
+    <a class="brand" href="/"><img src="/logo.png" alt="" /> Velfi <span class="tag">Docs</span></a>
+    <div class="top-right">
+      <a class="back" href="/">← Back to site</a>
+      <a class="cta" href="/#waitlist">Join Waitlist</a>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="side" id="side">
+      <input class="search" id="search" type="search" placeholder="Search docs…" autocomplete="off" />
+      <nav id="nav"></nav>
+    </aside>
+    <main>
+      <article id="content"></article>
+      <nav class="pager" id="pager"></nav>
+      <p class="foot">© 2026 Velfi. Tell your money what to do.</p>
+    </main>
+  </div>
+
+<script>
+const NAV = [
+  { title: 'Getting started', items: [['index','Welcome to Velfi'],['getting-started/what-is-velfi','What is Velfi?'],['getting-started/sign-in','Sign in'],['getting-started/claim-your-name','Claim your .vel name']] },
+  { title: 'Overview', items: [['overview/how-it-works','How it works'],['overview/payment-types','Payment types']] },
+  { title: 'Guides', items: [['guides/sending-money','Sending money'],['guides/splitting-payments','Splitting payments'],['guides/streaming-salaries','Streaming salaries'],['guides/escrow','Escrow'],['guides/email-to-claim','Send to an email'],['guides/automations','Automations']] },
+  { title: 'Security', items: [['security/non-custodial','Non-custodial by design'],['security/zklogin','Sign-in & zkLogin']] },
+  { title: 'For developers', items: [['for-developers/overview','Overview'],['for-developers/architecture','Architecture'],['for-developers/sdk','SDK (coming soon)']] },
+  { title: 'More', items: [['more/faq','FAQ']] },
+];
+const FLAT = NAV.flatMap(g => g.items);
+
+// Pretty URLs (/docs/guides/escrow) in production; ?p= fallback for `npm run dev` at /docs.html
+const pretty = !location.pathname.endsWith('.html');
+const href = s => pretty ? (s === 'index' ? '/docs' : '/docs/' + s) : '/docs.html?p=' + s;
+function slugFromLocation() {
+  if (pretty) return location.pathname.replace(/^\/docs\/?/, '').replace(/\/$/, '') || 'index';
+  return new URLSearchParams(location.search).get('p') || 'index';
+}
+
+const cache = {};
+async function getMd(s) {
+  if (!(s in cache)) {
+    try { const r = await fetch('/docs-content/' + s + '.md'); cache[s] = r.ok ? await r.text() : null; }
+    catch { cache[s] = null; }
+  }
+  return cache[s];
+}
+
+// Convert GitBook-specific syntax into plain Markdown/HTML
+function prep(md) {
+  return md
+    .replace(/{%\s*hint style="(\w+)"\s*%}([\s\S]*?){%\s*endhint\s*%}/g,
+      (m, t, b) => `\n<div class="hint hint-${t}">\n\n${b.trim()}\n\n</div>\n`)
+    .replace(/^\s*{%[^%]*%}\s*$/gm, '')
+    .replace(/\]\(\/velfi\/([^)#]+?)\.md(#[^)]*)?\)/g,
+      (m, p, h) => `](${href(p === 'readme' ? 'index' : p)}${h || ''})`);
+}
+
+const esc = t => t.replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+const link = ([s, t]) => `<a href="${href(s)}" data-s="${s}">${esc(t)}</a>`;
+let current = null;
+
+function buildNav() {
+  document.getElementById('nav').innerHTML =
+    NAV.map(g => `<div class="grp">${g.title}</div>` + g.items.map(link).join('')).join('');
+  markActive();
+}
+function markActive() {
+  document.querySelectorAll('#nav a').forEach(a => a.classList.toggle('active', a.dataset.s === current));
+}
+
+async function render(s, push) {
+  current = s;
+  const md = await getMd(s);
+  const el = document.getElementById('content');
+  if (md == null) {
+    el.innerHTML = `<h1>Page not found</h1><p><a href="${href('index')}">Back to the docs home</a></p>`;
+  } else {
+    el.innerHTML = marked.parse(prep(md));
+    el.querySelectorAll('a[href^="http"]').forEach(a => { a.target = '_blank'; a.rel = 'noreferrer'; });
+  }
+  const title = (md && (md.match(/^#\s+(.+)$/m) || [])[1]) || 'Docs';
+  document.title = title + ' · Velfi Docs';
+
+  const i = FLAT.findIndex(x => x[0] === s);
+  const prev = i > 0 ? FLAT[i - 1] : null, next = i >= 0 && i < FLAT.length - 1 ? FLAT[i + 1] : null;
+  document.getElementById('pager').innerHTML =
+    (prev ? `<a href="${href(prev[0])}"><small>Previous</small><span>${esc(prev[1])}</span></a>` : '') +
+    (next ? `<a class="next" href="${href(next[0])}"><small>Next</small><span>${esc(next[1])}</span></a>` : '');
+
+  if (push) history.pushState({ s }, '', href(s));
+  window.scrollTo(0, 0);
+  markActive();
+  document.getElementById('side').classList.remove('open');
+}
+
+// Client-side navigation for links inside the docs
+document.addEventListener('click', e => {
+  const a = e.target.closest('a');
+  if (!a || a.target === '_blank' || e.metaKey || e.ctrlKey) return;
+  const u = new URL(a.href, location.href);
+  if (u.origin !== location.origin) return;
+  let s = null;
+  if (pretty && /^\/docs(\/|$)/.test(u.pathname)) s = u.pathname.replace(/^\/docs\/?/, '').replace(/\/$/, '') || 'index';
+  else if (!pretty && u.pathname.endsWith('/docs.html')) s = u.searchParams.get('p') || 'index';
+  if (s === null || (u.hash && s === current)) return;
+  e.preventDefault();
+  render(s, true);
+});
+window.addEventListener('popstate', () => render(slugFromLocation(), false));
+
+// Search across titles and page text
+const search = document.getElementById('search');
+search.addEventListener('input', async () => {
+  const q = search.value.trim().toLowerCase();
+  if (!q) return buildNav();
+  await Promise.all(FLAT.map(x => getMd(x[0])));
+  if (search.value.trim().toLowerCase() !== q) return;
+  const hits = FLAT.filter(([s, t]) => t.toLowerCase().includes(q) || (cache[s] || '').toLowerCase().includes(q));
+  document.getElementById('nav').innerHTML = hits.length
+    ? '<div class="grp">Results</div>' + hits.map(link).join('')
+    : '<p class="empty">No results for “' + esc(search.value.trim()) + '”</p>';
+  markActive();
+});
+
+document.getElementById('menuBtn').addEventListener('click', () =>
+  document.getElementById('side').classList.toggle('open'));
+
+buildNav();
+render(slugFromLocation(), false);
+</script>
+</body>
+</html>

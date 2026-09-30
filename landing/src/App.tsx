@@ -161,8 +161,8 @@ function App() {
           >
             <button className="nav-dropdown-btn">Resources ▾</button>
             <div className={`nav-dropdown${resourcesOpen ? ' open' : ''}`}>
-              <a href="https://kinnahjoshua67s-organization.gitbook.io/velfi" target="_blank" rel="noreferrer">Docs</a>
-              <a href="https://kinnahjoshua67s-organization.gitbook.io/velfi/guides/sending-money" target="_blank" rel="noreferrer">Guides</a>
+              <a href="/docs" target="_blank" rel="noreferrer">Docs</a>
+              <a href="/docs/guides/sending-money" target="_blank" rel="noreferrer">Guides</a>
               <a href="/litepaper" target="_blank" rel="noreferrer">Litepaper</a>
             </div>
           </div>
@@ -176,8 +176,8 @@ function App() {
       <div className={`mobile-menu${menuOpen ? ' open' : ''}`}>
         <a href="#how-it-works" onClick={() => setMenuOpen(false)}>How it works</a>
         <a href="#features" onClick={() => setMenuOpen(false)}>Features</a>
-        <a href="https://kinnahjoshua67s-organization.gitbook.io/velfi" target="_blank" rel="noreferrer" onClick={() => setMenuOpen(false)}>Docs</a>
-        <a href="https://kinnahjoshua67s-organization.gitbook.io/velfi/guides/sending-money" target="_blank" rel="noreferrer" onClick={() => setMenuOpen(false)}>Guides</a>
+        <a href="/docs" target="_blank" rel="noreferrer" onClick={() => setMenuOpen(false)}>Docs</a>
+        <a href="/docs/guides/sending-money" target="_blank" rel="noreferrer" onClick={() => setMenuOpen(false)}>Guides</a>
         <a href="/litepaper" target="_blank" rel="noreferrer" onClick={() => setMenuOpen(false)}>Litepaper</a>
         <a href="#waitlist" className="mobile-menu-cta" onClick={() => setMenuOpen(false)}>Join Waitlist</a>
       </div>
@@ -524,8 +524,8 @@ function App() {
           </div>
           <div className="footer-col">
             <span className="footer-col-title">Resources</span>
-            <a href="https://kinnahjoshua67s-organization.gitbook.io/velfi" target="_blank" rel="noreferrer">Docs <span className="fa">↗</span></a>
-            <a href="https://kinnahjoshua67s-organization.gitbook.io/velfi/guides/sending-money" target="_blank" rel="noreferrer">Guides <span className="fa">↗</span></a>
+            <a href="/docs" target="_blank" rel="noreferrer">Docs <span className="fa">↗</span></a>
+            <a href="/docs/guides/sending-money" target="_blank" rel="noreferrer">Guides <span className="fa">↗</span></a>
             <a href="/litepaper" target="_blank" rel="noreferrer">Litepaper <span className="fa">↗</span></a>
           </div>
           <div className="footer-col">
