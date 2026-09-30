@@ -527,7 +527,6 @@ function App() {
             <a href="https://kinnahjoshua67s-organization.gitbook.io/velfi" target="_blank" rel="noreferrer">Docs <span className="fa">↗</span></a>
             <a href="https://kinnahjoshua67s-organization.gitbook.io/velfi/guides/sending-money" target="_blank" rel="noreferrer">Guides <span className="fa">↗</span></a>
             <a href="/litepaper" target="_blank" rel="noreferrer">Litepaper <span className="fa">↗</span></a>
-            <a href="https://github.com/Kingnanaweb3/velfi" target="_blank" rel="noreferrer">GitHub <span className="fa">↗</span></a>
           </div>
           <div className="footer-col">
             <span className="footer-col-title">Built on</span>
