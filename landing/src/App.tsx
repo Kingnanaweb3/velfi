@@ -1,11 +1,11 @@
 import './index.css'
 import logo from './assets/logo.png'
-import cardImg from './assets/what-card.png'
+import cardImg from './assets/what-card.webp'
 import logoSui from './assets/logo-sui.png'
 import logoWalrus from './assets/logo-walrus.png'
 import logoMysten from './assets/logo-mysten.png'
-import waitlistBg from './assets/waitlist-bg.png'
-import otter from './assets/otter.png'
+import waitlistBg from './assets/waitlist-bg.webp'
+import otter from './assets/otter.webp'
 import { createClient } from '@supabase/supabase-js'
 
 const supabase = createClient(
