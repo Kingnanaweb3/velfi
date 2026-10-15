@@ -150,6 +150,7 @@ function App() {
         <div className="nav-links">
           <a href="#how-it-works">How it works</a>
           <a href="#features">Features</a>
+          <a href="#token">Token</a>
           <div
             className="nav-dropdown-wrap"
             ref={dropdownRef}
@@ -161,6 +162,7 @@ function App() {
               <a href="/docs" target="_blank" rel="noreferrer">Docs</a>
               <a href="/docs/guides/sending-money" target="_blank" rel="noreferrer">Guides</a>
               <a href="/litepaper" target="_blank" rel="noreferrer">Litepaper</a>
+              <a href="/docs/token/velfi" target="_blank" rel="noreferrer">Token</a>
             </div>
           </div>
         </div>
@@ -173,6 +175,7 @@ function App() {
       <div className={`mobile-menu${menuOpen ? ' open' : ''}`}>
         <a href="#how-it-works" onClick={() => setMenuOpen(false)}>How it works</a>
         <a href="#features" onClick={() => setMenuOpen(false)}>Features</a>
+        <a href="#token" onClick={() => setMenuOpen(false)}>Token</a>
         <a href="/docs" target="_blank" rel="noreferrer" onClick={() => setMenuOpen(false)}>Docs</a>
         <a href="/docs/guides/sending-money" target="_blank" rel="noreferrer" onClick={() => setMenuOpen(false)}>Guides</a>
         <a href="/litepaper" target="_blank" rel="noreferrer" onClick={() => setMenuOpen(false)}>Litepaper</a>
@@ -181,11 +184,7 @@ function App() {
 
       <section className="hero">
         <div className="hero-content">
-          <div className="hero-icon">
-            <svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M13 2V24M2 13H24" stroke="#2a1a3a" strokeWidth="2.5" strokeLinecap="round"/>
-            </svg>
-          </div>
+          <a href="#token" className="hero-token"><span className="hero-token-dot"></span>$VELFI token coming soon on Solana <span className="hero-token-arrow">→</span></a>
           <h1 className="hero-headline">Tell Your Money<br />What To Do.</h1>
           <p className="hero-body">The AI money agent that lets you perform sophisticated and complex transactions by just texting them into on-chain financial workflows.</p>
           <a href="#waitlist" className="hero-cta">Join the waitlist</a>
@@ -391,6 +390,55 @@ function App() {
         </div>
       </section>
 
+      <section className="tk-section" id="token">
+        <div className="who-eyebrow"><span className="who-dash"></span>THE TOKEN</div>
+        <h2 className="tk-headline">Meet $VELFI. <span className="who-accent">The token behind your money agent.</span></h2>
+        <div className="tk-grid">
+          <div className="tk-facts reveal">
+            <p className="tk-intro">$VELFI is Velfi's community token, launching on Solana with a fair launch. Hold it to unlock more of what your agent can do.</p>
+            <div className="tk-rows">
+              <div className="tk-row"><span>Total supply</span><b>1,000,000,000</b></div>
+              <div className="tk-row"><span>Launch</span><b>Fair launch</b></div>
+              <div className="tk-row"><span>Network</span><b>Solana</b></div>
+            </div>
+            <div className="tk-ca">
+              <span className="tk-ca-label">Contract address</span>
+              <div className="tk-ca-box">
+                <span className="tk-ca-value">Coming soon</span>
+                <span className="tk-ca-soon">Not live yet</span>
+              </div>
+              <p className="tk-ca-note">Only trust the address posted here and on <a href="https://x.com/velfi_xyz" target="_blank" rel="noreferrer">@velfi_xyz</a>. Any $VELFI before then is fake.</p>
+            </div>
+          </div>
+          <div className="tk-uses">
+            <div className="tk-use reveal">
+              <span className="tk-use-tag">Velfi Pro</span>
+              <h3 className="tk-use-title">Unlock Pro automations</h3>
+              <p className="tk-use-body">Hold $VELFI to unlock team payroll, larger escrows and more Autopilot rules.</p>
+            </div>
+            <div className="tk-use reveal" style={{ transitionDelay: '100ms' }}>
+              <span className="tk-use-tag">Lower fees</span>
+              <h3 className="tk-use-title">Pay fees for less</h3>
+              <p className="tk-use-body">Pay swap and conversion fees in $VELFI at a discount.</p>
+            </div>
+            <div className="tk-use reveal" style={{ transitionDelay: '200ms' }}>
+              <span className="tk-use-tag">.vel names</span>
+              <h3 className="tk-use-title">Claim premium names</h3>
+              <p className="tk-use-body">Use $VELFI to claim short and reserved .vel names.</p>
+            </div>
+            <div className="tk-use reveal" style={{ transitionDelay: '300ms' }}>
+              <span className="tk-use-tag">Community</span>
+              <h3 className="tk-use-title">Vote on what ships</h3>
+              <p className="tk-use-body">Holders vote on the next features, tokens and integrations.</p>
+            </div>
+          </div>
+        </div>
+        <div className="tk-foot">
+          <p className="tk-disclaimer">Utility is planned and rolls out as features launch. $VELFI is a community token: holding it doesn't entitle you to profits, revenue or returns, and nothing here is financial advice.</p>
+          <a href="/docs/token/velfi" target="_blank" rel="noreferrer" className="tk-docs">Read the token docs <span className="fa">↗</span></a>
+        </div>
+      </section>
+
       <section className="faq-section">
         <div className="faq-eyebrow"><span className="faq-dash"></span>FAQ</div>
         <h2 className="faq-headline">Questions, answered.</h2>
@@ -447,6 +495,15 @@ function App() {
             </button>
             <div className={`faq-a${openFaq === 5 ? ' open' : ''}`}>
               <p>You can join the waitlist now and claim your name. The app is coming to the App Store soon — waitlist members get early access first.</p>
+            </div>
+          </div>
+          <div className="faq-item">
+            <button className="faq-q" onClick={() => setOpenFaq(openFaq === 6 ? null : 6)}>
+              <span>Does Velfi have a token?</span>
+              <span className={`faq-icon${openFaq === 6 ? ' open' : ''}`}>+</span>
+            </button>
+            <div className={`faq-a${openFaq === 6 ? ' open' : ''}`}>
+              <p>Yes. $VELFI is launching on Solana with a total supply of 1,000,000,000 and a fair launch. The contract address isn't live yet, so only trust the one posted on velfi.xyz and @velfi_xyz. See the <a href="/docs/token/velfi" target="_blank" rel="noreferrer">token docs</a> for details.</p>
             </div>
           </div>
         </div>
@@ -524,6 +581,7 @@ function App() {
             <a href="/docs" target="_blank" rel="noreferrer">Docs <span className="fa">↗</span></a>
             <a href="/docs/guides/sending-money" target="_blank" rel="noreferrer">Guides <span className="fa">↗</span></a>
             <a href="/litepaper" target="_blank" rel="noreferrer">Litepaper <span className="fa">↗</span></a>
+            <a href="/docs/token/velfi" target="_blank" rel="noreferrer">$VELFI token <span className="fa">↗</span></a>
           </div>
           <div className="footer-col">
             <span className="footer-col-title">Launching on</span>

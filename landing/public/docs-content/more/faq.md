@@ -42,6 +42,6 @@ You can join the waitlist now and claim your name. The app is coming soon — wa
 
 ### Does Velfi have a token?
 
-Any official token news will only ever come from [@velfi\_xyz](https://x.com/velfi_xyz) on X. Ignore tokens or links announced anywhere else.
+Yes. $VELFI is launching on Solana with a total supply of 1,000,000,000 and a fair launch. The contract address isn't live yet, so only trust the one posted in the docs and on [@velfi\_xyz](https://x.com/velfi_xyz). See [$VELFI token](/velfi/token/velfi.md).
 
 

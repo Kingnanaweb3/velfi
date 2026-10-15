@@ -1648,3 +1648,59 @@ html, body {
   .own-card { flex:0 0 78%; scroll-snap-align:start; }
   .own-swipe-hint { display:flex; }
 }
+
+/* ---------- $VELFI token ---------- */
+.hero-token {
+  display: inline-flex; align-items: center; gap: 9px;
+  margin-bottom: 22px; padding: 8px 16px; border-radius: 999px;
+  background: rgba(255,255,255,0.62); border: 1px solid rgba(255,255,255,0.85);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; color: #2a1a3a;
+  text-decoration: none; box-shadow: 0 2px 16px rgba(40,20,60,0.06); transition: opacity 0.2s;
+}
+.hero-token:hover { opacity: 0.8; }
+.hero-token-dot { width: 8px; height: 8px; border-radius: 50%; background: linear-gradient(135deg, #9945ff, #14f195); flex: none; }
+.hero-token-arrow { color: #6a5a8a; }
+
+.tk-section { width: 100%; background: var(--bg); padding: 100px 6%; border-top: 1px solid rgba(0,0,0,0.06); }
+.tk-headline {
+  font-family: 'DM Sans', sans-serif; font-size: clamp(34px, 4.8vw, 64px); font-weight: 500;
+  line-height: 1.06; letter-spacing: -0.03em; color: var(--text); max-width: 900px; margin-bottom: 56px;
+}
+.tk-grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 20px; align-items: stretch; }
+.tk-facts { background: #2a1a3a; border-radius: 24px; padding: 32px 30px; color: #fff; display: flex; flex-direction: column; }
+.tk-intro { font-family: 'DM Sans', sans-serif; font-size: 16px; line-height: 1.65; color: rgba(255,255,255,0.72); margin: 0 0 24px; }
+.tk-rows { border-top: 1px solid rgba(255,255,255,0.12); }
+.tk-row { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.12); font-family: 'DM Sans', sans-serif; }
+.tk-row span { font-size: 14px; color: rgba(255,255,255,0.6); }
+.tk-row b { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; color: #fff; }
+.tk-ca { margin-top: auto; padding-top: 26px; }
+.tk-ca-label { display: block; font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: #b4a8d0; margin-bottom: 10px; }
+.tk-ca-box { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border-radius: 14px; background: rgba(255,255,255,0.06); border: 1px dashed rgba(180,168,208,0.45); }
+.tk-ca-value { font-family: 'SF Mono', Menlo, monospace; font-size: 15px; color: #e1dcfa; }
+.tk-ca-soon { font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #2a1a3a; background: #b4a8d0; border-radius: 20px; padding: 4px 10px; white-space: nowrap; }
+.tk-ca-note { font-family: 'DM Sans', sans-serif; font-size: 13px; line-height: 1.55; color: rgba(255,255,255,0.6); margin: 12px 0 0; }
+.tk-ca-note a { color: #e1dcfa; }
+.tk-uses { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.tk-use {
+  background: linear-gradient(180deg, #FBFAFE 0%, rgba(251,250,254,0.4) 100%); border: 1px solid rgba(255,255,255,0.7);
+  border-radius: 20px; padding: 28px 26px; box-shadow: 0 2px 20px rgba(40,20,60,0.04); display: flex; flex-direction: column;
+}
+.tk-use-tag { font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: #9990aa; margin-bottom: 28px; }
+.tk-use-title { font-family: 'DM Sans', sans-serif; font-size: 22px; font-weight: 600; line-height: 1.2; letter-spacing: -0.02em; color: var(--text); margin: auto 0 10px; }
+.tk-use-body { font-family: 'DM Sans', sans-serif; font-size: 15px; line-height: 1.6; color: #5b5470; margin: 0; }
+.tk-foot { display: flex; align-items: center; justify-content: space-between; gap: 32px; margin-top: 28px; }
+.tk-disclaimer { font-family: 'DM Sans', sans-serif; font-size: 13px; line-height: 1.6; color: #8a82a0; max-width: 760px; margin: 0; }
+.tk-docs { flex: none; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; color: #fff; background: #2a1a3a; padding: 12px 24px; border-radius: 999px; text-decoration: none; transition: opacity 0.2s; }
+.tk-docs:hover { opacity: 0.85; }
+
+@media (max-width: 900px) {
+  .tk-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .tk-section { padding: 72px 6%; }
+  .tk-headline { margin-bottom: 36px; }
+  .tk-uses { grid-template-columns: 1fr; }
+  .tk-foot { flex-direction: column; align-items: flex-start; gap: 18px; }
+  .hero-token { font-size: 12px; padding: 7px 14px; }
+}
