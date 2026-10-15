@@ -9,15 +9,15 @@ When a user gives Velfi an instruction, it passes through a few conceptual stage
 1. **Interpretation.** The AI agent reads the plain-language instruction and identifies the intent — what kind of payment, to whom, how much, and on what terms.
 2. **Resolution.** Names like `alice.vel` are resolved, amounts are parsed, and timing or conditions are determined.
 3. **Proposal.** The agent assembles a structured transaction representing exactly what will happen, and presents it to the user.
-4. **Approval.** The user reviews and approves. Their signature — backed by their own keys via zkLogin — authorizes the transaction.
-5. **Settlement.** The payment executes on Sui as Move contract logic, settling in under a second. A receipt is recorded.
+4. **Approval.** The user reviews and approves. Their signature, from their own wallet, authorizes the transaction.
+5. **Settlement.** The payment executes on Solana as program logic, settling almost instantly. The transaction is recorded on-chain.
 
 ### Where each technology fits
 
 * **The AI agent** handles stages 1–3: understanding and proposing. It never holds keys or moves funds.
-* **zkLogin** handles stage 4: the user's identity and signing authority, derived from their Google login with no seed phrase.
-* **Move contracts on Sui** handle stage 5: the actual, safe execution of payments — including recurring and conditional logic that runs deterministically without per-action human review.
-* **Walrus** stores receipts and records so history stays verifiable.
+* **Google sign-in wallets** handle stage 4: the user's identity and signing authority, unlocked with their Google login and no seed phrase.
+* **Solana programs** handle stage 5: the actual, safe execution of payments — including recurring and conditional logic that runs deterministically without per-action human review.
+* **Solana itself** keeps the record: every payment is a public transaction anyone can verify on Solscan.
 
 ### Recurring and conditional flows
 

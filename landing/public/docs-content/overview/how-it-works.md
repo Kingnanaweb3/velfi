@@ -7,7 +7,7 @@ Velfi turns a sentence into a payment. Here's what happens between you typing an
 1. **You write an instruction.** In plain language — "split rent three ways," "stream $4,000 over 30 days," "send $50 to jordan.vel."
 2. **Velfi understands it.** The AI agent reads your instruction, figures out what kind of payment you mean, and fills in the details (who, how much, when).
 3. **You confirm.** Velfi shows you exactly what it's about to do. You approve with a single tap.
-4. **It runs.** The payment executes on-chain in under a second. For recurring instructions, Velfi keeps it running automatically — you don't have to do anything again.
+4. **It runs.** The payment executes on-chain almost instantly. For recurring instructions, Velfi keeps it running automatically — you don't have to do anything again.
 
 ### The agent proposes, you approve
 
@@ -25,7 +25,7 @@ Some instructions are one-time ("send $50 now"). Others are ongoing ("pay my des
 
 ### Where it all happens
 
-Every payment settles on the Sui blockchain. That means it's fast (under a second), cheap (near-zero fees), and verifiable (recorded on-chain). But you never have to interact with any of that directly — Velfi handles it invisibly.
+Every payment settles on Solana. That means it's fast (near-instant), cheap (a fraction of a cent, and Velfi covers it for you), and verifiable (recorded on-chain and visible on Solscan). But you never have to interact with any of that directly — Velfi handles it invisibly.
 
 Next: [Payment types →](/velfi/overview/payment-types.md)
 

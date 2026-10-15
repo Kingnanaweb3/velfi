@@ -391,9 +391,9 @@
       <span class="logo-word">Velfi</span>
     </div>
 
-    <div class="doc-kicker">Litepaper · v1.0</div>
+    <div class="doc-kicker">Litepaper · v1.1</div>
     <h1 class="doc-title">Tell your money <em>what to do.</em></h1>
-    <p class="doc-sub">An AI money agent that turns a single text instruction into on-chain financial workflows — built on Sui.</p>
+    <p class="doc-sub">An AI money agent that turns a single text instruction into on-chain financial workflows — launching on Solana.</p>
 
     <dl class="doc-meta">
       <div>
@@ -406,11 +406,11 @@
       </div>
       <div>
         <dt>Date</dt>
-        <dd>June 11, 2026</dd>
+        <dd>October 15, 2026</dd>
       </div>
       <div>
         <dt>Network</dt>
-        <dd>Sui</dd>
+        <dd>Solana</dd>
       </div>
     </dl>
   </div>
@@ -423,8 +423,8 @@
     <section id="abstract">
       <h2>Abstract</h2>
       <p>Velfi is an AI money agent. A user signs in with Google, claims a handle of the form <span class="handle">alice.vel</span>, and instructs their money in plain language. "Split rent three ways." "Pay my designer every Friday." "Hold this in escrow until the work ships." Velfi reads the instruction, builds the on-chain workflow, and executes it — with a single confirmation.</p>
-      <p>The user holds no gas token, writes down no seed phrase, and never sees a wallet address, a swap screen, or the word "blockchain." Underneath, Velfi is a non-custodial Sui wallet. Identity is <strong>zkLogin</strong>. The handle is a name you own. Payments settle as <strong>Move</strong> smart contracts with sub-second finality and near-zero fees. The intelligence that turns words into workflows is a language model, retrained on financial logic, that proposes the transaction — but never holds the keys.</p>
-      <p>This document describes the problem Velfi solves, how the system is built, why it runs on Sui, how it stays secure and non-custodial, how it sustains itself, and what comes next.</p>
+      <p>The user holds no gas token, writes down no seed phrase, and never sees a wallet address, a swap screen, or the word "blockchain." Underneath, Velfi is a non-custodial <strong>Solana</strong> wallet, unlocked with a Google sign-in. The handle is a name you own. Payments settle through on-chain programs almost instantly, for a fraction of a cent, with fees covered by Velfi. The intelligence that turns words into workflows is a language model that proposes the transaction — but never holds the keys.</p>
+      <p>This document describes the problem Velfi solves, how the system is built, why it is launching on Solana, how it stays secure and non-custodial, how it sustains itself, and what comes next.</p>
     </section>
 
     <section id="overview">
@@ -466,7 +466,7 @@
       <p>Velfi is an agent that sits between human intent and on-chain settlement. The flow is four steps, and only the first time involves any setup at all.</p>
 
       <ol>
-        <li><strong>Sign in with Google.</strong> zkLogin derives a self-custodial Sui wallet from the Google account through a zero-knowledge proof. No seed phrase exists to lose or leak. Switch devices, sign in again, and the same wallet returns.</li>
+        <li><strong>Sign in with Google.</strong> Velfi creates a self-custodial Solana wallet, unlocked with the Google account. No seed phrase exists to lose or leak. Switch devices, sign in again, and the same wallet returns.</li>
         <li><strong>Claim a <span class="handle">.vel</span> name.</strong> A human-readable handle replaces wallet addresses — for the user and for anyone paying them.</li>
         <li><strong>Tell Velfi what you want.</strong> The instruction is written in plain English. The agent interprets it and builds the corresponding on-chain workflow.</li>
         <li><strong>Confirm once.</strong> The user approves with a single tap. Velfi executes, and for recurring flows, keeps executing automatically.</li>
@@ -479,21 +479,24 @@
       <p>An email recipient who isn't yet a user receives a claimable transfer. They sign in, claim a handle, and the funds land — turning every payment into an invitation.</p>
     </section>
 
-    <section id="why-sui">
-      <h2>Why We Built on Sui</h2>
-      <p>An agent that executes money on a user's behalf needs a settlement layer that is fast, cheap, safe to program, and able to abstract its own complexity away. Sui was built for exactly this.</p>
+    <section id="why-solana">
+      <h2>Why Solana</h2>
+      <p>An agent that executes money on a user's behalf needs a settlement layer that is fast, cheap, safe to program, and able to hide its own complexity. Solana fits that brief.</p>
 
-      <h3>Sub-second finality</h3>
-      <p>Simple payments on Sui confirm in well under a second through its consensus design. <a href="#references">[3]</a> For a conversational money agent, instant settlement is the difference between "it's done" and "please wait." The interaction has to feel like sending a message, not submitting a request.</p>
+      <h3>Near-instant, near-free</h3>
+      <p>Solana confirms transactions in moments, and a simple transfer costs a fraction of a cent. <a href="#references">[3]</a> For a conversational money agent, instant settlement is the difference between "it's done" and "please wait," and fees have to round to nothing for remittances, payroll and splitting a bill to make sense.</p>
 
-      <h3>Near-zero fees and gaslessness</h3>
-      <p>Sui's low fees and support for sponsored transactions let Velfi remove the gas token from the user's mental model entirely. The user never holds, sees, or thinks about a fee asset — the chain becomes invisible plumbing.</p>
+      <h3>Stablecoins first</h3>
+      <p>Most people want to send dollars, not volatile assets. USDC is issued natively on Solana and stablecoin liquidity is deep, so Velfi can be built around stablecoins from day one, with swaps routed through Jupiter when a user wants to convert.</p>
 
-      <h3>The Move language</h3>
-      <p>Velfi's payment primitives are written in <strong>Move</strong>, a language designed for safe asset handling, where digital assets are first-class resources that cannot be accidentally copied or destroyed. <a href="#references">[4]</a> For software that moves real money on a schedule and without per-action human review, this safety model is foundational.</p>
+      <h3>Many actions, one approval</h3>
+      <p>A single Solana transaction can carry many instructions that succeed or fail together. <a href="#references">[4]</a> That is exactly what "send to five people, approve once" needs: one signature, one atomic settlement, no partial payments.</p>
 
-      <h3>zkLogin and object storage, natively</h3>
-      <p>zkLogin is a native Sui primitive: it lets a user authenticate with an existing Web2 identity provider and derive a wallet from a zero-knowledge proof, with no seed phrase. <a href="#references">[5]</a> Payment receipts and workflow metadata are stored on <strong>Walrus</strong>, Sui's decentralized storage layer, keeping records verifiable without a central database.</p>
+      <h3>Gasless by design</h3>
+      <p>On Solana, the account that pays a transaction's fee does not have to be the account sending the money. <a href="#references">[4]</a> Velfi pays the network fee on the user's behalf, so the user never holds, sees, or thinks about a fee asset — the chain becomes invisible plumbing.</p>
+
+      <h3>Rust programs</h3>
+      <p>Velfi's payment logic is being written as Solana programs in Rust, using the Anchor framework <a href="#references">[5]</a>, with mature tooling, testing frameworks, and an established security-audit ecosystem.</p>
     </section>
 
     <section id="different">
@@ -523,27 +526,27 @@
       <p>Velfi's security model rests on a single principle: <strong>the agent proposes, the user disposes, and only the user holds the keys.</strong></p>
 
       <h3>Non-custodial by construction</h3>
-      <p>Velfi never takes custody of funds. Every transaction is signed by the user's own key, derived via zkLogin. The agent can assemble a transaction but cannot move money without an explicit signature from the account owner. There is no admin key that can sweep balances.</p>
+      <p>Velfi never takes custody of funds. Every transaction is signed from the user's own wallet. The agent can assemble a transaction but cannot move money without an explicit signature from the account owner. There is no admin key that can sweep balances.</p>
 
       <h3>No seed phrase to compromise</h3>
-      <p>Because identity is derived from a zero-knowledge proof over an existing Google login rather than a stored secret phrase, the classic attack surface — phishing a seed phrase, finding a written-down backup, draining via a leaked key — is removed at the design level. <a href="#references">[5]</a></p>
+      <p>Because the wallet is unlocked with an existing Google login rather than a stored secret phrase, the classic attack surface — phishing a seed phrase, finding a written-down backup, draining via a leaked key — is removed at the design level.</p>
 
       <h3>Safe-by-default contract logic</h3>
-      <p>Payment primitives are implemented in Move, whose resource model prevents whole classes of asset bugs — double-spends, accidental loss, reentrancy patterns — by construction. <a href="#references">[4]</a> Recurring and conditional flows run as deterministic contract logic, not as an autonomous model with spending power.</p>
+      <p>Payment primitives are implemented as narrow Solana programs: each one does a single job — a stream, an escrow, a spending limit — with explicit checks on who may call it and how much it may release. <a href="#references">[5]</a> Recurring and conditional flows run as deterministic contract logic, not as an autonomous model with spending power.</p>
 
       <h3>The AI cannot spend</h3>
       <p>The language model's role is strictly interpretation and proposal. It converts words into a structured transaction for human approval. It has no key, no signing authority, and no path to move funds on its own. A compromised or mistaken model cannot drain a user — the worst case is a proposed transaction the user simply rejects.</p>
 
       <h3>On-chain and verifiable</h3>
-      <p>Every executed flow is a transaction on Sui, and receipts are recorded on Walrus. Nothing about a user's payment history depends on trusting Velfi's servers — it is independently verifiable on-chain.</p>
+      <p>Every executed flow is a public transaction on Solana that anyone can look up on Solscan. Nothing about a user's payment history depends on trusting Velfi's servers — it is independently verifiable on-chain.</p>
     </section>
 
     <section id="model">
       <h2>How Velfi Earns</h2>
-      <p>Velfi has no token. Its economics are built on usage, not speculation, so incentives stay aligned with users actually moving money.</p>
+      <p>Velfi's business is built on usage, so incentives stay aligned with users actually moving money.</p>
 
       <h3>Transaction margin</h3>
-      <p>Sending value between <span class="handle">.vel</span> handles is effectively free. Velfi earns a small, transparent spread only where real-world value conversion happens — when money enters or leaves the system, or crosses currencies — comparable to how modern remittance products price, only thinner because settlement runs on Sui rather than a chain of correspondent banks.</p>
+      <p>Sending value between <span class="handle">.vel</span> handles is effectively free. Velfi earns a small, transparent spread only where real-world value conversion happens — when money enters or leaves the system, or crosses currencies — comparable to how modern remittance products price, only thinner because settlement runs on Solana rather than a chain of correspondent banks.</p>
 
       <h3>Premium automation</h3>
       <p>Advanced and high-volume workflows — business payroll, treasury-style scheduled flows, larger escrow arrangements — are offered under a premium tier for teams and power users, while everyday personal use stays free.</p>
@@ -553,7 +556,7 @@
 
       <div class="callout">
         <div class="callout-label">Principle</div>
-        <p>Velfi makes money when users successfully move money. There is no token to inflate, no yield to manufacture, and no incentive misaligned with the product simply working.</p>
+        <p>Velfi makes money when users successfully move money. There is no yield to manufacture and no incentive misaligned with the product simply working.</p>
       </div>
     </section>
 
@@ -563,16 +566,16 @@
 
       <h3>Now — Foundation</h3>
       <ul>
-        <li>zkLogin authentication and self-custodial wallet derivation.</li>
+        <li>Google sign-in with self-custodial Solana wallets.</li>
         <li>The <span class="handle">.vel</span> handle system.</li>
-        <li>Core payment primitives in Move: send, split, stream, schedule, escrow.</li>
+        <li>Core payment primitives as Solana programs: send, split, stream, schedule, escrow.</li>
         <li>The AI agent that turns plain-language instructions into proposed transactions.</li>
         <li>Email-to-claim transfers that onboard new users through payments.</li>
       </ul>
 
       <h3>Next — Intelligence and reach</h3>
       <ul>
-        <li>A financial-domain model, retrained on payment logic, for more accurate and nuanced instruction handling.</li>
+        <li>A financial-domain model tuned on payment logic, for more accurate and nuanced instruction handling.</li>
         <li>Conditional and trigger-based automation expanded to richer rule sets.</li>
         <li>A beneficiary and continuity layer for shared and delegated flows.</li>
         <li>Mobile app release.</li>
@@ -594,7 +597,7 @@
   <div class="page">
     <h2>Conclusion</h2>
     <p>For most of history, instructing money meant doing the work yourself, one action at a time. Programmable money promised to change that, then buried the promise under seed phrases, gas tokens, and addresses no human should have to read.</p>
-    <p>Velfi removes the work and the friction at the same time. You say what you want in a sentence; the agent builds the workflow; the chain settles it in under a second; and the keys never leave your hands. Sign in with Google, claim a name, and tell your money what to do.</p>
+    <p>Velfi removes the work and the friction at the same time. You say what you want in a sentence; the agent builds the workflow; the chain settles it almost instantly; and the keys never leave your hands. Sign in with Google, claim a name, and tell your money what to do.</p>
     <p>The interface is conversation. The settlement is on-chain. The control is yours. That is the whole idea — and everything on this roadmap is in service of making that one sentence true for more people, in more places, doing more things with their money than they ever could by hand.</p>
     <p><strong>Tell your money what to do.</strong></p>
   </div>
@@ -608,16 +611,16 @@
     <ol class="refs">
       <li>Industry analyses of self-custody adoption barriers, identifying key management as a primary obstacle to mainstream use. <em>(Reference to be finalized.)</em></li>
       <li>User-experience research on transaction complexity in self-custodial wallets. <em>(Reference to be finalized.)</em></li>
-      <li>Mysten Labs, "Sui Documentation — Consensus and Finality." <a href="https://docs.sui.io">docs.sui.io</a></li>
-      <li>Mysten Labs, "The Move Programming Language." <a href="https://docs.sui.io">docs.sui.io</a></li>
-      <li>Mysten Labs, "zkLogin." Sui Documentation. <a href="https://docs.sui.io/concepts/cryptography/zklogin">docs.sui.io/concepts/cryptography/zklogin</a></li>
+      <li>Solana, "Fees on Solana." Solana Documentation. <a href="https://solana.com/docs/core/fees">solana.com/docs/core/fees</a></li>
+      <li>Solana, "Transactions." Solana Documentation. <a href="https://solana.com/docs/core/transactions">solana.com/docs/core/transactions</a></li>
+      <li>Anchor, "Anchor Documentation." <a href="https://www.anchor-lang.com/docs">anchor-lang.com/docs</a></li>
     </ol>
     <p style="font-size:13px; color:rgba(255,255,255,0.5); margin-top:32px;">This litepaper describes Velfi as designed and in active development. Features, parameters, and economics are subject to change as the product evolves. This document is informational and is not financial, investment, or legal advice.</p>
   </div>
 </section>
 
 <footer class="doc-foot">
-  <p>Velfi Litepaper v1.0 · June 11, 2026 · Kingnana</p>
+  <p>Velfi Litepaper v1.1 · October 15, 2026 · Kingnana</p>
 </footer>
 
 <script>

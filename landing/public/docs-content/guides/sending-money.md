@@ -8,7 +8,7 @@ Just tell Velfi what you want:
 
 > "Send $50 to jordan.vel."
 
-Velfi shows you the payment — who it's going to and how much — and asks you to confirm. Tap to approve, and it's done. The money arrives in under a second.
+Velfi shows you the payment — who it's going to and how much — and asks you to confirm. Tap to approve, and it's done. The money arrives almost instantly.
 
 ### Who you can send to
 

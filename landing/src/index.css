@@ -457,6 +457,14 @@ html, body {
   gap: 10px;
 }
 
+.marquee-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #b4a8d0;
+  flex: none;
+}
+
 .marquee-logo {
   height: 26px;
   width: auto;

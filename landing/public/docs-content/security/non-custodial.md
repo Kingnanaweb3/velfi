@@ -16,7 +16,7 @@ Velfi is **non-custodial**. Your money is controlled by you and only you. Velfi 
 
 ### The AI can't spend your money
 
-Velfi's AI agent reads your instructions and proposes payments — but it has no ability to move money on its own. It has no keys and no spending power. The worst an mistaken or misbehaving agent could do is suggest a payment, which you would simply reject.
+Velfi's AI agent reads your instructions and proposes payments — but it has no ability to move money on its own. It has no keys and no spending power. The worst a mistaken or misbehaving agent could do is suggest a payment, which you would simply reject.
 
 {% hint style="success" %}
 **The rule is simple:** the agent proposes, you approve, and only you hold the keys. Money never moves without you.
@@ -24,6 +24,6 @@ Velfi's AI agent reads your instructions and proposes payments — but it has no
 
 ### Every payment is verifiable
 
-Because payments settle on the Sui blockchain, every transaction is recorded publicly and can be independently verified. Your payment history doesn't depend on trusting Velfi's servers.
+Because payments settle on Solana, every transaction is recorded publicly and can be independently verified on Solscan. Your payment history doesn't depend on trusting Velfi's servers.
 
 

@@ -1,9 +1,6 @@
 import './index.css'
 import logo from './assets/logo.png'
 import cardImg from './assets/what-card.webp'
-import logoSui from './assets/logo-sui.png'
-import logoWalrus from './assets/logo-walrus.png'
-import logoMysten from './assets/logo-mysten.png'
 import waitlistBg from './assets/waitlist-bg.webp'
 import otter from './assets/otter.webp'
 import { createClient } from '@supabase/supabase-js'
@@ -191,7 +188,7 @@ function App() {
           </div>
           <h1 className="hero-headline">Tell Your Money<br />What To Do.</h1>
           <p className="hero-body">The AI money agent that lets you perform sophisticated and complex transactions by just texting them into on-chain financial workflows.</p>
-          <a href="https://app.velfi.xyz/demo" className="hero-cta">Test Demo</a>
+          <a href="#waitlist" className="hero-cta">Join the waitlist</a>
         </div>
       </section>
 
@@ -225,21 +222,21 @@ function App() {
         </div>
 
         <div className="trust-strip">
-          <p className="trust-label">Built on trusted<br />infrastructure</p>
+          <p className="trust-label">Launching on<br />Solana</p>
           <div className="marquee">
             <div className="marquee-track">
-              <div className="marquee-unit"><img src={logoSui} alt="" className="marquee-logo" /><span className="marquee-name">Sui</span></div>
-              <div className="marquee-unit"><img src={logoWalrus} alt="" className="marquee-logo" /><span className="marquee-name">Walrus</span></div>
-              <div className="marquee-unit"><img src={logoMysten} alt="" className="marquee-logo" /><span className="marquee-name">Mysten Labs</span></div>
-              <div className="marquee-unit"><img src={logoSui} alt="" className="marquee-logo" /><span className="marquee-name">Sui</span></div>
-              <div className="marquee-unit"><img src={logoWalrus} alt="" className="marquee-logo" /><span className="marquee-name">Walrus</span></div>
-              <div className="marquee-unit"><img src={logoMysten} alt="" className="marquee-logo" /><span className="marquee-name">Mysten Labs</span></div>
-              <div className="marquee-unit"><img src={logoSui} alt="" className="marquee-logo" /><span className="marquee-name">Sui</span></div>
-              <div className="marquee-unit"><img src={logoWalrus} alt="" className="marquee-logo" /><span className="marquee-name">Walrus</span></div>
-              <div className="marquee-unit"><img src={logoMysten} alt="" className="marquee-logo" /><span className="marquee-name">Mysten Labs</span></div>
-              <div className="marquee-unit"><img src={logoSui} alt="" className="marquee-logo" /><span className="marquee-name">Sui</span></div>
-              <div className="marquee-unit"><img src={logoWalrus} alt="" className="marquee-logo" /><span className="marquee-name">Walrus</span></div>
-              <div className="marquee-unit"><img src={logoMysten} alt="" className="marquee-logo" /><span className="marquee-name">Mysten Labs</span></div>
+              <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">Solana</span></div>
+              <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">USDC</span></div>
+              <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">USDT</span></div>
+              <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">Jupiter swaps</span></div>
+              <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">Google sign-in</span></div>
+              <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">Gasless payments</span></div>
+              <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">Solana</span></div>
+              <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">USDC</span></div>
+              <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">USDT</span></div>
+              <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">Jupiter swaps</span></div>
+              <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">Google sign-in</span></div>
+              <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">Gasless payments</span></div>
             </div>
           </div>
         </div>
@@ -268,7 +265,7 @@ function App() {
           <div className="how-card reveal">
             <span className="how-num">01</span>
             <h3 className="how-card-title">Sign in with Google</h3>
-            <p className="how-card-body">No seed phrase, no wallet setup. zkLogin derives your wallet from your Google account in seconds.</p>
+            <p className="how-card-body">No seed phrase, no wallet setup. Sign in with Google and Velfi creates your Solana wallet in seconds.</p>
           </div>
           <div className="how-card reveal" style={{ transitionDelay: '150ms' }}>
             <span className="how-num">02</span>
@@ -300,9 +297,9 @@ function App() {
         <h2 className="sec-headline">No seed phrases. <span className="who-accent">Only you hold the keys.</span></h2>
         <div className="sec-cards">
           <div className="sec-card reveal">
-            <span className="sec-label">ZKLOGIN</span>
+            <span className="sec-label">GOOGLE SIGN-IN</span>
             <h3 className="sec-card-title">Sign in with Google. No seed phrase.</h3>
-            <p className="sec-card-body">Your wallet is derived from your Google account through a zero-knowledge proof. Nothing to write down, nothing to lose — switch phones and the same wallet comes back.</p>
+            <p className="sec-card-body">Your Velfi wallet lives on Solana and you unlock it with Google. Nothing to write down, nothing to lose — switch phones and the same wallet comes back.</p>
           </div>
           <div className="sec-card reveal" style={{ transitionDelay: '200ms' }}>
             <span className="sec-label">NON-CUSTODIAL</span>
@@ -312,7 +309,7 @@ function App() {
           <div className="sec-card reveal" style={{ transitionDelay: '400ms' }}>
             <span className="sec-label">ON-CHAIN & VERIFIABLE</span>
             <h3 className="sec-card-title">Every payment is provable.</h3>
-            <p className="sec-card-body">Flows execute as Move contracts on Sui with sub-second finality. Receipts are stored on Walrus, so every transaction is transparent and verifiable.</p>
+            <p className="sec-card-body">Every payment settles as a transaction on Solana, so anyone can check it on Solscan. Your history doesn't depend on trusting our servers.</p>
           </div>
         </div>
       </section>
@@ -329,12 +326,12 @@ function App() {
           <div className="own-card reveal" style={{ transitionDelay: '100ms' }}>
             <span className="own-tag">YOUR MEMORY</span>
             <h3 className="own-col-title">Your agent remembers — privately.</h3>
-            <p className="own-col-body">Your agent's context lives encrypted on Walrus, owned by you alone. It learns your money habits and carries them across sessions and devices — revoke anytime.</p>
+            <p className="own-col-body">Your agent remembers your contacts and money habits so you don't repeat yourself, across sessions and devices. Clear its memory anytime.</p>
           </div>
           <div className="own-card reveal" style={{ transitionDelay: '200ms' }}>
             <span className="own-tag">YOUR KEYS</span>
             <h3 className="own-col-title">No seed phrase to lose.</h3>
-            <p className="own-col-body">zkLogin derives your wallet from your Google sign-in. Switch phones and the same wallet returns — nothing to write down, nothing to leak.</p>
+            <p className="own-col-body">Sign in with Google and your wallet is ready. Switch phones and the same wallet returns — nothing to write down, nothing to leak.</p>
           </div>
           <div className="own-card reveal" style={{ transitionDelay: '300ms' }}>
             <span className="own-tag">YOUR RULES</span>
@@ -422,7 +419,7 @@ function App() {
               <span className={`faq-icon${openFaq === 2 ? ' open' : ''}`}>+</span>
             </button>
             <div className={`faq-a${openFaq === 2 ? ' open' : ''}`}>
-              <p>Velfi is built on Sui, with sub-second finality and near-zero fees. More chains may come later, but Sui is the foundation today.</p>
+              <p>Velfi is launching on Solana, with near-instant settlement, fees of a fraction of a cent, and stablecoins like USDC built in. More chains may come later, but Solana is our home.</p>
             </div>
           </div>
           <div className="faq-item">
@@ -431,7 +428,7 @@ function App() {
               <span className={`faq-icon${openFaq === 3 ? ' open' : ''}`}>+</span>
             </button>
             <div className={`faq-a${openFaq === 3 ? ' open' : ''}`}>
-              <p>Yes. Flows run as Move smart contracts on Sui, you sign in with zkLogin (no seed phrase), and every transaction is on-chain and verifiable.</p>
+              <p>Velfi is designed so nothing moves without your approval. You sign in with Google (no seed phrase), payments run as programs on Solana, and every transaction is on-chain and verifiable.</p>
             </div>
           </div>
           <div className="faq-item">
@@ -529,10 +526,8 @@ function App() {
             <a href="/litepaper" target="_blank" rel="noreferrer">Litepaper <span className="fa">↗</span></a>
           </div>
           <div className="footer-col">
-            <span className="footer-col-title">Built on</span>
-            <a href="https://sui.io" target="_blank" rel="noreferrer">Sui <span className="fa">↗</span></a>
-            <a href="https://walrus.xyz" target="_blank" rel="noreferrer">Walrus <span className="fa">↗</span></a>
-            <a href="https://mystenlabs.com" target="_blank" rel="noreferrer">Mysten Labs <span className="fa">↗</span></a>
+            <span className="footer-col-title">Launching on</span>
+            <a href="https://solana.com" target="_blank" rel="noreferrer">Solana <span className="fa">↗</span></a>
           </div>
           <div className="footer-col">
             <span className="footer-col-title">Company</span>

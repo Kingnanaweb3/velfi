@@ -15,9 +15,9 @@ No seed phrases. No gas tokens. No wallet addresses to copy. You sign in with Go
 * **Escrow** funds until a condition is met, and cancel anytime.
 * **Automate** rules like saving a percentage of everything you receive.
 
-### Built on Sui
+### Launching on Solana
 
-Velfi runs on the Sui blockchain, so payments settle in under a second at near-zero cost. But you never have to think about any of that — the chain is invisible. Your money just does what you tell it to.
+Velfi is launching on Solana, so payments settle almost instantly for a fraction of a cent, with stablecoins like USDC built in. But you never have to think about any of that — the chain is invisible. Your money just does what you tell it to.
 
 {% hint style="info" %}
 **You always hold the keys.** Velfi is non-custodial. It builds and proposes your payments, but only you can approve them. Velfi never takes control of your funds.

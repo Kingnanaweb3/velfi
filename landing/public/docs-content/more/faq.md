@@ -10,11 +10,11 @@ Your `.vel` name is free to claim during early access. It replaces wallet addres
 
 ### Which blockchain does Velfi use?
 
-Velfi is built on **Sui**, chosen for its sub-second finality, near-zero fees, and native sign-in technology. More networks may be supported over time, but Sui is the foundation today.
+Velfi is launching on **Solana**, chosen for its near-instant settlement, fees of a fraction of a cent, and deep stablecoin liquidity. More networks may be supported over time, but Solana is our home.
 
 ### Is my money safe?
 
-Yes. Your funds are self-custodial, you sign in without a seed phrase via zkLogin, payments run as safe Move smart contracts, and every transaction is recorded on-chain and verifiable. See [Security](/velfi/security/non-custodial.md).
+Velfi is designed so nothing moves without your approval. Your funds stay in your own wallet, you sign in without a seed phrase, payments run as programs on Solana, and every transaction is recorded on-chain and verifiable. See [Security](/velfi/security/non-custodial.md).
 
 ### Do I need crypto experience?
 
@@ -42,6 +42,6 @@ You can join the waitlist now and claim your name. The app is coming soon — wa
 
 ### Does Velfi have a token?
 
-No. Velfi has no token. It's a product for moving and managing money, not a cryptocurrency.
+Any official token news will only ever come from [@velfi\_xyz](https://x.com/velfi_xyz) on X. Ignore tokens or links announced anywhere else.
 
 
