@@ -8,7 +8,6 @@ import { ReceiveSheet, TokensSheet, ActivitySheet, AlertsSheet, TxRow, coinFor, 
 import otterFace from '../assets/otter-face.webp'
 import otterPeek from '../assets/otter-peek.webp'
 
-const NGN_PER_USD = 1550 // rough guide only; shown with ≈
 
 function greeting() {
   const h = new Date().getHours()
@@ -82,7 +81,7 @@ export default function Home() {
         <Vault label="Your money"
           labelExtra={<button onClick={toggleHidden} aria-label={hidden ? 'Show balance' : 'Hide balance'}>{hidden ? <EyeOff size={16} /> : <Eye size={16} />}</button>}
           amount={usd} hidden={hidden}
-          sub={usd === null ? ' ' : hidden ? 'Hidden' : usd > 0 ? `≈ ₦${Math.round(usd * NGN_PER_USD).toLocaleString()}` : 'Add USDC or SOL to start'}
+          sub={usd === null ? ' ' : hidden ? 'Hidden' : usd > 0 ? 'USDC and SOL on Solana' : 'Add USDC or SOL to start'}
           actions={<>
             <button className="vbtn" onClick={() => ask('Send ')}><Send size={16} /> Send</button>
             <button className="vbtn glass" onClick={() => setSheet('receive')}><ArrowDownLeft size={17} /> Receive</button>

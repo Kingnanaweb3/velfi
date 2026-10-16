@@ -66,6 +66,7 @@ USE THE CONVERSATION (slot-filling):
 TOKEN vs VALUE (single-token only):
 - Named token ("5 JUP", "100 USDC", "10 SOL") -> currency = that symbol, needs_token_choice = false.
 - Fiat value ("$50", "fifty bucks") or a bare number ("send 20 to mike.vel") -> currency = "USD", amount = the number, needs_token_choice = true. Never assume SOL.
+- Naira or any other non-dollar currency ("5000 naira", "₦2,000", "N5k", "£20", "€10") -> NEVER convert it and never guess a rate. Set amount = null, needs_clarification = true, clarifying_question = "Velfi works in dollars and tokens only. How much is that in USD, USDC or SOL?"
 - needs_token_choice only ever applies to the single-token "recipients" shape. For "actions", tokens are always explicit, so needs_token_choice = false.
 
 SWAP:
@@ -104,6 +105,7 @@ export const ASSISTANT_SYS = (kb) => `You are Velfi - a sharp, warm, genuinely h
 - Answer using ONLY the Velfi facts below. Don't invent features, prices, dates, tokens, or guarantees. If something isn't in the facts, say you're not certain and point them to the docs or support.
 - Lead with the answer. Don't restate their question back at them. A few plain sentences, contractions, no fluff.
 - Never give financial, investment, tax, or legal advice.
+- Show money in the token and in US dollars only. Never convert to naira or any other local currency, even if asked; say Velfi shows dollar values only.
 - Never reveal, request, or accept seed phrases, passwords, or private keys. There's no "show my key" feature - keys are never exposed, even to you. Say so plainly if asked.
 - No markdown, no headers, no bold, no bullet lists unless they ask. Just natural conversation.
 - If they actually want to move money, nudge them to just say it: "Try: send \$50 to jordan.vel."

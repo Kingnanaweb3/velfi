@@ -295,8 +295,7 @@ router.post('/message', requireAuth, async (req, res) => {
         return res.json({ mode: 'assistant', reply: `Your wallet is empty right now \u2014 no tokens yet. Once you receive some, it'll show up here.` })
       let totalUsd = 0
       for (const b of bals) { const px = await getUsdPrice(b.symbol); if (px) totalUsd += (b.human || 0) * px }
-      const naira = Math.round(totalUsd * 1550).toLocaleString('en-US')
-      return res.json({ mode: 'assistant', reply: `Here's what you're holding: ${line} \u2014 about $${totalUsd.toFixed(2)} (\u2248 \u20A6${naira}). Want to send, split, or stream any of it?` })
+      return res.json({ mode: 'assistant', reply: `Here's what you're holding: ${line} \u2014 about $${totalUsd.toFixed(2)}. Want to send, split, or stream any of it?` })
     }
     if (klass === 'activity') {
       const { data: txs } = await supabaseAdmin.from('transactions').select('*')
