@@ -14,6 +14,7 @@ import {
   normalizeVel, normalizeSplit, validateActions
 } from '../lib/agentValidators.js'
 import { buildSummary } from '../lib/summarize.js'
+import { applyDollarFigure } from '../lib/dollars.js'
 import { buildPayment, buildStartStream, buildCreateScheduleMandate, buildSetAllowance } from '../lib/txBuilder.js'
 import { prepareForUser, submitUserSigned, submitVersioned, versionedHash, explorerTx, PROGRAM_ENABLED, feePayerLamports } from '../lib/solana.js'
 import { quoteSwap, buildSwapTx } from '../lib/jupiter.js'
@@ -296,7 +297,7 @@ router.post('/message', requireAuth, async (req, res) => {
         } catch { fresh = null }
       }
       if (advancesDraft(fresh))
-        return await routePayment(res, user, mergeParsed(convo.pending_parse, fresh), ctxBlock)
+        return await routePayment(res, user, applyDollarFigure(mergeParsed(convo.pending_parse, fresh), message), ctxBlock)
       // not a slot answer -> fall through and treat as a fresh message
     }
 
@@ -369,7 +370,7 @@ router.post('/message', requireAuth, async (req, res) => {
     if (convo?.pending_state === 'drafting' && convo?.pending_parse)
       parsed = mergeParsed(convo.pending_parse, parsed)
 
-    return await routePayment(res, user, parsed, ctxBlock)
+    return await routePayment(res, user, applyDollarFigure(parsed, message), ctxBlock)
   } catch (err) {
     console.error('agent error:', err)
     res.status(500).json({ error: friendlyError(err) })

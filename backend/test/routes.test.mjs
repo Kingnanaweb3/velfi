@@ -316,3 +316,14 @@ test('chat: "$1 of SOL" sends one dollar worth of SOL, not 1 SOL; splits convert
     assert.match(r3.body.reply, /\$1 of SOL or USDC/)
   }
 })
+
+test('chat: "Send 1$ sol" is $1 of SOL even if the AI says 1 SOL', async () => {
+  const { scripted } = await import('./harness/stubs/openrouter.mjs')
+  tables.users = [{ id: 'U2', username: 'lazarus', wallet_address: MAYA }]
+  scripted.push('payment', JSON.stringify({ intent: 'send', confidence: 0.95, needs_clarification: false, needs_token_choice: false,
+    payment: { amount: 1, currency: 'SOL', amount_in_usd: false, recipients: [{ name: 'lazarus.vel' }] }, summary: 'Send 1 SOL' }))
+  const r = await call(agent, 'post', '/message', { body: { message: 'Send 1$ sol to lazarus.vel' } })
+  assert.equal(r.body.mode, 'propose', JSON.stringify(r.body))
+  const pay = tables.agent_conversations.find(c => c.user_address === ME).pending_tx.payment
+  assert.ok(Math.abs(pay.token_amount - 0.01) < 1e-12, `token_amount ${pay.token_amount}`)
+})
