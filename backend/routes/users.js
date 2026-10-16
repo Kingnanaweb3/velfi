@@ -1,64 +1,47 @@
 import express from 'express'
 import supabase from '../lib/supabaseAdmin.js'
+import { isSolanaAddress } from '../lib/chain/base58.js'
 
 const router = express.Router()
+const PUBLIC = 'username, wallet_address, avatar_url, created_at'
 
-// GET /users/:username - get public profile
-router.get('/:username', async (req, res) => {
+// GET /users/resolve/:input - resolve a .vel name, Solana address or email
+// (declared before /:username so "resolve" is never read as a username)
+router.get('/resolve/:input', async (req, res) => {
   try {
-    const { username } = req.params
-    const { data, error } = await supabase
-      .from('users')
-      .select('username, sui_address, avatar_url, created_at')
-      .eq('username', username)
-      .single()
+    const original = req.params.input.trim()
+    const input = original.toLowerCase()
 
-    if (error || !data) return res.status(404).json({ error: 'User not found' })
-    res.json({ user: data })
+    if (input.endsWith('.vel')) {
+      const { data } = await supabase.from('users').select(PUBLIC).eq('username', input.replace(/\.vel$/, '')).maybeSingle()
+      if (!data?.wallet_address) return res.status(404).json({ error: 'Username not found' })
+      return res.json({ address: data.wallet_address, user: data })
+    }
+
+    // Solana addresses are case-sensitive: use the original text.
+    if (isSolanaAddress(original)) {
+      const { data } = await supabase.from('users').select(PUBLIC).eq('wallet_address', original).maybeSingle()
+      return res.json({ address: original, user: data || null })
+    }
+
+    if (input.includes('@')) {
+      const { data } = await supabase.from('users').select(PUBLIC).eq('email', input).maybeSingle()
+      if (!data) return res.json({ address: null, needsInvite: true, email: input })
+      return res.json({ address: data.wallet_address, user: data })
+    }
+
+    res.status(400).json({ error: 'Use a .vel name, a Solana address or an email' })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
 })
 
-// GET /resolve/:input - resolve .vel / .sui / 0x address / email
-router.get('/resolve/:input', async (req, res) => {
+// GET /users/:username - public profile
+router.get('/:username', async (req, res) => {
   try {
-    const input = req.params.input.toLowerCase().trim()
-
-    // .vel username
-    if (input.endsWith('.vel')) {
-      const username = input.replace('.vel', '')
-      const { data } = await supabase
-        .from('users')
-        .select('sui_address, username, avatar_url')
-        .eq('username', username)
-        .single()
-      if (!data) return res.status(404).json({ error: 'Username not found' })
-      return res.json({ address: data.sui_address, user: data })
-    }
-
-    // 0x address — return as-is
-    if (input.startsWith('0x')) {
-      const { data } = await supabase
-        .from('users')
-        .select('sui_address, username, avatar_url')
-        .eq('sui_address', input)
-        .single()
-      return res.json({ address: input, user: data || null })
-    }
-
-    // email
-    if (input.includes('@')) {
-      const { data } = await supabase
-        .from('users')
-        .select('sui_address, username, avatar_url')
-        .eq('email', input)
-        .single()
-      if (!data) return res.json({ address: null, needsInvite: true, email: input })
-      return res.json({ address: data.sui_address, user: data })
-    }
-
-    res.status(400).json({ error: 'Invalid input format' })
+    const { data, error } = await supabase.from('users').select(PUBLIC).eq('username', req.params.username.toLowerCase()).single()
+    if (error || !data) return res.status(404).json({ error: 'User not found' })
+    res.json({ user: data })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }

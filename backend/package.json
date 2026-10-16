@@ -4,25 +4,26 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node index.js"
+    "start": "node index.js",
+    "test": "node --test test/*.test.js && node --import ./test/harness/register.mjs --test test/routes.test.mjs"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
   "dependencies": {
-    "@mysten/deepbook-v3": "^0.17.0",
-    "@mysten/sui": "^1.38.0",
-    "@mysten/sui.js": "^0.50.1",
-    "@mysten/zklogin": "^0.8.1",
+    "@privy-io/server-auth": "^1.18.0",
+    "@solana/spl-token": "^0.4.13",
+    "@solana/web3.js": "^1.98.0",
     "@supabase/supabase-js": "^2.108.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "google-auth-library": "^10.7.0",
     "jsonwebtoken": "^9.0.3",
     "resend": "^6.12.4",
     "uuid": "^14.0.0"
+  },
+  "engines": {
+    "node": ">=20.6"
   }
 }

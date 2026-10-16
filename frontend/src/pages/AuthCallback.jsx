@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useZkLogin } from '../hooks/useZkLogin.js'
+import { usePrivy } from '@privy-io/react-auth'
+import { useVelfiSignIn } from '../hooks/useVelfiSignIn.js'
 import { useAuth } from '../context/AuthContext.jsx'
 
 const BACKEND = '/api'
@@ -8,7 +9,8 @@ const COPY = ['Signing you in\u2026', 'Creating your secure wallet\u2026', 'Almo
 
 export default function AuthCallback() {
   const navigate = useNavigate()
-  const { handleCallback } = useZkLogin()
+  const { ready, authenticated } = usePrivy()
+  const { exchange } = useVelfiSignIn()
   const { user, token, login } = useAuth()
 
   const [phase, setPhase] = useState('loading') // 'loading' | 'username' | 'error'
@@ -25,19 +27,16 @@ export default function AuthCallback() {
   const [claiming, setClaiming] = useState(false)
 
   useEffect(() => {
-    if (processed.current) return
+    if (!ready || processed.current) return
+    if (!authenticated) { navigate('/login', { replace: true }); return }
     processed.current = true
     ;(async () => {
       try {
-        const hash = window.location.hash.substring(1)
-        const idToken = new URLSearchParams(hash).get('id_token')
-        if (!idToken) { setError('No sign-in token found. Please try again.'); setPhase('error'); return }
-
         setStep(0)
-        await new Promise(r => setTimeout(r, 600))
+        await new Promise(r => setTimeout(r, 400))
         setStep(1)
-        const { isNew, suiAddress } = await handleCallback(idToken) // real zkLogin work
-        addrRef.current = suiAddress
+        const { isNew, address } = await exchange() // verifies Google + reads your new Solana wallet
+        addrRef.current = address
         if (!isNew) setReturning(true)
         setStep(2)
         await new Promise(r => setTimeout(r, 650))
@@ -49,7 +48,7 @@ export default function AuthCallback() {
         setPhase('error')
       }
     })()
-  }, [])
+  }, [ready, authenticated])
 
   // debounced availability
   useEffect(() => {
@@ -73,14 +72,11 @@ export default function AuthCallback() {
       const res = await fetch(`${BACKEND}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'ngrok-skip-browser-warning': 'true' },
-        body: JSON.stringify({
-          suiAddress: user?.suiAddress || user?.sui_address || addrRef.current,
-          username: claimName
-        })
+        body: JSON.stringify({ username: claimName })
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Could not claim that name.')
-      login(token, { ...user, username: claimName })
+      login(data.token || token, { ...user, username: claimName })
       navigate('/', { replace: true })
     } catch (err) {
       setError(err.message)

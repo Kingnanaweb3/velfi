@@ -1,3 +1,5 @@
+> **Update:** Velfi is moving to Solana. The Sui notes below are history. Start with [SOLANA.md](SOLANA.md).
+
 # Velfi — Status & Next Steps
 
 **What it is:** Non-custodial AI money agent on Sui. "Tell your money what to do."

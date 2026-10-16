@@ -2,7 +2,6 @@ import express from 'express'
 import crypto from 'crypto'
 import supabase from '../lib/supabase.js'
 import supabaseAdmin from '../lib/supabaseAdmin.js'
-import { provider } from '../lib/sui.js'
 import { requireAuth } from '../middleware/auth.js'
 import { callModel, MODELS } from '../lib/openrouter.js'
 import { CLASSIFIER_SYS, PARSER_SYS, ASSISTANT_SYS } from '../lib/agentPrompts.js'
@@ -15,76 +14,37 @@ import {
   normalizeVel, normalizeSplit, validateActions
 } from '../lib/agentValidators.js'
 import { buildSummary } from '../lib/summarize.js'
-import { TransactionBlock } from '@mysten/sui.js/transactions'
-import { buildSend, buildSplit, signAndRun, addTransfer, addMultiTransfer, agentAddress } from '../lib/txBuilder.js'
-import { runSwap, quoteSwap } from '../lib/deepbookSwap.js'
-import { startStream, tickStreams } from '../lib/streams.js'
-import { createSchedule, tickSchedules } from '../lib/schedule.js'
+import { buildPayment, buildStartStream, buildCreateScheduleMandate } from '../lib/txBuilder.js'
+import { prepareForUser, submitUserSigned, submitVersioned, versionedHash, explorerTx } from '../lib/solana.js'
+import { quoteSwap, buildSwapTx } from '../lib/jupiter.js'
+import { recordStream, streamProgress } from '../lib/streams.js'
+import { recordSchedule, tickSchedules } from '../lib/schedule.js'
+import { saveInvites } from '../lib/invites.js'
+import { remember, take, allowSubmission } from '../lib/prepared.js'
+import { isSolanaAddress } from '../lib/chain/base58.js'
+import { toBaseUnits } from '../lib/chain/amounts.js'
 
 const router = express.Router()
 
-// Agent-custodial (demo): the agent wallet funds + signs every send, so balance
-// checks must read THIS wallet so check == spend. Per-user signing comes later.
-const FUNDING_ADDRESS = agentAddress()
-
-const suiToMist = (x) => Math.round(Number(x) * 1e9)
-
-// Map a saved proposal to a TransactionBlock. SUI + any verified token.
-async function buildFromProposal(pending) {
-  const pay = pending.payment || {}
-  const token = getToken((pay.currency || '').toUpperCase())
-  if (!token) throw new Error(`I don't recognize ${pay.currency || 'that token'} yet.`)
-
-  const recips = (pay.recipients || []).map(r => ({
-    address: r.resolved?.address || r.address,
-    amount: r.amount ?? pay.token_amount ?? pay.amount,
-  }))
-  if (!recips.length || recips.some(r => !r.address))
-    throw new Error('Missing a resolved recipient address.')
-
-  const sender = agentAddress()
-  const txb = new TransactionBlock()
-
-  // multi-action: loop each leg onto ONE shared PTB -> atomic, one signature
-  if (Array.isArray(pending.actions) && pending.actions.length) {
-    for (const a of pending.actions) {
-      const tk = getToken(String(a.token || a.currency || '').toUpperCase())
-      if (!tk) throw new Error(`I don't recognize ${a.token || a.currency || 'one of those tokens'} yet.`)
-      const addr = a.recipient?.resolved?.address || a.recipient?.address || a.address
-      if (!addr) throw new Error('One of the actions is missing a resolved recipient.')
-      await addTransfer(txb, { sender, recipient: addr, amount: a.amount, token: tk })
-    }
-    return txb
-  }
-
-  if (pending.intent === 'send') {
-    await addTransfer(txb, { sender, recipient: recips[0].address, amount: pay.token_amount ?? pay.amount, token })
-    return txb
-  }
-  if (pending.intent === 'split') {
-    await addMultiTransfer(txb, { sender, legs: recips.map(r => ({ recipient: r.address, amount: r.amount })), token })
-    return txb
-  }
-  throw new Error(`Execution for "${pending.intent}" isn't wired yet.`)
-}
+// Non-custodial: every payment is signed by the user's own wallet. Balance
+// checks read the user's wallet, because that is where the money comes from.
 
 const VELFI_KB = `
-Velfi is a non-custodial AI money agent on the Sui blockchain. Tagline: tell your money what to do.
-- Sign in with Google via zkLogin. No seed phrase, no extension. Switch devices and your wallet comes back.
-- Claim a .vel name (like alice.vel) so people pay you by name instead of a long 0x address.
+Velfi is a non-custodial AI money agent launching on Solana. Tagline: tell your money what to do.
+- Sign in with Google. Velfi creates your Solana wallet for you: no seed phrase, no extension. Switch devices and the same wallet comes back.
+- Claim a .vel name (like alice.vel) so people pay you by name instead of a long wallet address.
 - Just say what you want in plain language. Velfi reads it, proposes the exact action, and only moves money after you approve and sign.
-- Money actions: send, split (one amount across people), stream (pay out over time), schedule (recurring), escrow (held until a condition is met), automate (rules like "save 10% of anything I receive"), and swap (convert one token to another).
-- Swaps run through DeepBook, Sui's on-chain order book, so you can convert tokens like SUI to USDC right inside the app.
-- Pay a .vel name, a 0x address, or an email. If they're not on Velfi yet, the email invite lets them claim it on sign-up.
-- Right now Velfi holds and sends SUI and native USDC on Sui. Support for more Sui tokens is coming soon.
-- Every payment produces a tamper-proof receipt stored on Walrus, so there's a permanent, shareable record you actually own.
-- Non-custodial: only you hold the keys. The agent never moves money on its own - every action needs your explicit approval and signature, and that can never be turned off. That's the whole point.
-- Two modes: Assisted (you approve and sign each action) and Autopilot (the agent can act on its own, but only inside hard on-chain limits you set: a budget, a per-payment cap, and an allow-list of recipients).
-- Built on Sui: sub-second finality, near-zero fees, Move smart contracts.
+- Money actions: send, split (one amount across people), stream (pays out second by second, the recipient claims anytime), schedule (recurring payments), send to an email (held safely until they sign up), and swaps on mainnet through Jupiter.
+- Gasless: Velfi pays the Solana network fee for your payments, so you don't need SOL to move USDC.
+- Pay a .vel name, a Solana address, or an email. If they're not on Velfi yet, the money waits in an on-chain escrow for 7 days and lands in their wallet when they sign up; otherwise it comes back to you.
+- Right now Velfi moves SOL and USDC (plus USDT on mainnet). Streams and schedules use USDC.
+- Every payment is a Solana transaction anyone can check on Solscan.
+- Non-custodial: only you hold the keys. The agent never moves money on its own - every one-off payment needs your approval and signature.
+- Two modes: Assisted (you approve and sign each action) and Autopilot (scheduled payments run from an on-chain mandate you fund and sign once: it can only pay the recipient you chose, at most the amount you set, until it expires, and you can cancel it anytime).
 What Velfi can't do yet (be honest, never promise these):
 - No fiat on/off-ramp - you can't buy crypto with a card or cash out to a bank inside Velfi.
 - No loans, credit, yield, or investment products. Velfi never gives financial, tax, or legal advice.
-- It only works with tokens and names that exist on Sui; it can't reach other chains.
+- It only works on Solana; it can't reach other chains.
 - .vel names are free during early access. A mobile app is coming soon.
 `.trim()
 
@@ -95,13 +55,14 @@ async function resolveRecipient(input) {
   const clean = String(input).toLowerCase().trim()
   if (clean.endsWith('.vel')) {
     const username = clean.replace('.vel', '')
-    const { data } = await supabaseAdmin.from('users').select('sui_address, username').eq('username', username).single()
-    return data ? { address: data.sui_address, label: input } : null
+    const { data } = await supabaseAdmin.from('users').select('wallet_address, username').eq('username', username).single()
+    return data?.wallet_address ? { address: data.wallet_address, label: input } : null
   }
-  if (clean.startsWith('0x')) return { address: clean, label: clean }
+  // Solana addresses are case-sensitive, so check the original input, not the lowercased one.
+  if (isSolanaAddress(String(input).trim())) return { address: String(input).trim(), label: String(input).trim() }
   if (clean.includes('@')) return { address: null, email: clean, label: clean, needsInvite: true }
-  const { data } = await supabaseAdmin.from('users').select('sui_address, username').eq('username', clean).single()
-  return data ? { address: data.sui_address, label: clean } : null
+  const { data } = await supabaseAdmin.from('users').select('wallet_address, username').eq('username', clean).single()
+  return data?.wallet_address ? { address: data.wallet_address, label: clean } : null
 }
 
 // Try to read a token symbol the user picked, restricted to what they actually hold.
@@ -187,7 +148,7 @@ async function propose(user, parsed, extra = {}) {
 async function settleWithToken(user, parsed, symbol) {
   const pay = parsed.payment
   const token = getToken(symbol)
-  const held = await balanceOf(FUNDING_ADDRESS, symbol)
+  const held = await balanceOf(user.address, symbol)
 
   let tokenAmount = pay.amount
   let note = ''
@@ -195,7 +156,7 @@ async function settleWithToken(user, parsed, symbol) {
     // amount is a USD value -> convert to the chosen token
     const converted = await usdToToken(pay.amount, symbol)
     if (converted == null) {
-      return { mode: 'clarify', reply: `I can't price ${symbol} right now, so I can't convert $${pay.amount} into it. Try SUI or a stablecoin.` }
+      return { mode: 'clarify', reply: `I can't price ${symbol} right now, so I can't convert $${pay.amount} into it. Try USDC or SOL.` }
     }
     tokenAmount = converted
     const price = await getUsdPrice(symbol)
@@ -204,7 +165,7 @@ async function settleWithToken(user, parsed, symbol) {
 
   const enough = hasEnough(held, tokenAmount)
   if (!enough.ok) {
-    const bals = await getAllBalances(FUNDING_ADDRESS)
+    const bals = await getAllBalances(user.address)
     return {
       mode: 'insufficient',
       reply: `You don't have enough ${symbol}. This needs ${tokenAmount.toFixed(4)} ${symbol}, but you hold ${held.toFixed(4)} ${symbol}.\n\nYour balances: ${formatBalances(bals)}\n\nWant to use a different token, or change the amount?`,
@@ -244,7 +205,7 @@ router.post('/message', requireAuth, async (req, res) => {
 
     // --- MULTI-TURN: awaiting a token choice ---
     if (convo?.pending_state === 'awaiting_token' && convo?.pending_parse) {
-      const bals = await getAllBalances(FUNDING_ADDRESS)
+      const bals = await getAllBalances(user.address)
       const symbol = pickTokenFromMessage(message, bals)
       if (!symbol) {
         return res.json({
@@ -277,7 +238,7 @@ router.post('/message', requireAuth, async (req, res) => {
     // misrouted by the classifier. Only fall through if it adds nothing (topic switch).
     if (convo?.pending_state === 'drafting' && convo?.pending_parse) {
       if (isFiller(message))
-        return await routePayment(res, user, convo.pending_parse)
+        return await routePayment(res, user, convo.pending_parse, ctxBlock)
       let fresh = null
       for (let a = 0; a < 2 && !fresh; a++) {
         try {
@@ -288,7 +249,7 @@ router.post('/message', requireAuth, async (req, res) => {
         } catch { fresh = null }
       }
       if (advancesDraft(fresh))
-        return await routePayment(res, user, mergeParsed(convo.pending_parse, fresh))
+        return await routePayment(res, user, mergeParsed(convo.pending_parse, fresh), ctxBlock)
       // not a slot answer -> fall through and treat as a fresh message
     }
 
@@ -300,9 +261,9 @@ router.post('/message', requireAuth, async (req, res) => {
 
     // --- real-data answers: balance / activity / lookup ---
     if (klass === 'balance') {
-      const bals = await getAllBalances(FUNDING_ADDRESS)
+      const bals = await getAllBalances(user.address)
       const line = formatBalances(bals)
-      if (!line || line === '0.00 SUI')
+      if (!bals.length)
         return res.json({ mode: 'assistant', reply: `Your wallet is empty right now \u2014 no tokens yet. Once you receive some, it'll show up here.` })
       let totalUsd = 0
       for (const b of bals) { const px = await getUsdPrice(b.symbol); if (px) totalUsd += (b.human || 0) * px }
@@ -323,13 +284,13 @@ router.post('/message', requireAuth, async (req, res) => {
       return res.json({ mode: 'assistant', reply: `Here are your most recent transactions:\n${lines}\n\nThe full history lives in the Activity tab.` })
     }
     if (klass === 'lookup') {
-      const m = String(message).match(/([a-z0-9_]+\.vel|0x[a-fA-F0-9]{6,})/i)
+      const m = String(message).match(/([a-z0-9_]+\.vel|[1-9A-HJ-NP-Za-km-z]{32,44})/i)
       if (!m) return res.json({ mode: 'assistant', reply: 'Tell me the .vel name or address to check \u2014 like "is jordan.vel on Velfi?"' })
       const target = m[1]
       const resolved = await resolveRecipient(target)
       return res.json({ mode: 'assistant', reply: (resolved && resolved.address)
-        ? `Yes \u2014 ${target} is on Velfi. Tell me an amount and I'll set up the payment (e.g. \"send 5 SUI to ${target}\").`
-        : `I couldn't find ${target} on Velfi yet. Double-check the name, or send to a 0x address or email instead.` })
+        ? `Yes \u2014 ${target} is on Velfi. Tell me an amount and I'll set up the payment (e.g. \"send 5 USDC to ${target}\").`
+        : `I couldn't find ${target} on Velfi yet. Double-check the name, or send to a Solana address or email instead.` })
     }
 
     // --- STEP 2a: assistant ---
@@ -352,7 +313,7 @@ router.post('/message', requireAuth, async (req, res) => {
       } catch { parsed = null }
     }
     if (!parsed) {
-      return res.json({ mode: 'assistant', reply: "Hmm, I couldn't quite find who you're paying. Try their name in .vel format, like jordan.vel — or a Sui address or their email works too. Then just tell me the amount, e.g. send 20 USDC to jordan.vel." })
+      return res.json({ mode: 'assistant', reply: "Hmm, I couldn't quite find who you're paying. Try their name in .vel format, like jordan.vel — or a Solana address or their email works too. Then just tell me the amount, e.g. send 20 USDC to jordan.vel." })
     }
 
     if (!validateSchema(parsed).ok)
@@ -362,12 +323,21 @@ router.post('/message', requireAuth, async (req, res) => {
     if (convo?.pending_state === 'drafting' && convo?.pending_parse)
       parsed = mergeParsed(convo.pending_parse, parsed)
 
-    return await routePayment(res, user, parsed)
+    return await routePayment(res, user, parsed, ctxBlock)
   } catch (err) {
     console.error('agent error:', err)
     res.status(500).json({ error: friendlyError(err) })
   }
 })
+
+// For the signing flow: our own validation errors are written for people, so show
+// them; anything that looks like a crash gets the generic line.
+function userError(err) {
+  const m = String(err?.message || err || '')
+  if (/fetch failed|ECONN|ETIMEDOUT|ENOTFOUND|socket/i.test(m)) return 'I hit a network hiccup just now. Mind trying that once more?'
+  if (!m || m.length > 220 || /TypeError|ReferenceError|undefined|Cannot read/i.test(m)) return 'Something glitched on my end. Try that again and I\'ll pick it right back up.'
+  return m
+}
 
 // Turn raw errors into something a person can act on (no scary "fetch failed").
 function friendlyError(err) {
@@ -449,7 +419,7 @@ function mergeParsed(draft, fresh) {
 }
 
 // ===== payment routing — shared by fresh messages and drafting (slot-fill) =====
-async function routePayment(res, user, parsed) {
+async function routePayment(res, user, parsed, ctxBlock = '') {
   await saveDraft(user, parsed)   // checkpoint so the next turn can complete it
   try {
     // --- MULTI-TOKEN: explicit per-leg token+amount+recipient (atomic, one approval) ---
@@ -457,12 +427,12 @@ async function routePayment(res, user, parsed) {
       const rawActions = parsed.payment?.actions
       if (Array.isArray(rawActions) && rawActions.length) {
         const va = validateActions(rawActions)
-        if (!va.ok) return res.json({ mode: 'clarify', reply: `I couldn't work that out — ${va.error}. Try e.g. send 0.01 SUI to joshhhy.vel and 0.02 USDC to lazarus.vel.` })
+        if (!va.ok) return res.json({ mode: 'clarify', reply: `I couldn't work that out — ${va.error}. Try e.g. send 0.01 SOL to joshhhy.vel and 2 USDC to lazarus.vel.` })
         const legs = [], notFound = [], selfHit = []
         for (const a of rawActions) {
           const sym = String(a.token || '').toUpperCase()
           const tk = getToken(sym)
-          if (!tk || String(tk.coinType || '').startsWith('TODO')) return res.json({ mode: 'clarify', reply: `I can only move SUI or USDC right now, not ${a.token}.` })
+          if (!tk) return res.json({ mode: 'clarify', reply: `I can only move SOL or USDC right now, not ${a.token}.` })
           const key = normalizeVel(a.recipient?.name) || a.recipient?.address || a.recipient?.email
           const resolved = await resolveRecipient(key)
           if (!resolved) { notFound.push(key); continue }
@@ -478,9 +448,9 @@ async function routePayment(res, user, parsed) {
         const needByTok = {}
         for (const l of legs) needByTok[l.token] = (needByTok[l.token] || 0) + l.amount
         for (const sym of Object.keys(needByTok)) {
-          const held = await balanceOf(FUNDING_ADDRESS, sym)
+          const held = await balanceOf(user.address, sym)
           if (held < needByTok[sym]) {
-            const bals = await getAllBalances(FUNDING_ADDRESS)
+            const bals = await getAllBalances(user.address)
             return res.json({ mode: 'insufficient', reply: `You don't have enough ${sym}. This needs ${needByTok[sym].toFixed(4)} ${sym}, but you hold ${held.toFixed(4)} ${sym}.\n\nYour balances: ${formatBalances(bals)}` })
           }
         }
@@ -498,14 +468,14 @@ async function routePayment(res, user, parsed) {
       }
     }
 
-    // SWAP: dedicated path (no recipient resolution) — DeepBook execution
+    // SWAP: dedicated path (no recipient resolution) — Jupiter on mainnet
     if (parsed.intent === 'swap') {
       const sw = parsed.payment?.swap || {}
       const from = String(sw.from_token || '').toUpperCase()
       const to = String(sw.to_token || '').toUpperCase()
       const amt = Number(sw.amount)
       if (!from || !to)
-        return res.json({ mode: 'clarify', reply: "What are you swapping \u2014 from which token to which? (e.g. swap 0.5 SUI to DEEP)" })
+        return res.json({ mode: 'clarify', reply: "What are you swapping \u2014 from which token to which? (e.g. swap 0.5 SOL to USDC)" })
       if (!amt || amt <= 0)
         return res.json({ mode: 'clarify', reply: `How much ${from} would you like to swap?` })
       let summary = `Swapping ${amt} ${from} for ${to}.`
@@ -521,7 +491,7 @@ async function routePayment(res, user, parsed) {
     // STREAM: dedicated path — resolve recipient, persist + auto-run via the stream engine
     if (parsed.intent === 'stream') {
       const pay = parsed.payment || {}
-      const sym = String(pay.currency || 'SUI').toUpperCase()
+      const sym = String(pay.currency || 'USDC').toUpperCase()
       const total = Number(pay.amount)
       const rc = (pay.recipients || [])[0] || {}
       const sch = pay.schedule || {}
@@ -529,8 +499,8 @@ async function routePayment(res, user, parsed) {
         : sch.duration_minutes ? Number(sch.duration_minutes) * 60
         : sch.duration_days ? Number(sch.duration_days) * 86400 : null
       const tk = getToken(sym)
-      if (!tk || String(tk.coinType).startsWith('TODO'))
-        return res.json({ mode: 'clarify', reply: 'I can stream SUI or USDC for now.' })
+      if (!tk || tk.mint === 'native')
+        return res.json({ mode: 'clarify', reply: 'I can stream USDC for now. Want to stream it in USDC?' })
       if (!total || total <= 0)
         return res.json({ mode: 'clarify', reply: 'How much would you like to stream, and over how long?' })
       if (!durationSecs || durationSecs <= 0)
@@ -541,27 +511,27 @@ async function routePayment(res, user, parsed) {
       const resolved = await resolveRecipient(who)
       if (!resolved?.address)
         return res.json({ mode: 'clarify', reply: `I couldn't find ${who}. Try a .vel name, address, or email.` })
-      const held = await balanceOf(FUNDING_ADDRESS, sym)
+      const held = await balanceOf(user.address, sym)
       if (held < total)
-        return res.json({ mode: 'insufficient', reply: `This stream needs ${total} ${sym}, but the wallet holds ${held.toFixed(4)} ${sym}.` })
+        return res.json({ mode: 'insufficient', reply: `This stream needs ${total} ${sym}, but your wallet holds ${held.toFixed(4)} ${sym}.` })
       parsed.payment = { ...pay, currency: sym, amount: total, recipients: [{ name: rc.name || null, address: resolved.address }],
         stream: { recipient: resolved.address, recipientName: rc.name || who, token: sym, total_amount: total, duration_secs: durationSecs } }
-      parsed.summary = `Streaming ${total} ${sym} to ${rc.name || who} \u2014 it'll start paying out automatically once you approve.`
+      parsed.summary = `Streaming ${total} ${sym} to ${rc.name || who} \u2014 it starts vesting the moment you approve, and they can claim anytime.`
       return res.json(await propose(user, parsed))
     }
 
     // SCHEDULE: dedicated path — recurring payments via the schedule engine
     if (parsed.intent === 'schedule') {
       const pay = parsed.payment || {}
-      const sym = String(pay.currency || 'SUI').toUpperCase()
+      const sym = String(pay.currency || 'USDC').toUpperCase()
       const amount = Number(pay.amount)
       const rc = (pay.recipients || [])[0] || {}
       const sch = pay.schedule || {}
       const frequency = sch.frequency || null
       const occurrences = sch.occurrences || sch.count || null
       const tk = getToken(sym)
-      if (!tk || String(tk.coinType).startsWith('TODO'))
-        return res.json({ mode: 'clarify', reply: 'I can schedule SUI or USDC payments for now.' })
+      if (!tk || tk.mint === 'native')
+        return res.json({ mode: 'clarify', reply: 'I can schedule USDC payments for now. Want to schedule it in USDC?' })
       if (!amount || amount <= 0)
         return res.json({ mode: 'clarify', reply: 'How much should each scheduled payment be?' })
       if (!frequency)
@@ -572,9 +542,9 @@ async function routePayment(res, user, parsed) {
       const resolved = await resolveRecipient(who)
       if (!resolved?.address)
         return res.json({ mode: 'clarify', reply: `I couldn't find ${who}. Try a .vel name, address, or email.` })
-      const held = await balanceOf(FUNDING_ADDRESS, sym)
+      const held = await balanceOf(user.address, sym)
       if (held < amount)
-        return res.json({ mode: 'insufficient', reply: `Each payment is ${amount} ${sym}, but the wallet only holds ${held.toFixed(4)} ${sym}.` })
+        return res.json({ mode: 'insufficient', reply: `This schedule locks in ${amount} ${sym} per payment up front, but your wallet only holds ${held.toFixed(4)} ${sym}.` })
       parsed.payment = { ...pay, currency: sym, amount, recipients: [{ name: rc.name || null, address: resolved.address }],
         sched: { recipient: resolved.address, recipientName: rc.name || who, token: sym, amount, frequency, occurrences } }
       parsed.summary = `Scheduling ${amount} ${sym} to ${rc.name || who} ${frequency}${occurrences ? ` for ${occurrences} payments` : ''} \u2014 starts once you approve.`
@@ -585,7 +555,7 @@ async function routePayment(res, user, parsed) {
     if (!['send', 'split'].includes(parsed.intent)) {
       const _names = { swap: 'Token swaps', stream: 'Streaming payments', schedule: 'Scheduled payments', escrow: 'Escrow', automate: 'Automations' }
       const _what = _names[parsed.intent] || 'That feature'
-      return res.json({ mode: 'assistant', reply: `${_what} — coming soon. Right now I can send or split SUI and USDC. Want to do one of those?` })
+      return res.json({ mode: 'assistant', reply: `${_what} — coming soon. Right now I can send, split, stream and schedule. Want to do one of those?` })
     }
 
     // low-confidence double-check
@@ -593,7 +563,7 @@ async function routePayment(res, user, parsed) {
       try {
         const second = JSON.parse(strip(await callModel(MODELS.doublecheck, [
           { role: 'system', content: PARSER_SYS },
-          { role: 'user', content: ctxBlock },
+          { role: 'user', content: ctxBlock || JSON.stringify(parsed.payment || {}) },
         ], { json: true })))
         if (parsesAgree(parsed, second)) parsed.confidence = Math.max(parsed.confidence, 0.7)
         else { parsed.needs_clarification = true; parsed.clarifying_question ||= "Can you restate the amount and who it's going to?" }
@@ -643,7 +613,7 @@ async function routePayment(res, user, parsed) {
 
     // --- TOKEN CHOICE: amount given as a value, no token chosen ---
     if (parsed.needs_token_choice && ['send','split','stream','schedule'].includes(parsed.intent)) {
-      const bals = await getAllBalances(FUNDING_ADDRESS)
+      const bals = await getAllBalances(user.address)
       await supabaseAdmin.from('agent_conversations').upsert({
         user_address: user.address,
         pending_state: 'awaiting_token',
@@ -672,38 +642,6 @@ async function routePayment(res, user, parsed) {
   }
 }
 
-// POST /agent/approve/:id (unchanged — the real safety gate)
-router.post('/approve/:id', requireAuth, async (req, res) => {
-  try {
-    const { txBytes, signature } = req.body
-    if (!txBytes || !signature) return res.status(400).json({ error: 'txBytes and signature required' })
-    const result = await provider.executeTransactionBlock({
-      transactionBlock: txBytes, signature, options: { showEffects: true },
-    })
-    await supabaseAdmin.from('agent_conversations').update({ pending_tx: null }).eq('user_address', req.user.address)
-
-    // log each executed leg to transactions (admin bypasses RLS; non-fatal)
-    const _pay = pending.payment || {}
-    const _legs = Array.isArray(pending.actions) && pending.actions.length
-      ? pending.actions.map(a => ({ token: String(a.token || a.currency || '').toUpperCase(), amount: a.amount,
-          who: a.recipient?.name || a.recipient?.resolved?.address || a.recipient?.address || a.address || null }))
-      : (_pay.recipients?.length ? _pay.recipients : [{}]).map(r => ({ token: String(_pay.currency || '').toUpperCase(),
-          amount: r.amount ?? _pay.token_amount ?? _pay.amount, who: r.name || r.resolved?.address || r.address || null }))
-    const { error: _logErr } = await supabaseAdmin.from('transactions').insert(
-      _legs.map(l => ({ user_address: req.user.address, digest: result.digest, type: pending.intent || 'send',
-        label: l.who ? `Sent to ${l.who}` : 'Sent', sub_label: l.token || null, amount: l.amount,
-        token: l.token || null, direction: 'out', counterparty: l.who || null }))
-    )
-    if (_logErr) console.error('tx log failed (non-fatal):', _logErr.message)
-    await supabaseAdmin.from('notifications').insert({
-      user_address: req.user.address, type: 'payment_sent',
-      title: 'Payment sent', body: 'Transaction confirmed on Sui',
-      action_url: `https://suiscan.xyz/testnet/tx/${result.digest}`,
-    })
-    res.json({ success: true, digest: result.digest })
-  } catch (err) { res.status(500).json({ error: err.message }) }
-})
-
 // POST /agent/cancel/:id
 router.post('/cancel/:id', requireAuth, async (req, res) => {
   try {
@@ -722,16 +660,6 @@ router.post('/revise/:id', requireAuth, async (req, res) => {
     const { data: convo } = await supabaseAdmin
       .from('agent_conversations').select('*').eq('user_address', user.address).single()
 
-    // --- conversation memory: rolling window of recent user messages ---
-    const userHistory = Array.isArray(convo?.history) ? convo.history : []
-    const ctxBlock = userHistory.length
-      ? `Earlier in this conversation the user said:\n${userHistory.slice(-6).map(m => `- "${m}"`).join('\n')}\n\nLatest message: "${message}"\n\nInterpret the LATEST message. Use the earlier lines only to resolve references like "them", "the two", or "those people", or to carry forward an amount or recipients already stated. If the latest message fully specifies the action, use it as-is.`
-      : message
-    try {
-      await supabaseAdmin.from('agent_conversations').upsert(
-        { user_address: user.address, history: [...userHistory, message].slice(-8), updated_at: new Date() },
-        { onConflict: 'user_address' })
-    } catch (e) { /* history column optional */ }
     const pending = convo?.pending_tx
     if (!pending || pending.id !== req.params.id)
       return res.status(404).json({ error: 'no matching pending proposal' })
@@ -775,7 +703,7 @@ router.post('/revise/:id', requireAuth, async (req, res) => {
 
     // still a USD value -> ask token again
     if (symbol === 'USD' && ['send','split','stream','schedule'].includes(intent)) {
-      const bals = await getAllBalances(FUNDING_ADDRESS)
+      const bals = await getAllBalances(user.address)
       await supabaseAdmin.from('agent_conversations').upsert({
         user_address: user.address, pending_state: 'awaiting_token',
         pending_parse: parsed, pending_tx: null, updated_at: new Date(),
@@ -792,74 +720,135 @@ router.post('/revise/:id', requireAuth, async (req, res) => {
   }
 })
 
-// POST /agent/run/:id — agent-signed execution of a pending proposal (autopilot path)
-router.post('/run/:id', requireAuth, async (req, res) => {
-  try {
-    const { data: convo } = await supabaseAdmin
-      .from('agent_conversations').select('*').eq('user_address', req.user.address).single()
-    const pending = convo?.pending_tx
-    if (!pending || pending.id !== req.params.id)
-      return res.status(404).json({ error: 'no matching pending proposal' })
+// ===== Signing flow =====
+// 1. POST /agent/prepare/:id  -> Velfi builds the transaction for the pending
+//    proposal, co-signs it as fee payer, and returns it for the user's wallet.
+// 2. The app signs it with the user's Google wallet (Privy).
+// 3. POST /agent/approve/:id { prepId, signedTx } -> Velfi checks it is exactly
+//    what was prepared, sends it, and records the result.
+async function loadPending(userAddress, id) {
+  const { data: convo } = await supabaseAdmin.from('agent_conversations').select('*').eq('user_address', userAddress).single()
+  const pending = convo?.pending_tx
+  return pending && pending.id === id ? pending : null
+}
 
-    if (pending.intent === 'schedule') {
-      const sd = pending.payment?.sched || {}
-      const sc = await createSchedule({ userAddress: req.user.address, recipient: sd.recipient,
-        recipientName: sd.recipientName, token: sd.token, amount: sd.amount, frequency: sd.frequency, occurrences: sd.occurrences })
-      await supabaseAdmin.from('agent_conversations').update({ pending_tx: null }).eq('user_address', req.user.address)
-      tickSchedules().catch(e => console.error('initial schedule tick:', e.message))
-      await supabaseAdmin.from('notifications').insert({ user_address: req.user.address, type: 'schedule_started',
-        title: 'Schedule started', body: `${sd.amount} ${sd.token} to ${sd.recipientName} ${sd.frequency}` })
-      return res.json({ success: true, scheduleId: sc.id, message: 'Schedule set \u2014 first payment going out now, the rest run automatically.' })
+router.post('/prepare/:id', requireAuth, async (req, res) => {
+  try {
+    const user = req.user
+    const pending = await loadPending(user.address, req.params.id)
+    if (!pending) return res.status(404).json({ error: 'That proposal has expired. Ask me again and I\'ll set it up.' })
+
+    if (pending.intent === 'swap') {
+      const sw = pending.payment?.swap || {}
+      const { quote, expectedOut } = await quoteSwap({ fromToken: sw.from_token, toToken: sw.to_token, amount: sw.amount })
+      const tx = await buildSwapTx({ quote, userAddress: user.address })
+      const prepId = remember({ userAddress: user.address, messageHash: versionedHash(tx), after: { type: 'swap', pending, expectedOut } })
+      return res.json({ prepId, tx, versioned: true, note: `You'll get about ${expectedOut.toFixed(4)} ${sw.to_token}. Swaps pay a small SOL network fee.` })
     }
 
     if (pending.intent === 'stream') {
       const st = pending.payment?.stream || {}
-      const stream = await startStream({ userAddress: req.user.address, recipient: st.recipient,
-        recipientName: st.recipientName, token: st.token, totalAmount: st.total_amount, durationSecs: st.duration_secs })
-      await supabaseAdmin.from('agent_conversations').update({ pending_tx: null }).eq('user_address', req.user.address)
-      tickStreams().catch(e => console.error('initial stream tick:', e.message))
-      await supabaseAdmin.from('notifications').insert({ user_address: req.user.address, type: 'stream_started',
-        title: 'Stream started', body: `Streaming ${st.total_amount} ${st.token} to ${st.recipientName}` })
-      return res.json({ success: true, streamId: stream.id, message: 'Stream started \u2014 payments will flow automatically.' })
+      const token = getToken(st.token)
+      const amountUnits = toBaseUnits(Number(st.total_amount).toFixed(token.decimals), token.decimals)
+      const built = await buildStartStream({ userAddress: user.address, recipient: st.recipient, token, amountUnits, durationSecs: Number(st.duration_secs) })
+      const prep = await prepareForUser(built.instructions)
+      const prepId = remember({ userAddress: user.address, messageHash: prep.messageHash,
+        after: { type: 'stream', pending, flow: built.flow.toString(), token: token.symbol, mint: token.mint, decimals: token.decimals, totalUnits: amountUnits.toString() } })
+      return res.json({ prepId, tx: prep.tx })
     }
 
-    if (pending.intent === 'swap') {
-      await supabaseAdmin.from('agent_conversations').update({ pending_tx: null }).eq('user_address', req.user.address)
-      return res.status(400).json({ error: 'Swaps go live on mainnet \u2014 DeepBook pools are not liquid on testnet yet, so nothing was charged.' })
+    if (pending.intent === 'schedule') {
+      const sd = pending.payment?.sched || {}
+      const token = getToken(sd.token)
+      const amountUnits = toBaseUnits(Number(sd.amount).toFixed(token.decimals), token.decimals)
+      const built = await buildCreateScheduleMandate({ userAddress: user.address, recipient: sd.recipient, token, amountUnits, frequency: sd.frequency, occurrences: sd.occurrences })
+      const prep = await prepareForUser(built.instructions)
+      const prepId = remember({ userAddress: user.address, messageHash: prep.messageHash,
+        after: { type: 'schedule', pending, mandate: built.mandate, token: token.symbol, mint: token.mint, amountUnits: amountUnits.toString(),
+          plan: { intervalSecs: built.plan.intervalSecs, count: built.plan.count } } })
+      const total = Number(sd.amount) * built.plan.count
+      return res.json({ prepId, tx: prep.tx, note: `This locks ${total} ${token.symbol} in an on-chain mandate that can only pay ${sd.recipientName}, ${sd.amount} at a time. You can cancel it anytime and get the rest back.` })
     }
 
-    const result = await signAndRun(await buildFromProposal(pending))
-    if (result.effects?.status?.status !== 'success')
-      return res.status(400).json({ error: 'on-chain failure', status: result.effects?.status, digest: result.digest })
-
-    // log each leg to transactions so it shows in Activity/Home (admin bypasses RLS; non-fatal)
-    try {
-      const _pay = pending.payment || {}
-      const _legs = Array.isArray(pending.actions) && pending.actions.length
-        ? pending.actions.map(a => ({ token: String(a.token || a.currency || '').toUpperCase(), amount: a.amount,
-            who: a.recipient?.name || a.recipient?.resolved?.label || a.recipient?.resolved?.address || a.address || null }))
-        : (_pay.recipients?.length ? _pay.recipients : [{}]).map(r => ({ token: String(_pay.currency || '').toUpperCase(),
-            amount: r.amount ?? _pay.token_amount ?? _pay.amount,
-            who: r.name || r.resolved?.label || r.resolved?.address || r.address || null }))
-      await supabaseAdmin.from('transactions').insert(_legs.map(l => ({
-        user_address: req.user.address, digest: result.digest, type: pending.intent || 'send',
-        label: l.who ? `Sent to ${l.who}` : 'Sent', sub_label: l.token || null,
-        amount: l.amount, token: l.token || null, direction: 'out', counterparty: l.who || null })))
-    } catch (e) { console.error('tx log (non-fatal):', e.message) }
-
-    await supabaseAdmin.from('agent_conversations').update({ pending_tx: null }).eq('user_address', req.user.address)
-    await supabaseAdmin.from('notifications').insert({
-      user_address: req.user.address, type: 'payment_sent',
-      title: 'Payment sent', body: 'Transaction confirmed on Sui',
-      action_url: `https://suiscan.xyz/testnet/tx/${result.digest}`,
-    })
-    res.json({ success: true, digest: result.digest, explorer: `https://suiscan.xyz/testnet/tx/${result.digest}` })
+    // send / split / multi-token / email invites
+    const built = await buildPayment(pending, user.address)
+    const prep = await prepareForUser(built.instructions)
+    const prepId = remember({ userAddress: user.address, messageHash: prep.messageHash,
+      after: { type: 'payment', pending, invites: built.invites.map(i => ({ ...i })) } })
+    return res.json({ prepId, tx: prep.tx })
   } catch (err) {
-    console.error('run error:', err)
-    res.status(500).json({ error: err.message })
+    console.error('prepare error:', err)
+    res.status(400).json({ error: userError(err) })
   }
 })
 
+router.post('/approve/:id', requireAuth, async (req, res) => {
+  try {
+    const user = req.user
+    const { prepId, signedTx } = req.body || {}
+    if (!prepId || !signedTx) return res.status(400).json({ error: 'prepId and signedTx required' })
+    if (!allowSubmission(user.address)) return res.status(429).json({ error: 'Too many payments in a short time. Try again in a bit.' })
+    const prep = take(prepId, user.address)
+    if (!prep || prep.after?.pending?.id !== req.params.id)
+      return res.status(410).json({ error: 'That approval expired. Slide again and I\'ll prepare a fresh one.' })
+    const { after } = prep
+    const pending = after.pending
+
+    const signature = after.type === 'swap'
+      ? await submitVersioned(signedTx, prep.messageHash)
+      : await submitUserSigned(signedTx, prep.messageHash)
+    await supabaseAdmin.from('agent_conversations').update({ pending_tx: null }).eq('user_address', user.address)
+
+    let message = 'Done.'
+    if (after.type === 'payment') {
+      await logLegs(user.address, signature, pending)
+      await saveInvites({ fromAddress: user.address, invites: after.invites, signature })
+      if (after.invites.length) message = `Sent. ${after.invites.map(i => i.email).join(', ')} will get it as soon as they sign up (or it comes back to you in 7 days).`
+      else message = 'Sent.'
+    } else if (after.type === 'stream') {
+      const st = pending.payment?.stream || {}
+      await recordStream({ userAddress: user.address, recipient: st.recipient, recipientName: st.recipientName, token: after.token, mint: after.mint,
+        decimals: after.decimals, totalUnits: BigInt(after.totalUnits), durationSecs: Number(st.duration_secs), flow: after.flow, signature })
+      message = 'Stream started. It vests every second and they can claim anytime.'
+    } else if (after.type === 'schedule') {
+      const sd = pending.payment?.sched || {}
+      await recordSchedule({ userAddress: user.address, recipient: sd.recipient, recipientName: sd.recipientName, token: after.token, mint: after.mint,
+        amount: Number(sd.amount), amountUnits: BigInt(after.amountUnits), frequency: sd.frequency, plan: after.plan, mandate: after.mandate, signature })
+      tickSchedules().catch(e => console.error('initial schedule tick:', e.message))
+      message = 'Schedule set. The first payment goes out now, the rest run on time.'
+    } else if (after.type === 'swap') {
+      const sw = pending.payment?.swap || {}
+      await supabaseAdmin.from('transactions').insert({ user_address: user.address, digest: signature, type: 'swap',
+        label: `Swapped ${sw.from_token} to ${sw.to_token}`, sub_label: sw.from_token, amount: Number(sw.amount), token: sw.from_token, direction: 'out' })
+      message = 'Swap complete.'
+    }
+    await supabaseAdmin.from('notifications').insert({
+      user_address: user.address, type: `${after.type}_done`, title: message.split('.')[0], body: 'Confirmed on Solana', action_url: explorerTx(signature),
+    })
+    res.json({ success: true, digest: signature, explorer: explorerTx(signature), message })
+  } catch (err) {
+    console.error('approve error:', err)
+    res.status(400).json({ error: userError(err) })
+  }
+})
+
+// Old Sui endpoint: the app now uses /prepare + /approve so the user signs.
+router.post('/run/:id', requireAuth, (req, res) =>
+  res.status(410).json({ error: 'Velfi now asks your wallet to sign. Update the app and slide to approve again.' }))
+
+async function logLegs(userAddress, signature, pending) {
+  const pay = pending.payment || {}
+  const legs = Array.isArray(pending.actions) && pending.actions.length
+    ? pending.actions.map(a => ({ token: String(a.token || a.currency || '').toUpperCase(), amount: a.amount,
+        who: a.recipient?.name || a.recipient?.resolved?.label || a.recipient?.resolved?.address || null }))
+    : (pay.recipients?.length ? pay.recipients : [{}]).map(r => ({ token: String(pay.currency || '').toUpperCase(),
+        amount: r.amount ?? pay.token_amount ?? pay.amount, who: r.name || r.resolved?.label || r.resolved?.address || r.resolved?.email || null }))
+  const { error } = await supabaseAdmin.from('transactions').insert(legs.map(l => ({
+    user_address: userAddress, digest: signature, type: pending.intent || 'send',
+    label: l.who ? `Sent to ${l.who}` : 'Sent', sub_label: l.token || null,
+    amount: l.amount, token: l.token || null, direction: 'out', counterparty: l.who || null })))
+  if (error) console.error('tx log failed (non-fatal):', error.message)
+}
 
 // GET /agent/flows — active streams + scheduled payments for the live "Active flows" UI
 router.get('/flows', requireAuth, async (req, res) => {
@@ -873,18 +862,18 @@ router.get('/flows', requireAuth, async (req, res) => {
     const streams = (streamsRes.data || [])
       .filter(s => ACTIVE.has(String(s.status || 'active').toLowerCase()))
       .map(s => {
-        const total = Number(s.total_amount) || 0, done = Number(s.amount_streamed) || 0
+        const p = streamProgress(s)
         const rec = Array.isArray(s.recipients) ? s.recipients[0] : null
-        return { type: 'stream', id: s.id, token: s.token || 'SUI',
+        return { type: 'stream', id: s.id, token: s.token || 'USDC', flow: s.flow_address || null,
           to: rec?.recipientName || rec?.name || rec?.label || 'recipient',
-          total, done, pct: total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0, status: s.status || 'active' }
+          total: p.total, done: p.vested, pct: p.pct, status: p.finished ? 'vested' : (s.status || 'active') }
       })
     const schedules = (schedRes.data || [])
       .filter(s => ACTIVE.has(String(s.status || 'active').toLowerCase()))
       .map(s => {
         const occ = Number(s.occurrences) || 0, did = Number(s.occurrences_done) || 0
-        return { type: 'schedule', id: s.id, token: s.token || 'SUI',
-          to: s.recipientName || s.recipient_name || s.recipient || 'recipient',
+        return { type: 'schedule', id: s.id, token: s.token || 'USDC', mandate: s.mandate_address || null,
+          to: s.recipient_name || s.recipient || 'recipient',
           amount: Number(s.amount) || 0, frequency: s.frequency || 'recurring',
           occurrences: occ, occurrences_done: did,
           pct: occ > 0 ? Math.min(100, Math.round((did / occ) * 100)) : 0,

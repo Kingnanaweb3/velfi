@@ -4,6 +4,8 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  // @solana/web3.js and Privy expect Node's `global` in the browser
+  define: { global: 'globalThis' },
   server: {
     host: true,
     allowedHosts: true,

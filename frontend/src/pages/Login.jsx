@@ -1,5 +1,7 @@
-import { useState } from 'react'
-import { useZkLogin } from '../hooks/useZkLogin.js'
+import { useState, useEffect } from 'react'
+import { usePrivy } from '@privy-io/react-auth'
+import { useNavigate } from 'react-router-dom'
+import { useVelfiSignIn } from '../hooks/useVelfiSignIn.js'
 import otterImg from '../assets/otter.png'
 
 function TallyLogo() {
@@ -33,7 +35,12 @@ const STEPS = [
 ]
 
 export default function Login() {
-  const { startGoogleLogin, loading, error } = useZkLogin()
+  const navigate = useNavigate()
+  // After Google, finish on /auth/callback (wallet set-up and .vel name).
+  const { startGoogleLogin, loading, error } = useVelfiSignIn({ onSignedIn: () => navigate('/auth/callback', { replace: true }) })
+  // If Privy already finished signing in (e.g. after the Google redirect), continue.
+  const { ready, authenticated } = usePrivy()
+  useEffect(() => { if (ready && authenticated) navigate('/auth/callback', { replace: true }) }, [ready, authenticated])
   const [mode, setMode] = useState('signup') // 'signup' | 'login'
   const isSignup = mode === 'signup'
 
@@ -88,7 +95,7 @@ export default function Login() {
 
             <div className="va-assure">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
-              <span>No seed phrase. Secured by zkLogin.</span>
+              <span>No seed phrase. Your Solana wallet is created for you.</span>
             </div>
 
             <div className="va-divider"><span>That&apos;s it</span></div>

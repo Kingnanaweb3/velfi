@@ -1,65 +1,53 @@
-// Reads a user's on-chain token balances, labels them against the recognized-token
-// registry, and values them in USD. DETERMINISTIC — no AI. This is how the agent
-// "knows" what a user holds and whether they have enough.
-
-import { provider } from './sui.js'
-import { TOKENS, getTokenByCoinType } from './tokens.js'
+// Reads a user's Solana balances, labels them against the token registry, and
+// values them in USD. Deterministic, no AI. Same API as the Sui version.
+import { rawBalances } from './solana.js'
+import { getTokenByMint } from './tokens.js'
 import { getPrices } from './pricing.js'
 
-// Get every coin balance the user holds, labeled + priced where recognized.
-// Returns: [{ symbol, name, coinType, decimals, human, usd, recognized }]
+// Returns: [{ symbol, name, mint, coinType, decimals, human, usd, recognized }]
 export async function getAllBalances(address) {
   let raw = []
   try {
-    raw = await provider.getAllBalances({ owner: address })
+    raw = await rawBalances(address)
   } catch (e) {
     throw new Error(`balance read failed: ${e.message}`)
   }
-
   const prices = await getPrices().catch(() => ({}))
   const out = []
-
   for (const b of raw) {
-    const known = getTokenByCoinType(b.coinType)
-    const decimals = known?.decimals ?? 9
-    const human = Number(b.totalBalance) / 10 ** decimals
-    if (human <= 0) continue // skip dust/zero
+    const known = getTokenByMint(b.mint)
+    const decimals = known?.decimals ?? b.decimals
+    const human = Number(b.units) / 10 ** decimals
+    if (human <= 0) continue
     const price = known?.priceId ? (prices[known.priceId] ?? null) : null
     out.push({
-      symbol: known?.symbol ?? b.coinType.split('::').pop(),
+      symbol: known?.symbol ?? `${b.mint.slice(0, 4)}…${b.mint.slice(-4)}`,
       name: known?.name ?? 'Unknown token',
-      coinType: b.coinType,
+      mint: b.mint,
+      coinType: b.mint,
       decimals,
       human,
       usd: price != null ? human * price : null,
       recognized: !!known,
     })
   }
-
-  // Sort: recognized first, then by USD value desc
-  out.sort((a, b) => {
-    if (a.recognized !== b.recognized) return a.recognized ? -1 : 1
-    return (b.usd ?? 0) - (a.usd ?? 0)
-  })
+  out.sort((a, b) => (a.recognized !== b.recognized ? (a.recognized ? -1 : 1) : (b.usd ?? 0) - (a.usd ?? 0)))
   return out
 }
 
-// Total portfolio value in USD (recognized/priced tokens only).
 export async function totalUsd(address) {
   const bals = await getAllBalances(address)
   return bals.reduce((sum, b) => sum + (b.usd ?? 0), 0)
 }
 
-// How much of a specific token does the user hold? Returns human amount (0 if none).
 export async function balanceOf(address, symbol) {
   const bals = await getAllBalances(address)
   const match = bals.find(b => b.symbol.toUpperCase() === String(symbol).toUpperCase())
   return match ? match.human : 0
 }
 
-// Format balances into a short human string for the agent to show the user.
-// e.g. "100 SUI ($75.00), 25 USDC ($25.00), 5 DEEP"
 export function formatBalances(bals) {
+  if (!bals.length) return 'nothing yet'
   return bals
     .map(b => {
       const usd = b.usd != null ? ` ($${b.usd.toFixed(2)})` : ''

@@ -1,60 +1,58 @@
-// Velfi recognized-token registry.
-// This is NOT a restriction on what users can send — users can transact any token
-// they hold. This list is the set of tokens Velfi RECOGNIZES so it can price them,
-// label them nicely, value balances in USD, and power invest/yield features.
+// Velfi recognized-token registry for Solana.
+// Users can hold any SPL token; this list is what Velfi can name, price and move.
 //
-// SECURITY: coinType values MUST be verified against each token's OFFICIAL source
-// (protocol docs / Sui coin registry / SuiScan). A wrong coinType = wrong token.
-// Placeholders marked TODO_VERIFY — fill from authoritative sources before use.
-// decimals also marked for verification — a wrong value mis-scales amounts badly.
+// SECURITY: mint addresses must come from the issuer's official docs. A wrong
+// mint is a wrong token. Devnet and mainnet mints differ, so they are chosen by
+// SOLANA_CLUSTER. USDC_MINT in .env overrides the USDC mint (handy for a test mint).
+//
+// `coinType` is kept as an alias of the mint so older code that checks it still works.
 
-export const TOKENS = {
-  SUI: {
-    symbol: 'SUI', name: 'Sui',
-    coinType: '0x2::sui::SUI',            // canonical, safe
-    decimals: 9, priceId: 'sui',
-  },
+const CLUSTER = process.env.SOLANA_CLUSTER || 'devnet'
+const MAINNET = CLUSTER === 'mainnet-beta'
 
-  // ---- Stablecoins ----
-  USDC: {
-    symbol: 'USDC', name: 'USD Coin',
-    // TESTNET coinType — MUST be swapped for the mainnet USDC type before production.
-    coinType: '0xa1ec7fc00a6f40db9693ad1415d0c193ad3906494428cf252621037bd7117e29::usdc::USDC',
-    decimals: 6, priceId: 'usd-coin',
-  },
-  USDSUI: {
-    symbol: 'USDsui', name: 'USDsui (Bridge / Stripe)',
-    coinType: 'TODO_VERIFY', decimals: 6, priceId: 'usdsui',   // VERIFY price source
-  },
-  SUIUSDE: {
-    symbol: 'suiUSDe', name: 'Sui USDe (yield-bearing)',
-    coinType: 'TODO_VERIFY', decimals: 6, priceId: 'ethena-usde', // VERIFY
-  },
+// Native SOL has no mint; it is moved with SystemProgram transfers.
+export const NATIVE_SOL = 'native'
 
-  // ---- Ecosystem tokens (for holding, investing, yields) ----
-  DEEP: { symbol: 'DEEP', name: 'DeepBook',        coinType: '0x36dbef866a1d62bf7328989a10fb2f07d769f4ee587c0de4a0a256e57e0a58a8::deep::DEEP', decimals: 6, priceId: 'deepbook' },
-  CETUS:{ symbol: 'CETUS',name: 'Cetus Protocol',  coinType: 'TODO_VERIFY', decimals: 9, priceId: 'cetus-protocol' },
-  SCA:  { symbol: 'SCA',  name: 'Scallop',         coinType: 'TODO_VERIFY', decimals: 9, priceId: 'scallop' },
-  NAVX: { symbol: 'NAVX', name: 'Navi Protocol',   coinType: 'TODO_VERIFY', decimals: 9, priceId: 'navi-protocol' },
-  WAL:  { symbol: 'WAL',  name: 'Walrus',          coinType: 'TODO_VERIFY', decimals: 9, priceId: 'walrus' },
-  BLUE: { symbol: 'BLUE', name: 'Bluefin',         coinType: 'TODO_VERIFY', decimals: 9, priceId: 'bluefin' },
-  WETH: { symbol: 'wETH', name: 'Wrapped Ether',   coinType: 'TODO_VERIFY', decimals: 8, priceId: 'ethereum' },
-  WBTC: { symbol: 'wBTC', name: 'Wrapped Bitcoin', coinType: 'TODO_VERIFY', decimals: 8, priceId: 'bitcoin' },
+const MINTS = {
+  'mainnet-beta': {
+    USDC: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', // Circle USDC
+    USDT: 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB', // Tether USDT
+    JUP: 'JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN',  // Jupiter
+  },
+  devnet: {
+    USDC: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU', // Circle devnet USDC (faucet.circle.com)
+  },
 }
 
+function entry(symbol, name, mint, decimals, priceId) {
+  return mint ? { symbol, name, mint, coinType: mint, decimals, priceId } : null
+}
+
+const m = MINTS[CLUSTER] || MINTS.devnet
+export const TOKENS = Object.fromEntries(Object.entries({
+  SOL: entry('SOL', 'Solana', NATIVE_SOL, 9, 'solana'),
+  USDC: entry('USDC', 'USD Coin', process.env.USDC_MINT || m.USDC, 6, 'usd-coin'),
+  USDT: entry('USDT', 'Tether USD', m.USDT, 6, 'tether'),
+  JUP: entry('JUP', 'Jupiter', m.JUP, 6, 'jupiter-exchange-solana'),
+}).filter(([, v]) => v))
+
 export const TOKEN_LIST = Object.values(TOKENS)
+export const IS_MAINNET = MAINNET
 
 export function getToken(symbol) {
   return TOKENS[String(symbol).toUpperCase()] || null
 }
 
-// Look up a recognized token by its on-chain coinType (for labeling balances).
-export function getTokenByCoinType(coinType) {
-  return TOKEN_LIST.find(t => t.coinType === coinType) || null
+export function getTokenByMint(mint) {
+  return TOKEN_LIST.find(t => t.mint === mint) || null
+}
+// old name, same meaning
+export const getTokenByCoinType = getTokenByMint
+
+export function isRecognized(mint) {
+  return !!getTokenByMint(mint)
 }
 
-// A user may hold tokens NOT in this list. Those still display (by raw coinType),
-// just without a friendly name/price until added here.
-export function isRecognized(coinType) {
-  return !!getTokenByCoinType(coinType)
+export function isNative(token) {
+  return token?.mint === NATIVE_SOL
 }

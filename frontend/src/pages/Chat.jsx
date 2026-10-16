@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, Fragment } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useVelfiWallet } from '../hooks/useVelfiWallet.js'
+import { explorerTx, EXPLORER_NAME } from '../lib/chain.js'
 import { ArrowLeft, ArrowUp, Plus, Wallet, Check, ExternalLink, ShieldCheck, SquarePen, AlertTriangle, Info, BadgeCheck } from 'lucide-react'
 import otterAgent from '../assets/otter-agent.png'
 import otterImg from '../assets/otter.png'
@@ -10,16 +12,15 @@ const STORE = 'velfi_chat_v1'
 const h = (token) => ({ 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'ngrok-skip-browser-warning': 'true' })
 const now = () => new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
 const short = (a) => a ? a.slice(0, 6) + '…' + a.slice(-4) : ''
-const SUISCAN = (d) => `https://suiscan.xyz/testnet/tx/${d}`
 const recipientsOf = (p) => (p?.recipients || []).map(r => ({ label: r.resolved?.label || r.name || r.email || short(r.resolved?.address) || 'recipient', amount: r.amount ?? p?.token_amount ?? p?.amount }))
-const sym = (p) => (p?.currency && p.currency !== 'USD') ? p.currency : 'SUI'
+const sym = (p) => (p?.currency && p.currency !== 'USD') ? p.currency : 'USDC'
 const totalOf = (p) => { const r = recipientsOf(p); const s = r.reduce((a, x) => a + (Number(x.amount) || 0), 0); return s || p?.token_amount || p?.amount || 0 }
 const fmt = (n) => Number(n).toLocaleString(undefined, { maximumFractionDigits: 4 })
 const humanDur = (s) => { s = Number(s) || 0; if (s >= 86400 && s % 86400 === 0) { const d = s / 86400; return d + (d === 1 ? ' day' : ' days') } if (s >= 3600) return Math.round(s / 3600) + 'h'; if (s >= 60) return Math.round(s / 60) + ' min'; return s + 's' }
 function desc(p) {
   const intent = p?.intent, pay = p?.payment || {}
   if (intent === 'swap') { const sw = pay.swap || {}; return { kind: 'swap', done: 'Swapped', title: 'Swap', rows: [{ label: `${sw.from_token} \u2192 ${sw.to_token}`, amount: `${fmt(sw.amount)} ${sw.from_token}` }], note: p.summary || null } }
-  if (intent === 'stream') { const st = pay.stream || {}; return { kind: 'stream', done: 'Stream started', title: 'Stream', rows: [{ label: st.recipientName || 'recipient', amount: `${fmt(st.total_amount)} ${st.token}` }], note: `Streams automatically over ${humanDur(st.duration_secs)}` } }
+  if (intent === 'stream') { const st = pay.stream || {}; return { kind: 'stream', done: 'Stream started', title: 'Stream', rows: [{ label: st.recipientName || 'recipient', amount: `${fmt(st.total_amount)} ${st.token}` }], note: `Vests every second over ${humanDur(st.duration_secs)}; they claim anytime` } }
   if (intent === 'schedule') { const sc = pay.sched || {}; return { kind: 'schedule', done: 'Scheduled', title: 'Schedule', rows: [{ label: sc.recipientName || 'recipient', amount: `${fmt(sc.amount)} ${sc.token}` }], note: `${sc.frequency}${sc.occurrences ? ` \u00B7 ${sc.occurrences} payments` : ''}` } }
   const rec = recipientsOf(pay), s = sym(pay)
   const toks = (pay.recipients || []).map(r => r.token)
@@ -54,6 +55,7 @@ function renderRich(text) {
 export default function Chat() {
   const navigate = useNavigate()
   const { token } = useAuth()
+  const wallet = useVelfiWallet()
   const inputRef = useRef(null)
   const scroll = useRef(null)
   const [messages, setMessages] = useState(() => {
@@ -80,7 +82,7 @@ export default function Chat() {
       const r = await fetch(`${API}/agent/message`, { method: 'POST', headers: h(token), body: JSON.stringify({ message: t }) })
       const d = await r.json()
       if (d.mode === 'propose') { const p = { id: d.pendingTxId, summary: d.summary, payment: d.payment, intent: d.intent }; setPending(p); push({ role: 'assistant', text: d.summary || 'Here’s what I’ll do:', proposal: p }) }
-      else if (d.mode === 'choose_token') push({ role: 'assistant', text: d.reply || 'Which token would you like to use?', tokens: ['SUI', 'USDC'] })
+      else if (d.mode === 'choose_token') push({ role: 'assistant', text: d.reply || 'Which token would you like to use?', tokens: ['USDC', 'SOL'] })
       else push({ role: 'assistant', text: d.reply || d.summary || d.error || 'Okay.' })
     } catch { push({ role: 'assistant', text: 'I couldn’t reach the network — try again?' }) }
     finally { setBusy(false) }
@@ -90,7 +92,14 @@ export default function Chat() {
     if (!pending) return
     setSheet(s => ({ ...s, type: 'confirm', running: true }))
     try {
-      const r = await fetch(`${API}/agent/run/${pending.id}`, { method: 'POST', headers: h(token), body: '{}' })
+      // 1. Velfi builds the transaction and pays its network fee.
+      const pr = await fetch(`${API}/agent/prepare/${pending.id}`, { method: 'POST', headers: h(token), body: '{}' })
+      const prep = await pr.json()
+      if (!pr.ok) throw Object.assign(new Error(prep.error || 'Could not prepare that.'), { shown: true })
+      // 2. Your wallet signs it. Nothing moves without this.
+      const signedTx = await wallet.sign(prep.tx, { versioned: !!prep.versioned })
+      // 3. Velfi checks it is exactly what you approved, then sends it.
+      const r = await fetch(`${API}/agent/approve/${pending.id}`, { method: 'POST', headers: h(token), body: JSON.stringify({ prepId: prep.prepId, signedTx }) })
       const d = await r.json()
       if (d.success) { setMessages(prev => prev.map(m => (m.proposal && pending && m.proposal.id === pending.id) ? { ...m, proposal: null } : m)); setSheet({ type: 'success', digest: d.digest, payment: pending.payment, intent: pending.intent }); push({ role: 'assistant', done: { digest: d.digest, payment: pending.payment, intent: pending.intent } }); setPending(null) }
       else {
@@ -98,7 +107,10 @@ export default function Chat() {
         setSheet(null); setPending(null)
         push({ role: 'assistant', text: d.error || 'That did not go through on-chain.', txDigest: d.digest || null })
       }
-    } catch { setSheet(null); push({ role: 'assistant', text: 'Network error while signing — nothing was sent.' }) }
+    } catch (e) {
+      setSheet(null)
+      push({ role: 'assistant', text: e?.shown ? e.message : /reject|denied|cancel/i.test(String(e?.message)) ? 'Okay, you didn’t sign it, so nothing was sent.' : 'Something went wrong while signing — nothing was sent.' })
+    }
   }
 
   function newChat() { setMessages([]); setPending(null); setSheet(null); try { localStorage.removeItem(STORE) } catch {} setTimeout(() => inputRef.current?.focus(), 100) }
@@ -167,7 +179,7 @@ function Msg({ m, onConfirm, onCancel, onRevise, onSend }) {
       <img className="vc-bubava" src={otterAgent} alt="" />
       <div className="vc-astack">
         {m.text && <div className="vc-bubble assistant">{renderRich(m.text)}<span className="vc-time">{m.time}</span></div>}
-          {m.txDigest && <a className="vc-done-link" href={SUISCAN(m.txDigest)} target="_blank" rel="noreferrer">View on Sui <ExternalLink size={12} /></a>}
+          {m.txDigest && <a className="vc-done-link" href={explorerTx(m.txDigest)} target="_blank" rel="noreferrer">View on {EXPLORER_NAME} <ExternalLink size={12} /></a>}
         {m.tokens && <div className="vc-tokpick">{m.tokens.map(tk => <button key={tk} className="vc-tokbtn" onClick={() => onSend(tk)}>{tk}</button>)}</div>}
         {m.proposal && <ProposalCard p={m.proposal} onConfirm={onConfirm} onCancel={onCancel} onRevise={onRevise} />}
         {m.done && <DoneCard done={m.done} />}
@@ -212,7 +224,7 @@ function ProposalCard({ p, onConfirm, onCancel, onRevise }) {
           ? <div className="vc-guard-row vc-guard-ok"><ShieldCheck size={14} /> Guardian checked — no risks flagged</div>
           : warns.map((w, i) => <div className="vc-guard-row" key={i}><AlertTriangle size={14} /> <span>{w}</span></div>)}
       </div>
-      <div className="vc-prop-meta"><span>Network fee</span><span>≈ 0.003 SUI</span></div>
+      <div className="vc-prop-meta"><span>Network fee</span><span>Covered by Velfi</span></div>
       <button className="vc-confirm" onClick={onConfirm}>Confirm</button>
       <div className="vc-prop-sub"><button onClick={onRevise}>Revise</button><span>·</span><button onClick={onCancel}>Cancel</button></div>
     </div>
@@ -224,7 +236,7 @@ function DoneCard({ done }) {
     <div className="vc-done">
       <div className="vc-done-ic"><Check size={16} color="#fff" strokeWidth={3} /></div>
       <div><p className="vc-done-h">Done! 🎉 {d.done} {d.rows.map(r => r.amount).join(' + ')}</p>
-        {done.digest && <a className="vc-done-link" href={SUISCAN(done.digest)} target="_blank" rel="noreferrer">View on Sui <ExternalLink size={12} /></a>}</div>
+        {done.digest && <a className="vc-done-link" href={explorerTx(done.digest)} target="_blank" rel="noreferrer">View on {EXPLORER_NAME} <ExternalLink size={12} /></a>}</div>
     </div>
   )
 }
@@ -253,7 +265,7 @@ function SuccessSheet({ data, onClose }) {
         <p className="vc-success-h">{d.done}</p>
         <p className="vc-success-sub">{d.title} · just now</p>
         <div className="vc-sheet-list">{d.rows.map((r, i) => <div className="vc-sheet-row" key={i}><span className="vc-sheet-to"><Check size={13} color="var(--v-success)" strokeWidth={3} /> {r.label}</span><span className="vc-sheet-amt">{r.amount}</span></div>)}</div>
-        {data.digest && <a className="vc-tx" href={SUISCAN(data.digest)} target="_blank" rel="noreferrer"><span>Transaction {short(data.digest)}</span><span className="vc-tx-link">View on Sui <ExternalLink size={12} /></span></a>}
+        {data.digest && <a className="vc-tx" href={explorerTx(data.digest)} target="_blank" rel="noreferrer"><span>Transaction {short(data.digest)}</span><span className="vc-tx-link">View on {EXPLORER_NAME} <ExternalLink size={12} /></span></a>}
         <button className="vc-done-btn" onClick={onClose}>Done</button>
       </div>
     </div>

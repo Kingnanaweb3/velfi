@@ -7,14 +7,12 @@ import otterAvatar from '../assets/otter-avatar.png'
 import otterCard from '../assets/otter.png'
 import otterAgent from '../assets/otter-agent.png'
 import { Bell, Eye, ChevronRight, ArrowDown, ArrowUp, Send, Users, Droplet, DollarSign } from 'lucide-react'
-import suiCoin from '../assets/sui_coin.png'
+import solCoin from '../assets/sol_coin.svg'
 import usdcCoin from '../assets/usdc_coin.png'
 import ActivityModal from '../components/ActivityModal.jsx'
 import ReceiveSheet from '../components/ReceiveSheet.jsx'
 import EmptyHome from '../components/EmptyHome.jsx'
 
-const RPC = 'https://fullnode.testnet.sui.io'
-const SUI_PRICE_FALLBACK = 3.2   // TODO: pull from backend /pricing
 const NGN_RATE_FALLBACK = 1550   // TODO: pull from backend fx
 
 function TallyLogo() {
@@ -24,14 +22,6 @@ function TallyLogo() {
       <rect x="18.4" y="9" width="3.2" height="22" rx="0.6" />
       <rect x="25.4" y="9" width="3.2" height="18" rx="0.6" />
       <rect x="9" y="18.4" width="22" height="3.2" rx="0.6" />
-    </svg>
-  )
-}
-
-function SuiMark() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 64 64" fill="#fff" aria-hidden="true">
-      <path d="M32 7 C 26 18, 15 28, 15 40 A 17 17 0 0 0 49 40 C 49 28, 38 18, 32 7 Z" />
     </svg>
   )
 }
@@ -50,7 +40,7 @@ const fmtUsd = n => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximu
 export default function Home() {
   const navigate = useNavigate()
   const { user, token } = useAuth()
-  const addr = user?.suiAddress || user?.sui_address
+  const addr = user?.address || user?.wallet_address
   const name = user?.username || 'there'
 
   const [bals, setBals] = useState(null)
@@ -76,10 +66,10 @@ export default function Home() {
   const usd = bals?.total_usd ?? 0
   const ngn = usd * NGN_RATE_FALLBACK
   const topTok = bals?.tokens?.length ? [...bals.tokens].sort((a, b) => (b.usd || 0) - (a.usd || 0))[0] : null
-  const topIcon = topTok?.symbol === 'SUI' ? suiCoin : topTok?.symbol === 'USDC' ? usdcCoin : null
+  const topIcon = topTok?.symbol === 'SOL' ? solCoin : topTok?.symbol === 'USDC' ? usdcCoin : null
   const tokenLine = topTok
     ? `${topTok.human >= 1 ? Number(topTok.human.toFixed(2)) : Number(topTok.human.toPrecision(3))} ${topTok.symbol}`
-    : "0.00 SUI"
+    : "0.00 USDC"
 
   const _emptyParam = new URLSearchParams(window.location.search).has('empty')
   const isEmpty = !loading && (_emptyParam || (usd === 0 && !(bals?.tokens?.length)))
@@ -102,7 +92,6 @@ export default function Home() {
       <style>{HOME_CSS}</style>
       <div className="vh-wrap">
 
-        {user?.demo && <div style={{ margin: '0 0 12px', padding: '8px 12px', borderRadius: 10, background: 'rgba(123,79,255,0.12)', color: 'var(--v-accent)', fontSize: 12, fontWeight: 600, textAlign: 'center', fontFamily: 'var(--font-body)' }}>Demo wallet · real users sign in with zkLogin (no seed phrase)</div>}
         <div className="vh-head">
           <div className="vh-brand"><TallyLogo /><span className="vh-word">Velfi</span></div>
           <div className="vh-head-r">
@@ -174,8 +163,8 @@ export default function Home() {
 
 function TokensModal({ open, onClose, tokens, usd }) {
   if (!open) return null
-  const list = [...(tokens || [])].sort((a, b) => (a.symbol === 'SUI' ? -1 : b.symbol === 'SUI' ? 1 : 0))
-  const icon = (sym) => sym === 'SUI' ? suiCoin : sym === 'USDC' ? usdcCoin : null
+  const list = [...(tokens || [])].sort((a, b) => (a.symbol === 'USDC' ? -1 : b.symbol === 'USDC' ? 1 : 0))
+  const icon = (sym) => sym === 'SOL' ? solCoin : sym === 'USDC' ? usdcCoin : null
   const amt = (t) => t.human >= 1 ? Number(t.human.toFixed(2)) : Number(t.human.toPrecision(3))
   return (
     <div className="tm-wrap" onClick={onClose}>
@@ -342,7 +331,7 @@ const HOME_CSS = `
 .vh-coin{ width:20px; height:20px; border-radius:50%; overflow:hidden; display:flex; align-items:center; justify-content:center; margin-left:-8px; border:1.5px solid #2a1a3a; }
 .vh-coin img{ width:100%; height:100%; object-fit:cover; display:block; }
 .vh-coin:first-child{ margin-left:0; }
-.vh-coin.sui{ background:#4DA2FF; }
+.vh-coin.sol{ background:#14111f; }
 .vh-coin.usdc{ background:#2775CA; }
 .vh-tok-txt{ font-size:13px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
 .vh-receive{ display:flex; flex-shrink:0; align-items:center; gap:8px; padding:9px 16px; border-radius:999px;

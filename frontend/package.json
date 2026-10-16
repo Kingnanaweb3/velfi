@@ -11,10 +11,8 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
-    "@mysten/dapp-kit": "^0.14.0",
-    "@mysten/sui": "^1.21.0",
-    "@mysten/sui.js": "^0.50.1",
-    "@mysten/zklogin": "^0.8.1",
+    "@privy-io/react-auth": "^2.12.0",
+    "@solana/web3.js": "^1.98.0",
     "@supabase/supabase-js": "^2.108.0",
     "@tanstack/react-query": "^5.0.0",
     "lucide-react": "^1.18.0",

@@ -1,31 +1,22 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Wallet, Sparkles, Shield, BadgeCheck, ChevronRight, ArrowRight } from 'lucide-react'
-import suiCoin from '../assets/sui_coin.png'
+import { Search, Wallet, Sparkles, Shield, ChevronRight, ArrowRight } from 'lucide-react'
+import solCoin from '../assets/sol_coin.svg'
 
+// No made-up yields or TVL: these are what Velfi plans to support on Solana.
+// Only swaps (through Jupiter) exist today, and only on mainnet.
 const PICKS = [
-  { id: 'navi', name: 'NAVI Protocol', tag: 'DeFi', desc: 'Lend, borrow and earn yield across Sui.', mlabel: 'Est. APY', metric: '12.4%', tvl: '$76.3M', color: '#1E6FE0', letter: 'N', spark: [3,4,3,5,4,6,5,7,6,8,7,9] },
-  { id: 'aftermath', name: 'Aftermath Finance', tag: 'DeFi', desc: 'Permissionless derivatives trading on Sui.', mlabel: 'Est. APY', metric: '18.7%', tvl: '$42.1M', color: '#15151f', letter: 'A', spark: [4,5,4,6,5,7,6,8,7,9,8,10] },
-  { id: 'bluemove', name: 'BlueMove', tag: 'Infrastructure', desc: 'Move liquidity across chains, powered by Sui.', mlabel: 'Category', metric: 'Cross-chain', tvl: '$23.8M', color: '#2775CA', letter: 'B', spark: [3,3,4,3,5,4,6,5,7,6,7,8] },
-  { id: 'scallop', name: 'Scallop', tag: 'DeFi', desc: 'Money market protocol built on Sui.', mlabel: 'Est. APY', metric: '9.6%', tvl: '$35.4M', color: '#0FB5A6', letter: 'S', spark: [5,4,5,6,5,7,6,8,7,8,7,9] },
+  { id: 'swap', name: 'Swap with Jupiter', tag: 'Trading', desc: 'Swap SOL, USDC and more at the best route across Solana. Just ask Velfi.', mlabel: 'Status', metric: 'Mainnet', color: '#15151f', letter: 'J' },
+  { id: 'stake', name: 'Stake SOL', tag: 'Staking', desc: 'Earn network rewards on SOL and keep it liquid.', mlabel: 'Status', metric: 'Coming soon', color: '#7B4FFF', letter: 'S' },
+  { id: 'earn', name: 'Earn on USDC', tag: 'Lending', desc: 'Put idle dollars to work with established Solana lending markets.', mlabel: 'Status', metric: 'Coming soon', color: '#2775CA', letter: 'E' },
+  { id: 'save', name: 'Save automatically', tag: 'Autopilot', desc: 'Move a share of every payment you receive into savings.', mlabel: 'Status', metric: 'Coming soon', color: '#0FB5A6', letter: 'A' },
 ]
-
-function Spark({ data }) {
-  const w = 92, h = 34
-  const min = Math.min(...data), max = Math.max(...data), rng = max - min || 1
-  const pts = data.map((v, i) => `${(i / (data.length - 1)) * w},${h - ((v - min) / rng) * (h - 4) - 2}`).join(' ')
-  return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} fill="none" className="iv-spark" preserveAspectRatio="none">
-      <polyline points={pts} stroke="var(--v-accent)" strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" />
-    </svg>
-  )
-}
 
 export default function Invest() {
   const navigate = useNavigate()
   const [q, setQ] = useState('')
   const [toast, setToast] = useState('')
-  function soon() { setToast('Integrations launch on mainnet — coming soon'); clearTimeout(window.__ivt); window.__ivt = setTimeout(() => setToast(''), 2200) }
+  function soon() { setToast('Coming soon. We\'ll let you know when it\'s live.'); clearTimeout(window.__ivt); window.__ivt = setTimeout(() => setToast(''), 2200) }
   const list = PICKS.filter(p => !q || (p.name + ' ' + p.tag + ' ' + p.desc).toLowerCase().includes(q.toLowerCase()))
   return (
     <div className="iv page">
@@ -34,7 +25,7 @@ export default function Invest() {
         <div className="iv-top">
           <div>
             <h1 className="iv-title">Invest</h1>
-            <p className="iv-sub">Discover investment ideas from the Sui ecosystem.</p>
+            <p className="iv-sub">What you'll be able to do with your money on Solana.</p>
           </div>
           <button className="iv-portfolio" onClick={soon}><Wallet size={16} /> Portfolio</button>
         </div>
@@ -47,17 +38,17 @@ export default function Invest() {
         <div className="iv-promo">
           <div className="iv-promo-ic"><Sparkles size={20} /></div>
           <div className="iv-promo-txt">
-            <p className="iv-promo-h">Curated ideas. Backed by data.</p>
-            <p className="iv-promo-b">AI-powered insights to help you invest smarter in Sui.</p>
+            <p className="iv-promo-h">Grow your money, one sentence at a time.</p>
+            <p className="iv-promo-b">Velfi explains every option and never moves money without your signature.</p>
             <button className="iv-promo-link" onClick={soon}>Learn more <ArrowRight size={14} /></button>
           </div>
-          <img className="iv-promo-coin" src={suiCoin} alt="" />
+          <img className="iv-promo-coin" src={solCoin} alt="" />
         </div>
 
         <div className="iv-sec">
           <div>
             <p className="iv-sec-h">Top picks</p>
-            <p className="iv-sec-b">Handpicked opportunities across Sui.</p>
+            <p className="iv-sec-b">Swaps are live on mainnet; the rest are on the way.</p>
           </div>
           <button className="iv-sec-all" onClick={soon}>View all <ChevronRight size={15} /></button>
         </div>
@@ -68,7 +59,7 @@ export default function Invest() {
               <div className="iv-card-head">
                 <span className="iv-logo" style={{ background: p.color }}>{p.letter}</span>
                 <div className="iv-info">
-                  <p className="iv-name">{p.name} <BadgeCheck size={15} className="iv-verified" /></p>
+                  <p className="iv-name">{p.name}</p>
                   <span className="iv-tag">{p.tag}</span>
                   <p className="iv-desc">{p.desc}</p>
                 </div>
@@ -77,11 +68,8 @@ export default function Invest() {
                 <div className="iv-metric">
                   <span className="iv-mlabel">{p.mlabel}</span>
                   <span className="iv-mval">{p.metric}</span>
-                  <span className="iv-mlabel iv-tvll">TVL</span>
-                  <span className="iv-tvl">{p.tvl}</span>
                 </div>
-                <Spark data={p.spark} />
-                <button className="iv-invest" onClick={soon}>Invest</button>
+                <button className="iv-invest" onClick={p.id === 'swap' ? () => { sessionStorage.setItem('velfi_pending_msg', 'I want to swap tokens'); navigate('/chat') } : soon}>{p.id === 'swap' ? 'Ask Velfi' : 'Notify me'}</button>
               </div>
             </div>
           ))}
@@ -91,9 +79,9 @@ export default function Invest() {
           <div className="iv-secure-ic"><Shield size={20} /></div>
           <div className="iv-secure-txt">
             <p className="iv-secure-h">Secure. Transparent. On-chain.</p>
-            <p className="iv-secure-b">All opportunities are verified and built on Sui for a secure experience.</p>
+            <p className="iv-secure-b">You approve and sign every action. Velfi doesn't give financial advice.</p>
           </div>
-          <button className="iv-secure-link" onClick={soon}>Why Sui? <ArrowRight size={14} /></button>
+          <button className="iv-secure-link" onClick={soon}>Why Solana? <ArrowRight size={14} /></button>
         </div>
       </div>
       {toast && <div className="iv-toast">{toast}</div>}

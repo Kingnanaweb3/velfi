@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 
-const BACKEND = 'http://localhost:3001'
+const BACKEND = '/api'
 
 export default function Register() {
   const [username, setUsername] = useState('')
@@ -45,11 +45,11 @@ export default function Register() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ suiAddress: user?.suiAddress || user?.sui_address, username: name.toLowerCase() })
+        body: JSON.stringify({ username: name.toLowerCase() })
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
-      login(token, { ...user, username: name })
+      login(data.token || token, { ...user, username: name })
       navigate('/', { replace: true })
     } catch (err) {
       setError(err.message)

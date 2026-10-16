@@ -1,8 +1,10 @@
 import { createContext, useContext, useState, useEffect } from 'react'
+import { usePrivy } from '@privy-io/react-auth'
 
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
+  const privy = usePrivy()
   const [user, setUser] = useState(null)
   const [token, setToken] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -34,10 +36,9 @@ export function AuthProvider({ children }) {
   function logout() {
     localStorage.removeItem('velfi_token')
     localStorage.removeItem('velfi_user')
-    localStorage.removeItem('velfi_ephemeral')
-    localStorage.removeItem('velfi_zkproof')
     setToken(null)
     setUser(null)
+    privy.logout().catch(() => {})
   }
 
   return (

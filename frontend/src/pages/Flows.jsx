@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useVelfiWallet } from '../hooks/useVelfiWallet.js'
 import { useNavigate } from 'react-router-dom'
 import { CalendarClock, Waypoints, Plus, ChevronRight } from 'lucide-react'
 
@@ -14,22 +15,31 @@ function stateOf(status, done, total) {
   if (s === 'paused') return 'paused'
   return 'active'
 }
-function toCards(flows) {
+function toCards(flows, incoming = []) {
   const out = []
+  for (const r of incoming) {
+    const p = r.progress || {}
+    out.push({ id: r.id, kind: 'stream', state: 'active',
+      title: 'Incoming stream', desc: `${p.total} ${r.token} streaming to you`,
+      amount: `${Number(p.vested || 0).toFixed(2)} ${r.token}`, freq: `${p.pct}% vested`,
+      runline: 'Claim what has vested anytime', action: { label: 'Claim', path: `/streams/${r.id}/claim` } })
+  }
   for (const r of (flows.streams || [])) {
     const st = stateOf(r.status, 0, 0)
     out.push({ id: r.id, kind: 'stream', state: st,
       title: 'Token stream', desc: `Streaming ${r.total} ${r.token} to ${r.to}`,
-      amount: `${r.total} ${r.token}`, freq: `${r.pct}% sent`,
-      runline: `${r.pct}% streamed` })
+      amount: `${r.total} ${r.token}`, freq: `${r.pct}% vested`,
+      runline: `${r.pct}% vested`, action: r.flow && st === 'active' ? { label: 'Stop', path: `/streams/${r.id}/stop`, confirm: 'Stop this stream? They keep what has vested; the rest comes back to you.' } : null })
   }
   for (const r of (flows.schedules || [])) {
+    r.done = r.occurrences_done; r.total = r.occurrences
     const st = stateOf(r.status, r.done, r.total)
     const fl = cap(r.frequency || 'recurring')
     out.push({ id: r.id, kind: 'schedule', state: st,
       title: 'Scheduled payment', desc: `Send ${r.amount} ${r.token} to ${r.to} ${(r.frequency || '').toLowerCase()}`,
       amount: `${r.amount} ${r.token}`, freq: fl,
-      runline: st === 'completed' ? `${r.done}/${r.total} sent` : (r.next_run_at ? `Next run: ${fmtDate(r.next_run_at)}` : `${r.done}/${r.total || '∞'} sent`) })
+      runline: st === 'completed' ? `${r.done}/${r.total} sent` : (r.next_run_at ? `Next run: ${fmtDate(r.next_run_at)}` : `${r.done}/${r.total || '∞'} sent`),
+      action: st === 'active' ? { label: 'Cancel', path: `/schedule/${r.id}/cancel`, confirm: 'Cancel this schedule? Whatever is left of its budget comes back to you.' } : null })
   }
   return out
 }
@@ -41,14 +51,38 @@ export default function Flows() {
   const navigate = useNavigate()
   const [flows, setFlows] = useState(null)
   const [tab, setTab] = useState('All flows')
+  const [incoming, setIncoming] = useState([])
+  const [busyId, setBusyId] = useState(null)
+  const [note, setNote] = useState('')
+  const wallet = useVelfiWallet()
+  const H = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'ngrok-skip-browser-warning': 'true' }
+
+  // Claim / stop / cancel: Velfi prepares, your wallet signs, Velfi sends.
+  async function act(c) {
+    if (c.action.confirm && !window.confirm(c.action.confirm)) return
+    setBusyId(c.id); setNote('')
+    try {
+      const pr = await fetch(`/api${c.action.path}`, { method: 'POST', headers: H, body: '{}' })
+      const prep = await pr.json()
+      if (!pr.ok) throw new Error(prep.error || 'Could not prepare that.')
+      const signedTx = await wallet.sign(prep.tx)
+      const r = await fetch('/api/tx/submit', { method: 'POST', headers: H, body: JSON.stringify({ prepId: prep.prepId, signedTx }) })
+      const d = await r.json()
+      if (!r.ok) throw new Error(d.error || 'That did not go through.')
+      setNote(d.message || 'Done.')
+    } catch (e) { setNote(/reject|denied|cancel/i.test(String(e.message)) ? 'Not signed, nothing changed.' : e.message) }
+    finally { setBusyId(null) }
+  }
   useEffect(() => {
     if (!token) return
     let alive = true
     async function load() {
       try {
-        const r = await fetch('/api/agent/flows', { headers: { 'Authorization': `Bearer ${token}`, 'ngrok-skip-browser-warning': 'true' } })
+        const hdr = { headers: { 'Authorization': `Bearer ${token}`, 'ngrok-skip-browser-warning': 'true' } }
+        const [r, ri] = await Promise.all([fetch('/api/agent/flows', hdr), fetch('/api/streams/incoming', hdr)])
         const d = await r.json()
-        if (alive) setFlows(d)
+        const di = await ri.json().catch(() => ({}))
+        if (alive) { setFlows(d); setIncoming(di.streams || []) }
       } catch { if (alive) setFlows({ streams: [], schedules: [] }) }
     }
     load()
@@ -56,7 +90,7 @@ export default function Flows() {
     return () => { alive = false; clearInterval(t) }
   }, [token])
 
-  const cards = flows ? toCards(flows) : []
+  const cards = flows ? toCards(flows, incoming) : []
   const shown = tab === 'All flows' ? cards : cards.filter(c => c.state === tab.toLowerCase())
 
   return (
@@ -71,6 +105,7 @@ export default function Flows() {
           <button className="vf-new" onClick={() => navigate('/chat')}><Plus size={17} strokeWidth={2.4} /> New flow</button>
         </div>
 
+        {note && <p className="vf-note">{note}</p>}
         <div className="vf-tabs">
           {TABS.map(t => (
             <button key={t} className={`vf-tab ${tab === t ? 'on' : ''}`} onClick={() => setTab(t)}>{t}</button>
@@ -103,6 +138,7 @@ export default function Flows() {
                 <div className="vf-right">
                   <p className="vf-amt">{c.amount}</p>
                   <p className="vf-freq">{c.freq}</p>
+                  {c.action && <button className="vf-act" disabled={busyId === c.id} onClick={(e) => { e.stopPropagation(); act(c) }}>{busyId === c.id ? 'Signing…' : c.action.label}</button>}
                 </div>
                 <ChevronRight className="vf-chev" size={20} />
               </div>
@@ -115,6 +151,9 @@ export default function Flows() {
 }
 
 const FLOWS_CSS = `
+.vf-act{ margin-top:8px; padding:6px 14px; border-radius:999px; border:1px solid var(--v-accent, #7B4FFF); background:transparent; color:var(--v-accent, #7B4FFF); font-weight:600; font-size:12px; cursor:pointer; }
+.vf-act:disabled{ opacity:.6; cursor:default; }
+.vf-note{ margin:0 0 12px; padding:10px 14px; border-radius:12px; background:rgba(123,79,255,0.12); color:var(--v-accent, #7B4FFF); font-size:13px; font-weight:600; }
 .vf{ background:var(--v-bg); min-height:100dvh; font-family:'DM Sans',system-ui,sans-serif; color:var(--v-ink); }
 .vf-wrap{ padding:54px 18px 110px; }
 .vf-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:20px; }

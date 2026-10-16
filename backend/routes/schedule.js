@@ -1,97 +1,42 @@
 import express from 'express'
-import supabase from '../lib/supabase.js'
+import supabase from '../lib/supabaseAdmin.js'
 import { requireAuth } from '../middleware/auth.js'
+import { buildRevokeMandate } from '../lib/txBuilder.js'
+import { prepareForUser } from '../lib/solana.js'
+import { remember } from '../lib/prepared.js'
 
 const router = express.Router()
 
-// POST /schedule/create
-router.post('/create', requireAuth, async (req, res) => {
-  try {
-    const {
-      recipient, amount, token,
-      scheduleType, frequency, intervalDays,
-      timeOfDay, daysOfWeek, occurrences
-    } = req.body
-
-    if (!recipient || !amount || !scheduleType) {
-      return res.status(400).json({ error: 'recipient, amount, scheduleType required' })
-    }
-
-    const nextRunAt = new Date(Date.now() + 60 * 1000) // next minute as placeholder
-
-    const { data, error } = await supabase
-      .from('scheduled_payments')
-      .insert({
-        user_address: req.user.address,
-        recipient,
-        amount,
-        token: token || 'SUI',
-        schedule_type: scheduleType,
-        frequency,
-        interval_days: intervalDays,
-        time_of_day: timeOfDay,
-        days_of_week: daysOfWeek,
-        occurrences,
-        next_run_at: nextRunAt,
-        status: 'active'
-      })
-      .select()
-      .single()
-
-    if (error) throw error
-    res.json({ success: true, schedule: data })
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
-})
+// Schedules are created through the agent (/agent/prepare + /agent/approve),
+// which locks the budget in an on-chain mandate first.
 
 // GET /schedule/list
 router.get('/list', requireAuth, async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('scheduled_payments')
-      .select('*')
-      .eq('user_address', req.user.address)
-      .order('created_at', { ascending: false })
-
+    const { data, error } = await supabase.from('scheduled_payments').select('*')
+      .eq('user_address', req.user.address).order('created_at', { ascending: false })
     if (error) throw error
-    res.json({ schedules: data })
+    res.json({ schedules: data || [] })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
 })
 
-// PATCH /schedule/:id/pause
-router.patch('/:id/pause', requireAuth, async (req, res) => {
+// POST /schedule/:id/cancel — revoke the mandate; everything left comes back to you
+router.post('/:id/cancel', requireAuth, async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('scheduled_payments')
-      .update({ status: 'paused' })
-      .eq('id', req.params.id)
-      .eq('user_address', req.user.address)
-      .select()
-      .single()
-
-    if (error) throw error
-    res.json({ success: true, schedule: data })
+    const { data: sc } = await supabase.from('scheduled_payments').select('*').eq('id', req.params.id).single()
+    if (!sc) return res.status(404).json({ error: 'Schedule not found' })
+    if (sc.user_address !== req.user.address) return res.status(403).json({ error: 'Not your schedule' })
+    if (!sc.mandate_address) {
+      await supabase.from('scheduled_payments').update({ status: 'cancelled' }).eq('id', sc.id)
+      return res.json({ success: true, message: 'Cancelled.' })
+    }
+    const prep = await prepareForUser(await buildRevokeMandate({ owner: req.user.address, mandate: sc.mandate_address, mint: sc.mint }))
+    const prepId = remember({ userAddress: req.user.address, messageHash: prep.messageHash, after: { type: 'schedule_cancel', scheduleId: sc.id } })
+    res.json({ prepId, tx: prep.tx })
   } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
-})
-
-// DELETE /schedule/:id
-router.delete('/:id', requireAuth, async (req, res) => {
-  try {
-    const { error } = await supabase
-      .from('scheduled_payments')
-      .update({ status: 'cancelled' })
-      .eq('id', req.params.id)
-      .eq('user_address', req.user.address)
-
-    if (error) throw error
-    res.json({ success: true })
-  } catch (err) {
-    res.status(500).json({ error: err.message })
+    res.status(400).json({ error: err.message })
   }
 })
 

@@ -1,145 +1,126 @@
-import { TransactionBlock } from '@mysten/sui.js/transactions'
-import { provider, getDeployerKeypair } from './sui.js'
+// Builds the Solana instructions for every Velfi action. Users sign these with
+// their own wallet; Velfi only pays the network fee.
+import { Keypair } from '@solana/web3.js'
+import {
+  programId, flowAddress, ata, tokenProgramFor, toIx, transferIxs, feePayer, agent, pk,
+  ASSOCIATED_TOKEN_PROGRAM_ID, SystemProgram,
+} from './solana.js'
+import { buildIx } from './chain/velfiProgram.js'
+import { legsFromProposal, newFlowId, scheduleToMandate } from './chain/plan.js'
+import { seal } from './chain/secretBox.js'
+import { getToken } from './tokens.js'
 
-const PKG = process.env.VELFI_PACKAGE_ID
-const CLOCK = '0x6'
-const SUI = '0x2::sui::SUI'
+const sys = () => SystemProgram.programId.toBase58()
+const atp = () => ASSOCIATED_TOKEN_PROGRAM_ID.toBase58()
 
-export function agentAddress() {
-  return getDeployerKeypair().getPublicKey().toSuiAddress()
+export const feePayerAddress = () => feePayer().publicKey.toBase58()
+export const agentAddress = () => agent().publicKey.toBase58()
+
+function requireSpl(token, what) {
+  if (token.mint === 'native') throw new Error(`${what} works with USDC and other tokens for now, not SOL. Try the same with USDC.`)
 }
 
-// native SUI send
-export function buildSend(recipient, amountMist) {
-  const txb = new TransactionBlock()
-  const [coin] = txb.splitCoins(txb.gas, [txb.pure(amountMist)])
-  txb.transferObjects([coin], txb.pure(recipient))
-  return txb
+async function flowAccounts(kind, owner, token) {
+  const id = newFlowId()
+  const tp = await tokenProgramFor(token.mint)
+  const flow = flowAddress(kind, owner, id)
+  return { id, tp, flow: flow.toBase58(), vault: ata(token.mint, flow, tp).toBase58(), ownerToken: ata(token.mint, owner, tp).toBase58() }
 }
 
-// native SUI split to many: [{ address, amountMist }]
-export function buildSplit(recipients) {
-  const txb = new TransactionBlock()
-  const coins = txb.splitCoins(txb.gas, recipients.map(r => txb.pure(r.amountMist)))
-  recipients.forEach((r, i) => txb.transferObjects([coins[i]], txb.pure(r.address)))
-  return txb
-}
-
-// guardrail: create a SUI-funded mandate
-export function buildCreateMandate({ budgetMist, recipients, maxPerTxMist, agent, durationMs, coinType = SUI }) {
-  const txb = new TransactionBlock()
-  const [budget] = txb.splitCoins(txb.gas, [txb.pure(budgetMist)])
-  txb.moveCall({
-    target: `${PKG}::guardrail::create_mandate`,
-    typeArguments: [coinType],
-    arguments: [
-      budget,
-      txb.pure(recipients, 'vector<address>'),
-      txb.pure(maxPerTxMist, 'u64'),
-      txb.pure(agent, 'address'),
-      txb.pure(durationMs, 'u64'),
-      txb.object(CLOCK),
-    ],
-  })
-  return txb
-}
-
-// guardrail: bounded release within a mandate
-export function buildExecuteMandate({ mandateId, amountMist, recipient, coinType = SUI }) {
-  const txb = new TransactionBlock()
-  txb.moveCall({
-    target: `${PKG}::guardrail::execute`,
-    typeArguments: [coinType],
-    arguments: [
-      txb.object(mandateId),
-      txb.pure(amountMist, 'u64'),
-      txb.pure(recipient, 'address'),
-      txb.object(CLOCK),
-    ],
-  })
-  return txb
-}
-
-// Agent-wallet transactions are serialized through one queue so two payouts never
-// grab the same coin/gas object at once (Sui locks it -> "already locked by a
-// different transaction"). Each tx waits for local execution, so the next one builds
-// against settled, up-to-date object versions.
-let _walletChain = Promise.resolve()
-function withWalletLock(fn) {
-  const result = _walletChain.then(() => fn())
-  _walletChain = result.then(() => {}, () => {})   // keep the queue alive on error
-  return result
-}
-
-// agent signs + executes (autopilot path) — serialized, waits for settlement
-export async function signAndRun(txb) {
-  return withWalletLock(() => provider.signAndExecuteTransactionBlock({
-    signer: getDeployerKeypair(),
-    transactionBlock: txb,
-    options: { showEffects: true, showObjectChanges: true },
-    requestType: 'WaitForLocalExecution',
-  }))
-}
-
-// serialize for user signing (assisted path)
-export async function buildBytes(txb, sender) {
-  txb.setSender(sender)
-  return Buffer.from(await txb.build({ client: provider })).toString('base64')
-}
-
-// Composable token transfer — adds ONE transfer onto a shared txb.
-// SUI splits from gas; any other coin is gathered, merged, split. amount is
-// HUMAN units, scaled by token.decimals here. Hard-refuses unverified coin types.
-export async function addTransfer(txb, { sender, recipient, amount, token }) {
-  if (!token?.coinType || token.coinType.startsWith('TODO'))
-    throw new Error(`${token?.symbol || 'That token'} isn't wired for execution yet — its coin type isn't verified.`)
-
-  const scaled = Math.round(Number(amount) * 10 ** token.decimals)
-  if (!(scaled > 0)) throw new Error('Amount must be greater than zero.')
-
-  if (token.coinType === SUI) {
-    const [coin] = txb.splitCoins(txb.gas, [txb.pure(scaled)])
-    txb.transferObjects([coin], txb.pure(recipient))
-    return txb
+// ── one-off payments (send, split, multi-token, email invites) ─────────────
+// Returns { instructions, invites } where invites must be saved after it lands.
+export async function buildPayment(pending, userAddress) {
+  const legs = legsFromProposal(pending, getToken)
+  const instructions = []
+  const invites = []
+  for (const leg of legs) {
+    if (leg.kind === 'transfer') {
+      instructions.push(...await transferIxs({ from: userAddress, to: leg.to, token: leg.token, amountUnits: leg.amountUnits }))
+      continue
+    }
+    // Email recipient: lock the funds in a claim-link escrow they can claim on sign-up.
+    requireSpl(leg.token, 'Sending to an email')
+    const claim = Keypair.generate()
+    const f = await flowAccounts('escrow', userAddress, leg.token)
+    instructions.push(toIx(buildIx(programId(), 'create_escrow', {
+      sender: userAddress, payer: feePayerAddress(), mint: leg.token.mint, senderToken: f.ownerToken,
+      escrow: f.flow, vault: f.vault, tokenProgram: f.tp.toBase58(), associatedTokenProgram: atp(), systemProgram: sys(),
+    }, { id: f.id, amount: leg.amountUnits, claimAuthority: claim.publicKey.toBase58(), window: 7 * 86_400 })))
+    invites.push({ email: leg.email, escrow: f.flow, token: leg.token.symbol, mint: leg.token.mint,
+      amount_units: leg.amountUnits.toString(), claim_key_sealed: seal(claim.secretKey) })
   }
-
-  const { data: coins } = await provider.getCoins({ owner: sender, coinType: token.coinType })
-  if (!coins.length) throw new Error(`No ${token.symbol} balance to send.`)
-  const total = coins.reduce((s, c) => s + BigInt(c.balance), 0n)
-  if (total < BigInt(scaled)) throw new Error(`Not enough ${token.symbol} to cover ${amount}.`)
-
-  const primary = txb.object(coins[0].coinObjectId)
-  if (coins.length > 1)
-    txb.mergeCoins(primary, coins.slice(1).map(c => txb.object(c.coinObjectId)))
-  const [part] = txb.splitCoins(primary, [txb.pure(scaled)])
-  txb.transferObjects([part], txb.pure(recipient))
-  return txb
+  return { instructions, invites, legs }
 }
 
-// Multi-recipient transfer of ONE token in a single PTB. Merges the coin once,
-// splits every leg from it at once (fixes per-leg re-merge of a spent coin).
-export async function addMultiTransfer(txb, { sender, legs, token }) {
-  if (!token?.coinType || token.coinType.startsWith('TODO'))
-    throw new Error(`${token?.symbol || 'That token'} isn't wired for execution yet.`)
-  const scaledLegs = legs.map(l => {
-    const scaled = Math.round(Number(l.amount) * 10 ** token.decimals)
-    if (!(scaled > 0)) throw new Error('Amount must be greater than zero.')
-    return { recipient: l.recipient, scaled }
-  })
-  if (token.coinType === SUI) {
-    const parts = txb.splitCoins(txb.gas, scaledLegs.map(l => txb.pure(l.scaled)))
-    scaledLegs.forEach((l, i) => txb.transferObjects([parts[i]], txb.pure(l.recipient)))
-    return txb
-  }
-  const { data: coins } = await provider.getCoins({ owner: sender, coinType: token.coinType })
-  if (!coins.length) throw new Error(`No ${token.symbol} balance to send.`)
-  const total = coins.reduce((s, c) => s + BigInt(c.balance), 0n)
-  const need = scaledLegs.reduce((s, l) => s + BigInt(l.scaled), 0n)
-  if (total < need) throw new Error(`Not enough ${token.symbol} to cover the split.`)
-  const primary = txb.object(coins[0].coinObjectId)
-  if (coins.length > 1)
-    txb.mergeCoins(primary, coins.slice(1).map(c => txb.object(c.coinObjectId)))
-  const parts = txb.splitCoins(primary, scaledLegs.map(l => txb.pure(l.scaled)))
-  scaledLegs.forEach((l, i) => txb.transferObjects([parts[i]], txb.pure(l.recipient)))
-  return txb
+// ── streams ────────────────────────────────────────────────────────────────
+export async function buildStartStream({ userAddress, recipient, token, amountUnits, durationSecs }) {
+  requireSpl(token, 'Streaming')
+  const f = await flowAccounts('stream', userAddress, token)
+  const ix = toIx(buildIx(programId(), 'start_stream', {
+    sender: userAddress, payer: feePayerAddress(), mint: token.mint, senderToken: f.ownerToken,
+    stream: f.flow, vault: f.vault, tokenProgram: f.tp.toBase58(), associatedTokenProgram: atp(), systemProgram: sys(),
+  }, { id: f.id, recipient, amount: amountUnits, duration: durationSecs }))
+  return { instructions: [ix], flow: f.flow, id: f.id }
 }
+
+export async function buildClaimStream({ recipient, stream, mint }) {
+  const tp = await tokenProgramFor(mint)
+  return [toIx(buildIx(programId(), 'claim_stream', {
+    recipient, payer: feePayerAddress(), stream, mint, vault: ata(mint, stream, tp).toBase58(),
+    recipientToken: ata(mint, recipient, tp).toBase58(), rentPayer: feePayerAddress(),
+    tokenProgram: tp.toBase58(), associatedTokenProgram: atp(), systemProgram: sys(),
+  }))]
+}
+
+export async function buildStopStream({ sender, recipient, stream, mint }) {
+  const tp = await tokenProgramFor(mint)
+  return [toIx(buildIx(programId(), 'stop_stream', {
+    sender, payer: feePayerAddress(), stream, mint, vault: ata(mint, stream, tp).toBase58(),
+    recipient, recipientToken: ata(mint, recipient, tp).toBase58(), senderToken: ata(mint, sender, tp).toBase58(),
+    rentPayer: feePayerAddress(), tokenProgram: tp.toBase58(), associatedTokenProgram: atp(), systemProgram: sys(),
+  }))]
+}
+
+// ── schedules (Autopilot inside an on-chain mandate) ──────────────────────
+// The user locks exactly count × amount in a mandate that can only pay this one
+// recipient, at most `amount` per payment, until it expires. Velfi's agent then
+// triggers each payment on time; it can never send more, or anywhere else.
+export async function buildCreateScheduleMandate({ userAddress, recipient, token, amountUnits, frequency, occurrences }) {
+  requireSpl(token, 'Scheduling')
+  const plan = scheduleToMandate({ amountUnits, frequency, occurrences })
+  const f = await flowAccounts('mandate', userAddress, token)
+  const ix = toIx(buildIx(programId(), 'create_mandate', {
+    owner: userAddress, payer: feePayerAddress(), mint: token.mint, ownerToken: f.ownerToken,
+    mandate: f.flow, vault: f.vault, tokenProgram: f.tp.toBase58(), associatedTokenProgram: atp(), systemProgram: sys(),
+  }, { id: f.id, agent: agentAddress(), recipients: [recipient], maxPerTx: plan.maxPerTx, totalBudget: plan.totalBudget, duration: plan.durationSecs }))
+  return { instructions: [ix], mandate: f.flow, id: f.id, plan }
+}
+
+export async function buildExecuteMandate({ mandate, recipient, mint, amountUnits }) {
+  const tp = await tokenProgramFor(mint)
+  return [toIx(buildIx(programId(), 'execute_mandate', {
+    caller: agentAddress(), payer: feePayerAddress(), mandate, mint, vault: ata(mint, mandate, tp).toBase58(),
+    recipient, recipientToken: ata(mint, recipient, tp).toBase58(),
+    tokenProgram: tp.toBase58(), associatedTokenProgram: atp(), systemProgram: sys(),
+  }, { amount: amountUnits }))]
+}
+
+export async function buildRevokeMandate({ owner, mandate, mint }) {
+  const tp = await tokenProgramFor(mint)
+  return [toIx(buildIx(programId(), 'revoke_mandate', {
+    owner, mandate, mint, vault: ata(mint, mandate, tp).toBase58(), ownerToken: ata(mint, owner, tp).toBase58(),
+    rentPayer: feePayerAddress(), tokenProgram: tp.toBase58(),
+  }))]
+}
+
+// ── email invites ──────────────────────────────────────────────────────────
+export async function buildClaimEscrow({ escrow, mint, claimer, claimAuthority }) {
+  const tp = await tokenProgramFor(mint)
+  return [toIx(buildIx(programId(), 'claim_escrow', {
+    claimAuthority, payer: feePayerAddress(), escrow, mint, vault: ata(mint, escrow, tp).toBase58(),
+    claimer, claimerToken: ata(mint, claimer, tp).toBase58(), rentPayer: feePayerAddress(),
+    tokenProgram: tp.toBase58(), associatedTokenProgram: atp(), systemProgram: sys(),
+  }))]
+}
+
+export { pk }

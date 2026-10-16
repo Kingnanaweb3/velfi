@@ -1,0 +1,11 @@
+[package]
+name = "velfi-core"
+version = "0.1.0"
+edition = "2021"
+description = "Chain-agnostic money logic for Velfi: guardrail mandates, escrow, streams, SafePay and staged pay. No dependencies, fully unit tested."
+license = "MIT"
+
+[lib]
+name = "velfi_core"
+
+[dependencies]

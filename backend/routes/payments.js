@@ -1,54 +1,12 @@
 import express from 'express'
 import { v4 as uuidv4 } from 'uuid'
 import supabase from '../lib/supabase.js'
-import { provider } from '../lib/sui.js'
 import { requireAuth } from '../middleware/auth.js'
-import { createRequire } from 'module'
-const require = createRequire(import.meta.url)
-const { TransactionBlock } = require('@mysten/sui.js/transactions')
 
 const router = express.Router()
 
-// POST /payments/send
-router.post('/send', requireAuth, async (req, res) => {
-  try {
-    const { toAddress, amount, txBytes } = req.body
-    if (!toAddress || !amount || !txBytes) {
-      return res.status(400).json({ error: 'toAddress, amount, txBytes required' })
-    }
-
-    // Execute signed tx from frontend
-    const result = await provider.executeTransactionBlock({
-      transactionBlock: txBytes,
-      signature: req.body.signature,
-      options: { showEffects: true }
-    })
-
-    res.json({ success: true, digest: result.digest })
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
-})
-
-// POST /payments/split
-router.post('/split', requireAuth, async (req, res) => {
-  try {
-    const { recipients, amounts, txBytes, signature } = req.body
-    if (!recipients || !amounts || !txBytes) {
-      return res.status(400).json({ error: 'recipients, amounts, txBytes required' })
-    }
-
-    const result = await provider.executeTransactionBlock({
-      transactionBlock: txBytes,
-      signature,
-      options: { showEffects: true }
-    })
-
-    res.json({ success: true, digest: result.digest })
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
-})
+// Sending and splitting now go through /agent/prepare + /agent/approve, where the
+// user's own wallet signs. Sending to an email creates an on-chain escrow there.
 
 // POST /payments/pending - send to email (store escrow record)
 router.post('/pending', requireAuth, async (req, res) => {
@@ -68,7 +26,7 @@ router.post('/pending', requireAuth, async (req, res) => {
         from_username: req.user.username,
         to_email: toEmail,
         amount,
-        token: token || 'SUI',
+        token: token || 'USDC',
         claim_token: claimToken,
         message,
         expires_at: expiresAt
@@ -118,7 +76,7 @@ router.post('/request', requireAuth, async (req, res) => {
         to_address: toAddress,
         to_email: toEmail,
         amount,
-        token: token || 'SUI',
+        token: token || 'USDC',
         message
       })
       .select()
@@ -131,16 +89,12 @@ router.post('/request', requireAuth, async (req, res) => {
   }
 })
 
-// GET /payments/history
+// GET /payments/history - Velfi's record of this user's payments
 router.get('/history', requireAuth, async (req, res) => {
   try {
-    const address = req.user.address
-    const txs = await provider.queryTransactionBlocks({
-      filter: { FromAddress: address },
-      options: { showEffects: true, showInput: true },
-      limit: 20
-    })
-    res.json({ transactions: txs.data })
+    const { data } = await supabase.from('transactions').select('*')
+      .eq('user_address', req.user.address).order('created_at', { ascending: false }).limit(20)
+    res.json({ transactions: data || [] })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }

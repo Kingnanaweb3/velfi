@@ -1,3 +1,4 @@
+import { isSolanaAddress } from './chain/base58.js'
 // Deterministic validators. NEVER an LLM. These gate every parsed payment
 // before it can become a pending transaction.
 
@@ -105,7 +106,9 @@ export function normalizeVel(name) {
   if (name == null) return null
   let s = String(name).trim().toLowerCase()
   if (!s) return null
-  if (s.startsWith('0x') || s.includes('@')) return s
+  // Solana addresses and emails pass through untouched (addresses are case-sensitive)
+  if (s.includes('@')) return s
+  if (isSolanaAddress(String(name).trim())) return String(name).trim()
   if (!s.endsWith('.vel')) s = s + '.vel'
   return s
 }
