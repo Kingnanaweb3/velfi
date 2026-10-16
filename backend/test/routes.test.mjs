@@ -272,3 +272,15 @@ test('chat: a pasted Solana address keeps its exact letters', async () => {
   const pending = tables.agent_conversations.find(c => c.user_address === ME).pending_tx
   assert.equal(pending.payment.recipients[0].resolved.address, MAYA)
 })
+
+test('not found: names from before Solana get a "sign in once" hint, unknown names do not', async () => {
+  const { missingText } = await import('../routes/agent.js')
+  tables.users = [
+    { id: 'u1', username: 'nanaismyboy', wallet_address: null, sui_address: '0xabc' },
+    { id: 'u2', username: 'maya', wallet_address: MAYA },
+  ]
+  assert.match(await missingText(['nanaismyboy.vel']), /nanaismyboy\.vel hasn't signed in since Velfi moved to Solana/)
+  assert.equal(await missingText(['ghost.vel']), "I couldn't find ghost.vel on Velfi")
+  const both = await missingText(['ghost.vel', 'NanaIsMyBoy.vel'])
+  assert.match(both, /^I couldn't find ghost\.vel on Velfi\. NanaIsMyBoy\.vel hasn't signed in/)
+})

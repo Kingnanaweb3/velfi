@@ -61,14 +61,37 @@ async function resolveRecipient(input) {
   const clean = String(input).toLowerCase().trim()
   if (clean.endsWith('.vel')) {
     const username = clean.replace('.vel', '')
-    const { data } = await supabaseAdmin.from('users').select('wallet_address, username').eq('username', username).single()
+    const { data } = await supabaseAdmin.from('users').select('wallet_address, username').eq('username', username).maybeSingle()
     return data?.wallet_address ? { address: data.wallet_address, label: input } : null
   }
   // Solana addresses are case-sensitive, so check the original input, not the lowercased one.
   if (isSolanaAddress(String(input).trim())) return { address: String(input).trim(), label: String(input).trim() }
   if (clean.includes('@')) return { address: null, email: clean, label: clean, needsInvite: true }
-  const { data } = await supabaseAdmin.from('users').select('wallet_address, username').eq('username', clean).single()
+  const { data } = await supabaseAdmin.from('users').select('wallet_address, username').eq('username', clean).maybeSingle()
   return data?.wallet_address ? { address: data.wallet_address, label: clean } : null
+}
+
+// Explain why recipients weren't found. A name from before the move to Solana still
+// exists, but has no Solana wallet until that person signs in once more.
+export async function missingText(names) {
+  const waiting = []
+  const unknown = []
+  for (const n of names) {
+    const u = String(n).toLowerCase().trim().replace(/\.vel$/, '')
+    let old = null
+    if (/^[a-z0-9_]{3,20}$/.test(u)) {
+      const { data } = await supabaseAdmin.from('users').select('username, wallet_address').eq('username', u).maybeSingle()
+      old = data && !data.wallet_address ? data : null
+    }
+    ;(old ? waiting : unknown).push(n)
+  }
+  const parts = []
+  if (unknown.length) parts.push(`I couldn't find ${unknown.join(', ')} on Velfi`)
+  if (waiting.length) {
+    const one = waiting.length === 1
+    parts.push(`${waiting.join(', ')} ${one ? "hasn't" : "haven't"} signed in since Velfi moved to Solana, so ${one ? 'there is no wallet to pay yet' : 'there are no wallets to pay yet'}. Ask ${one ? 'them' : 'each of them'} to sign in once at app.velfi.xyz, or send to a Solana address instead`)
+  }
+  return parts.join('. ')
 }
 
 // Try to read a token symbol the user picked, restricted to what they actually hold.
@@ -98,8 +121,7 @@ async function resolveAndValidate(parsed, user) {
 
   // Collect ALL problems and report them together (better UX than one-at-a-time).
   const problems = []
-  if (notFound.length === 1) problems.push(`I couldn't find ${notFound[0]}`)
-  else if (notFound.length > 1) problems.push(`I couldn't find ${notFound.join(', ')}`)
+  if (notFound.length) problems.push(await missingText(notFound))
   if (selfRecipients.length === 1) problems.push(`${selfRecipients[0]} is your own account`)
   else if (selfRecipients.length > 1) problems.push(`${selfRecipients.join(', ')} are your own account`)
 
@@ -296,7 +318,7 @@ router.post('/message', requireAuth, async (req, res) => {
       const resolved = await resolveRecipient(target)
       return res.json({ mode: 'assistant', reply: (resolved && resolved.address)
         ? `Yes \u2014 ${target} is on Velfi. Tell me an amount and I'll set up the payment (e.g. \"send 5 USDC to ${target}\").`
-        : `I couldn't find ${target} on Velfi yet. Double-check the name, or send to a Solana address or email instead.` })
+        : `${await missingText([target])}. Double-check the name, or send to a Solana address instead.` })
     }
 
     // --- STEP 2a: assistant ---
@@ -457,7 +479,7 @@ async function routePayment(res, user, parsed, ctxBlock = '') {
         }
         if (notFound.length || selfHit.length) {
           const probs = []
-          if (notFound.length) probs.push(`I couldn't find ${notFound.join(', ')}`)
+          if (notFound.length) probs.push(await missingText(notFound))
           if (selfHit.length) probs.push(`${selfHit.join(', ')} is your own account`)
           return res.json({ mode: 'clarify', reply: `${probs.join(', and ')}. Fix that and I'll set it right up.` })
         }
@@ -527,7 +549,7 @@ async function routePayment(res, user, parsed, ctxBlock = '') {
         return res.json({ mode: 'clarify', reply: 'Who should the stream pay? A .vel name, address, or email.' })
       const resolved = await resolveRecipient(who)
       if (!resolved?.address)
-        return res.json({ mode: 'clarify', reply: `I couldn't find ${who}. Try a .vel name, address, or email.` })
+        return res.json({ mode: 'clarify', reply: `${await missingText([who])}. Try a .vel name or a Solana address.` })
       const held = await balanceOf(user.address, sym)
       if (held < total)
         return res.json({ mode: 'insufficient', reply: `This stream needs ${total} ${sym}, but your wallet holds ${held.toFixed(4)} ${sym}.` })
@@ -561,7 +583,7 @@ async function routePayment(res, user, parsed, ctxBlock = '') {
         return res.json({ mode: 'clarify', reply: 'Who should the scheduled payments go to? A .vel name, address, or email.' })
       const resolved = await resolveRecipient(who)
       if (!resolved?.address)
-        return res.json({ mode: 'clarify', reply: `I couldn't find ${who}. Try a .vel name, address, or email.` })
+        return res.json({ mode: 'clarify', reply: `${await missingText([who])}. Try a .vel name or a Solana address.` })
       const held = await balanceOf(user.address, sym)
       if (held < amount)
         return res.json({ mode: 'insufficient', reply: `Each payment is ${amount} ${sym}, but your wallet only holds ${held.toFixed(4)} ${sym}.` })
