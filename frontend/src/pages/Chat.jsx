@@ -11,6 +11,11 @@ import otterFace from '../assets/otter-face.webp'
 
 const STORE = 'velfi_chat_v1'
 const clock = () => new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+// A wallet that never answers must not leave the slider spinning forever.
+function withTimeout(promise, ms, message) {
+  let t
+  return Promise.race([promise, new Promise((_, rej) => { t = setTimeout(() => rej(new Error(message)), ms) })]).finally(() => clearTimeout(t))
+}
 const sym = (p) => (p?.currency && p.currency !== 'USD') ? p.currency : 'USDC'
 const recipientsOf = (p) => (p?.recipients || []).map(r => ({
   label: r.resolved?.label || r.name || r.email || r.resolved?.email || shortAddr(r.resolved?.address) || 'recipient',
@@ -113,7 +118,7 @@ export default function Chat() {
   async function approve() {
     if (!pending) return
     const p = pending
-    setSheet({ type: 'confirm', running: true })
+    setSheet({ type: 'confirm', running: 'Preparing…' })
     let prep
     try {
       prep = await api(token, `/agent/prepare/${p.id}`, { method: 'POST', body: {} })
@@ -122,7 +127,8 @@ export default function Chat() {
       setSheet({ type: 'failed', message: e.message }); return
     }
     let signedTx
-    try { signedTx = await wallet.sign(prep.tx, { versioned: !!prep.versioned }) }
+    setSheet({ type: 'confirm', running: 'Signing…' })
+    try { signedTx = await withTimeout(wallet.sign(prep.tx, { versioned: !!prep.versioned }), 45_000, 'Your wallet didn’t respond in time') }
     catch (e) {
       console.error('Velfi sign failed:', e)
       setSheet(null)
@@ -130,6 +136,7 @@ export default function Chat() {
       toast(/reject|denied|cancel|closed/i.test(why) ? 'You didn’t sign it, so nothing was sent.' : `Your wallet couldn’t sign that, so nothing was sent.${why ? ` (${why})` : ''}`)
       return
     }
+    setSheet({ type: 'confirm', running: 'Sending…' })
     try {
       const d = await api(token, `/agent/approve/${p.id}`, { method: 'POST', body: { prepId: prep.prepId, signedTx } })
       dropProposal(p.id); setPending(null)
@@ -215,7 +222,7 @@ export default function Chat() {
         </div>
       </div>
 
-      <ConfirmSheet open={sheet?.type === 'confirm'} pending={pending} running={!!sheet?.running} onApprove={approve} onClose={() => !sheet?.running && setSheet(null)} />
+      <ConfirmSheet open={sheet?.type === 'confirm'} pending={pending} running={sheet?.running || false} onApprove={approve} onClose={() => !sheet?.running && setSheet(null)} />
       <SuccessSheet open={sheet?.type === 'success'} data={sheet} onClose={() => setSheet(null)} />
       <FailedSheet open={sheet?.type === 'failed'} message={sheet?.message} canRetry={!!pending} onRetry={() => setSheet({ type: 'confirm' })} onClose={() => setSheet(null)} />
     </div>
@@ -374,7 +381,7 @@ function SlideToApprove({ onApprove, running }) {
   return (
     <div className="slide" ref={track}>
       <span className="slide-fill" style={{ width: x + KNOB + 8 }} />
-      <span className="slide-label">{running ? 'Signing…' : done ? 'Approved' : 'Slide to approve'}</span>
+      <span className="slide-label">{running ? (typeof running === 'string' ? running : 'Signing…') : done ? 'Approved' : 'Slide to approve'}</span>
       <button className="slide-knob" style={{ transform: `translateX(${x}px)`, transition: drag ? 'none' : 'transform .3s var(--ease)' }}
         onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
         onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && !running && !done) { e.preventDefault(); finish() } }}
