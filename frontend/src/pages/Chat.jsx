@@ -128,7 +128,7 @@ export default function Chat() {
     }
     let signedTx
     setSheet({ type: 'confirm', running: 'Signing…' })
-    try { signedTx = await withTimeout(wallet.sign(prep.tx, { versioned: !!prep.versioned }), 45_000, 'Your wallet didn’t respond in time') }
+    try { signedTx = await withTimeout(wallet.sign(prep.tx, { versioned: !!prep.versioned }), 70_000, 'Your wallet didn’t respond in time') }
     catch (e) {
       console.error('Velfi sign failed:', e)
       setSheet(null)
