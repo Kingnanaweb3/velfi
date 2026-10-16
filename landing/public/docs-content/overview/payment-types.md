@@ -18,7 +18,7 @@ Divide one payment across many recipients, each with their own amount or percent
 
 [Full guide →](/velfi/guides/splitting-payments.md)
 
-### Stream
+### Stream (coming soon)
 
 Pay someone continuously over a period of time — ideal for salaries, vesting, or contractor pay.
 
@@ -34,7 +34,7 @@ Set up recurring payments on a cadence you choose.
 
 [Full guide →](/velfi/guides/automations.md)
 
-### Escrow
+### Escrow (coming soon)
 
 Hold funds until a condition is met, then release them — and cancel anytime before release.
 
@@ -42,7 +42,7 @@ Hold funds until a condition is met, then release them — and cancel anytime be
 
 [Full guide →](/velfi/guides/escrow.md)
 
-### Automate
+### Automate (coming soon)
 
 Create rules that trigger on events, like saving a portion of every payment you receive.
 

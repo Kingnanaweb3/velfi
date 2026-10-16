@@ -5,6 +5,7 @@ const here = new URL('./stubs/', import.meta.url)
 const PACKAGES = {
   express: 'express.mjs',
   dotenv: 'dotenv.mjs',
+  'dotenv/config': 'empty.mjs',
   jsonwebtoken: 'jsonwebtoken.mjs',
   cors: 'empty.mjs',
   '@supabase/supabase-js': 'supabase.mjs',

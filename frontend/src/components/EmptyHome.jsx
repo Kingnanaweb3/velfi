@@ -18,7 +18,7 @@ function TallyLogo() {
 const STARTERS = [
   { k: 'split',  label: 'Split a bill',     prompt: 'Split ', Icon: Users },
   { k: 'send',   label: 'Send to a friend', prompt: 'Send ',  Icon: Send },
-  { k: 'stream', label: 'Start a stream',   prompt: 'Stream ', Icon: Waves },
+  { k: 'schedule', label: 'Schedule a payment', prompt: 'Every week send ', Icon: Waves },
 ]
 
 export default function EmptyHome({ user, navigate }) {

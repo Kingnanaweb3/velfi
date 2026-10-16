@@ -1,5 +1,5 @@
 import express from 'express'
-import supabase from '../lib/supabase.js'
+import supabase from '../lib/supabaseAdmin.js'
 import { getSolBalance, explorerAddress, CLUSTER } from '../lib/solana.js'
 import { getAllBalances } from '../lib/balances.js'
 import { requireAuth } from '../middleware/auth.js'

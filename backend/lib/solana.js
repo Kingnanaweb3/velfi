@@ -1,8 +1,9 @@
 // Solana connection, Velfi's server keys, and the two ways a transaction is sent:
 //  - prepareForUser: Velfi builds it, pays the fee (co-signs as fee payer), and
 //    hands it to the user's wallet to sign. Nothing moves without the user.
-//  - sendAsServer: Velfi's agent key signs alone, used only for Autopilot
-//    payments the user pre-approved through an on-chain mandate.
+//  - sendAsServer: Velfi's own keys sign alone. Used only for Autopilot payments
+//    the user pre-approved (an allowance in lite mode, a mandate with the
+//    program) and for moving email-invite money to its recipient or back.
 import crypto from 'node:crypto'
 import {
   Connection, Keypair, PublicKey, Transaction, TransactionInstruction, VersionedTransaction,
@@ -10,7 +11,8 @@ import {
 } from '@solana/web3.js'
 import {
   getAssociatedTokenAddressSync, createAssociatedTokenAccountIdempotentInstruction,
-  createTransferCheckedInstruction, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID,
+  createTransferCheckedInstruction, createApproveCheckedInstruction, createRevokeInstruction, createCloseAccountInstruction,
+  TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID,
 } from '@solana/spl-token'
 import dotenv from 'dotenv'
 import { decode as b58decode } from './chain/base58.js'
@@ -20,6 +22,11 @@ dotenv.config()
 export const CLUSTER = process.env.SOLANA_CLUSTER || 'devnet'
 export const connection = new Connection(process.env.SOLANA_RPC_URL || clusterApiUrl(CLUSTER), 'confirmed')
 export { PublicKey, SystemProgram, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, LAMPORTS_PER_SOL }
+
+// Lite mode (mainnet v1): no custom program. Velfi uses only Solana's built-in
+// System and Token programs. Setting VELFI_PROGRAM_ID turns on the full program.
+export const PROGRAM_ENABLED = !!process.env.VELFI_PROGRAM_ID
+export const MODE = PROGRAM_ENABLED ? 'program' : 'lite'
 
 export function programId() {
   if (!process.env.VELFI_PROGRAM_ID) throw new Error('VELFI_PROGRAM_ID not set')
@@ -77,17 +84,55 @@ export function toIx(plain) {
   })
 }
 
-// Payment instructions. The fee payer covers the recipient's token-account rent.
-export async function transferIxs({ from, to, token, amountUnits }) {
+// A brand-new Solana wallet must receive at least this much SOL to exist.
+export const MIN_NEW_WALLET_LAMPORTS = 890_880n
+
+// Payment instructions. The fee payer covers the recipient's token-account rent,
+// and only when that account doesn't exist yet. Returns { ixs, newAccounts }.
+// `authority` signs for the debit: the sender, or Velfi's agent acting as an
+// approved delegate for a schedule.
+export async function transferIxs({ from, to, token, amountUnits, authority = from }) {
   if (token.mint === 'native') {
-    return [SystemProgram.transfer({ fromPubkey: pk(from), toPubkey: pk(to), lamports: BigInt(amountUnits) })]
+    if (BigInt(amountUnits) < MIN_NEW_WALLET_LAMPORTS && (await connection.getBalance(pk(to))) === 0)
+      throw new Error('That wallet is brand new, so the first SOL sent to it must be at least 0.001 SOL.')
+    return { ixs: [SystemProgram.transfer({ fromPubkey: pk(from), toPubkey: pk(to), lamports: BigInt(amountUnits) })], newAccounts: 0 }
   }
   const tp = await tokenProgramFor(token.mint)
   const toAta = ata(token.mint, to, tp)
-  return [
-    createAssociatedTokenAccountIdempotentInstruction(feePayer().publicKey, toAta, pk(to), pk(token.mint), tp, ASSOCIATED_TOKEN_PROGRAM_ID),
-    createTransferCheckedInstruction(ata(token.mint, from, tp), pk(token.mint), toAta, pk(from), BigInt(amountUnits), token.decimals, [], tp),
-  ]
+  const exists = !!(await connection.getAccountInfo(toAta))
+  const ixs = []
+  if (!exists) ixs.push(createAssociatedTokenAccountIdempotentInstruction(feePayer().publicKey, toAta, pk(to), pk(token.mint), tp, ASSOCIATED_TOKEN_PROGRAM_ID))
+  ixs.push(createTransferCheckedInstruction(ata(token.mint, from, tp), pk(token.mint), toAta, pk(authority), BigInt(amountUnits), token.decimals, [], tp))
+  return { ixs, newAccounts: exists ? 0 : 1 }
+}
+
+// Let Velfi's agent spend up to `amountUnits` of the user's token (schedules).
+// A token account has one allowance at a time, so callers pass the total for all
+// of the user's active schedules in that token. 0 removes the allowance.
+export async function allowanceIxs({ owner, token, amountUnits }) {
+  const tp = await tokenProgramFor(token.mint)
+  const account = ata(token.mint, owner, tp)
+  if (BigInt(amountUnits) === 0n) return [createRevokeInstruction(account, pk(owner), [], tp)]
+  return [createApproveCheckedInstruction(account, pk(token.mint), agent().publicKey, pk(owner), BigInt(amountUnits), token.decimals, [], tp)]
+}
+
+// Move everything out of a claim wallet (email invite) and close its token
+// account, returning that rent to Velfi's fee payer. Signed by the claim key.
+export async function sweepClaimWalletIxs({ claimWallet, to, token }) {
+  const tp = await tokenProgramFor(token.mint)
+  const from = ata(token.mint, claimWallet, tp)
+  const bal = await connection.getTokenAccountBalance(from).catch(() => null)
+  const units = BigInt(bal?.value?.amount || 0)
+  const { ixs } = units > 0n ? await transferIxs({ from: claimWallet, to, token, amountUnits: units }) : { ixs: [] }
+  ixs.push(createCloseAccountInstruction(from, feePayer().publicKey, pk(claimWallet), [], tp))
+  return { ixs, units }
+}
+
+// Velfi's fee payer must never run dry mid-launch: callers check this first.
+let _fpCache = { at: 0, lamports: 0 }
+export async function feePayerLamports() {
+  if (Date.now() - _fpCache.at > 60_000) _fpCache = { at: Date.now(), lamports: await connection.getBalance(feePayer().publicKey) }
+  return _fpCache.lamports
 }
 
 const priority = () => ComputeBudgetProgram.setComputeUnitPrice({ microLamports: Number(process.env.PRIORITY_MICROLAMPORTS || 1000) })
@@ -113,9 +158,20 @@ export async function submitUserSigned(base64, expectedHash) {
   const tx = Transaction.from(raw)
   if (messageHash(tx) !== expectedHash) throw new Error('This transaction does not match what you approved.')
   if (!tx.verifySignatures()) throw new Error('The transaction is missing a signature.')
-  const signature = await connection.sendRawTransaction(raw, { skipPreflight: false, maxRetries: 3 })
-  await confirm(signature, tx.recentBlockhash)
-  return signature
+  try {
+    const signature = await connection.sendRawTransaction(raw, { skipPreflight: false, maxRetries: 3 })
+    await confirm(signature, tx.recentBlockhash)
+    return signature
+  } catch (e) { throw readable(e) }
+}
+
+// Turn common Solana failures into sentences people understand.
+export function readable(e) {
+  const m = String(e?.message || e)
+  if (/blockhash not found|block height exceeded|expired/i.test(m)) return new Error('This approval took too long and expired. Slide again and it will go through.')
+  if (/insufficient (funds|lamports)|0x1\b|custom program error: 0x1\b/i.test(m)) return new Error("There isn't enough in your wallet for this right now.")
+  if (/owner does not match|0x4\b/i.test(m)) return new Error("Velfi isn't allowed to spend that any more. The approval may have been removed.")
+  return e instanceof Error ? e : new Error(m)
 }
 
 // For Jupiter swaps: a versioned transaction the user signs (we don't co-sign).
@@ -127,9 +183,11 @@ export async function submitVersioned(base64, expectedHash) {
   const raw = Buffer.from(String(base64), 'base64')
   const vtx = VersionedTransaction.deserialize(raw)
   if (versionedHash(base64) !== expectedHash) throw new Error('This swap does not match what you approved.')
-  const signature = await connection.sendRawTransaction(raw, { maxRetries: 3 })
-  await confirm(signature, vtx.message.recentBlockhash)
-  return signature
+  try {
+    const signature = await connection.sendRawTransaction(raw, { maxRetries: 3 })
+    await confirm(signature, vtx.message.recentBlockhash)
+    return signature
+  } catch (e) { throw readable(e) }
 }
 
 async function confirm(signature, blockhash) {

@@ -1,5 +1,9 @@
 # Streaming salaries
 
+{% hint style="info" %}
+**Coming soon.** This isn't live in the app yet. Until it is, a scheduled payment (for example weekly) is the closest option.
+{% endhint %}
+
 Streaming pays someone continuously over time, instead of in one lump sum. It's ideal for salaries, contractor pay, and vesting.
 
 ### How to stream

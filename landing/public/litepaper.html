@@ -526,13 +526,14 @@
       <p>Velfi's security model rests on a single principle: <strong>the agent proposes, the user disposes, and only the user holds the keys.</strong></p>
 
       <h3>Non-custodial by construction</h3>
-      <p>Velfi never takes custody of funds. Every transaction is signed from the user's own wallet. The agent can assemble a transaction but cannot move money without an explicit signature from the account owner. There is no admin key that can sweep balances.</p>
+      <p>Velfi never holds a user's balance. Every one-off payment is signed from the user's own wallet; the agent can assemble a transaction but cannot send it without the owner's signature. There is no admin key that can sweep balances.</p>
+      <p>Two narrow, user-approved exceptions exist at launch. A <strong>scheduled payment</strong> is approved once as a token allowance: Solana caps the total Velfi's Autopilot key can ever spend, and Velfi's server pays only the recipient, amount and timetable the user approved; cancelling removes the permission. Money sent to an <strong>email that is not on Velfi yet</strong> waits in a one-off holding wallet Velfi manages for up to seven days, then goes to the new user or back to the sender.</p>
 
       <h3>No seed phrase to compromise</h3>
       <p>Because the wallet is unlocked with an existing Google login rather than a stored secret phrase, the classic attack surface — phishing a seed phrase, finding a written-down backup, draining via a leaked key — is removed at the design level.</p>
 
-      <h3>Safe-by-default contract logic</h3>
-      <p>Payment primitives are implemented as narrow Solana programs: each one does a single job — a stream, an escrow, a spending limit — with explicit checks on who may call it and how much it may release. <a href="#references">[5]</a> Recurring and conditional flows run as deterministic contract logic, not as an autonomous model with spending power.</p>
+      <h3>Safe-by-default building blocks</h3>
+      <p>At launch Velfi uses only Solana's built-in System and Token programs, which are among the most widely used code on the network. Velfi's own payment programs — streams, escrow and on-chain spending limits, each doing a single job with explicit checks on who may call it and how much it may release <a href="#references">[5]</a> — are written and tested, and ship after an independent security audit. Recurring flows run as deterministic code, never as an autonomous model with spending power.</p>
 
       <h3>The AI cannot spend</h3>
       <p>The language model's role is strictly interpretation and proposal. It converts words into a structured transaction for human approval. It has no key, no signing authority, and no path to move funds on its own. A compromised or mistaken model cannot drain a user — the worst case is a proposed transaction the user simply rejects.</p>
@@ -568,13 +569,14 @@
       <ul>
         <li>Google sign-in with self-custodial Solana wallets.</li>
         <li>The <span class="handle">.vel</span> handle system.</li>
-        <li>Core payment primitives as Solana programs: send, split, stream, schedule, escrow.</li>
+        <li>Core payments on Solana: send, split, schedule, swap, and send to an email.</li>
         <li>The AI agent that turns plain-language instructions into proposed transactions.</li>
         <li>Email-to-claim transfers that onboard new users through payments.</li>
       </ul>
 
       <h3>Next — Intelligence and reach</h3>
       <ul>
+        <li>Velfi's audited payment programs: streams, escrow, and on-chain spending limits for Autopilot.</li>
         <li>A financial-domain model tuned on payment logic, for more accurate and nuanced instruction handling.</li>
         <li>Conditional and trigger-based automation expanded to richer rule sets.</li>
         <li>A beneficiary and continuity layer for shared and delegated flows.</li>

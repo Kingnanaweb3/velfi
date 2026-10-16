@@ -12,7 +12,7 @@ function fmtDate(ts) {
 function stateOf(status, done, total) {
   const s = String(status || '').toLowerCase()
   if (['complete', 'completed', 'done', 'ended'].includes(s) || (total > 0 && done >= total)) return 'completed'
-  if (s === 'paused') return 'paused'
+  if (s === 'paused' || s === 'failed') return 'paused'
   return 'active'
 }
 function toCards(flows, incoming = []) {
@@ -39,7 +39,7 @@ function toCards(flows, incoming = []) {
       title: 'Scheduled payment', desc: `Send ${r.amount} ${r.token} to ${r.to} ${(r.frequency || '').toLowerCase()}`,
       amount: `${r.amount} ${r.token}`, freq: fl,
       runline: st === 'completed' ? `${r.done}/${r.total} sent` : (r.next_run_at ? `Next run: ${fmtDate(r.next_run_at)}` : `${r.done}/${r.total || '∞'} sent`),
-      action: st === 'active' ? { label: 'Cancel', path: `/schedule/${r.id}/cancel`, confirm: 'Cancel this schedule? Whatever is left of its budget comes back to you.' } : null })
+      action: st === 'active' || st === 'paused' ? { label: 'Cancel', path: `/schedule/${r.id}/cancel`, confirm: 'Cancel this schedule? No more payments will go out.' } : null })
   }
   return out
 }
@@ -61,16 +61,24 @@ export default function Flows() {
   async function act(c) {
     if (c.action.confirm && !window.confirm(c.action.confirm)) return
     setBusyId(c.id); setNote('')
+    let prep = null
     try {
       const pr = await fetch(`/api${c.action.path}`, { method: 'POST', headers: H, body: '{}' })
-      const prep = await pr.json()
+      prep = await pr.json()
       if (!pr.ok) throw new Error(prep.error || 'Could not prepare that.')
+      if (!prep.tx) { setNote(prep.message || 'Done.'); return }
+      if (prep.note) setNote(prep.note)
       const signedTx = await wallet.sign(prep.tx)
       const r = await fetch('/api/tx/submit', { method: 'POST', headers: H, body: JSON.stringify({ prepId: prep.prepId, signedTx }) })
       const d = await r.json()
       if (!r.ok) throw new Error(d.error || 'That did not go through.')
       setNote(d.message || 'Done.')
-    } catch (e) { setNote(/reject|denied|cancel/i.test(String(e.message)) ? 'Not signed, nothing changed.' : e.message) }
+    } catch (e) {
+      const notSigned = /reject|denied|cancel/i.test(String(e.message))
+      // A lite-mode cancel already stopped the schedule; signing only tidies up the wallet permission.
+      if (notSigned && prep?.note) setNote('Schedule cancelled, no more payments will go out. The unused permission stays on your wallet until your next schedule replaces it, and Velfi won\'t use it.')
+      else setNote(notSigned ? 'Not signed, nothing changed.' : e.message)
+    }
     finally { setBusyId(null) }
   }
   useEffect(() => {
@@ -118,7 +126,7 @@ export default function Flows() {
           <div className="vf-empty-box">
             <Waypoints size={28} />
             <p className="vf-empty-h">{cards.length === 0 ? 'No flows yet' : `No ${tab.toLowerCase()} flows`}</p>
-            <p className="vf-empty-b">Create a stream or recurring payment from chat — try “stream 10 USDC to alex.vel over 30 days”.</p>
+            <p className="vf-empty-b">Create a recurring payment from chat. Try “send 10 USDC to alex.vel every week for 4 weeks”.</p>
             <button className="vf-cta" onClick={() => navigate('/chat')}>Start a flow</button>
           </div>
         ) : (

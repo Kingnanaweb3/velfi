@@ -10,17 +10,17 @@ No seed phrases. No gas tokens. No wallet addresses to copy. You sign in with Go
 
 * **Send** money instantly to a `.vel` name — or to an email address the recipient claims later.
 * **Split** a payment across many people, each with their own share.
-* **Stream** a salary or payout continuously over time.
+* **Stream** a salary or payout continuously over time (coming soon).
 * **Schedule** recurring payments on any cadence.
-* **Escrow** funds until a condition is met, and cancel anytime.
-* **Automate** rules like saving a percentage of everything you receive.
+* **Escrow** funds until a condition is met (coming soon).
+* **Automate** rules like saving a percentage of everything you receive (coming soon).
 
 ### Launching on Solana
 
 Velfi is launching on Solana, so payments settle almost instantly for a fraction of a cent, with stablecoins like USDC built in. But you never have to think about any of that — the chain is invisible. Your money just does what you tell it to.
 
 {% hint style="info" %}
-**You always hold the keys.** Velfi is non-custodial. It builds and proposes your payments, but only you can approve them. Velfi never takes control of your funds.
+**Your wallet stays yours.** Velfi is non-custodial. It builds and proposes your payments, but only you can approve them.
 {% endhint %}
 
 ### New here?

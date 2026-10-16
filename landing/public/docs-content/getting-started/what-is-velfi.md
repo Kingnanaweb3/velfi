@@ -12,7 +12,7 @@ You might tell Velfi:
 
 > "Split this bill 40/30/30 between three people."
 
-> "Stream $4,000 to my contractor over 30 days."
+> "Pay my contractor $1,000 every Friday for 4 weeks."
 
 > "Move 10% of every payment I receive into savings."
 
@@ -22,7 +22,7 @@ Velfi reads the instruction, builds the right kind of payment, and asks you to c
 
 * **You talk to it.** The interface is conversation, not forms.
 * **It actually acts.** Other tools advise you on money. Velfi executes.
-* **It's yours.** Velfi is non-custodial — only you can approve payments, and only you hold the keys.
+* **It's yours.** Velfi is non-custodial — your money stays in your wallet and only you can approve payments.
 * **It's effortless.** No seed phrases, no gas tokens, no addresses. Sign in with Google and go.
 
 ### Who it's for

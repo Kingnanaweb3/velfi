@@ -1,9 +1,12 @@
 // Builds the Solana instructions for every Velfi action. Users sign these with
 // their own wallet; Velfi only pays the network fee.
+//
+// Two modes (see solana.js): "lite" uses only Solana's built-in programs and is
+// what mainnet v1 runs; "program" uses Velfi's own on-chain program.
 import { Keypair } from '@solana/web3.js'
 import {
-  programId, flowAddress, ata, tokenProgramFor, toIx, transferIxs, feePayer, agent, pk,
-  ASSOCIATED_TOKEN_PROGRAM_ID, SystemProgram,
+  programId, flowAddress, ata, tokenProgramFor, toIx, transferIxs, allowanceIxs, sweepClaimWalletIxs,
+  feePayer, agent, pk, PROGRAM_ENABLED, ASSOCIATED_TOKEN_PROGRAM_ID, SystemProgram,
 } from './solana.js'
 import { buildIx } from './chain/velfiProgram.js'
 import { legsFromProposal, newFlowId, scheduleToMandate } from './chain/plan.js'
@@ -28,28 +31,63 @@ async function flowAccounts(kind, owner, token) {
 }
 
 // ── one-off payments (send, split, multi-token, email invites) ─────────────
-// Returns { instructions, invites } where invites must be saved after it lands.
+// Returns { instructions, invites, legs, newAccounts }; invites must be saved
+// after it lands. newAccounts counts token accounts Velfi pays rent for.
 export async function buildPayment(pending, userAddress) {
   const legs = legsFromProposal(pending, getToken)
   const instructions = []
   const invites = []
+  let newAccounts = 0
   for (const leg of legs) {
     if (leg.kind === 'transfer') {
-      instructions.push(...await transferIxs({ from: userAddress, to: leg.to, token: leg.token, amountUnits: leg.amountUnits }))
+      const t = await transferIxs({ from: userAddress, to: leg.to, token: leg.token, amountUnits: leg.amountUnits })
+      instructions.push(...t.ixs); newAccounts += t.newAccounts
       continue
     }
-    // Email recipient: lock the funds in a claim-link escrow they can claim on sign-up.
+    if (process.env.EMAIL_INVITES === 'off')
+      throw new Error(`Sending to an email isn't switched on yet. Ask ${leg.email} to sign up for Velfi, then send to their .vel name.`)
     requireSpl(leg.token, 'Sending to an email')
+    if (!PROGRAM_ENABLED) {
+      // Lite: the money goes to a fresh one-off claim wallet whose key Velfi keeps
+      // sealed. It is moved to the person's wallet when they sign up, or back to
+      // the sender after 7 days.
+      const claim = Keypair.generate()
+      const t = await transferIxs({ from: userAddress, to: claim.publicKey.toBase58(), token: leg.token, amountUnits: leg.amountUnits })
+      instructions.push(...t.ixs); newAccounts += t.newAccounts
+      invites.push({ email: leg.email, escrow: claim.publicKey.toBase58(), mode: 'wallet', token: leg.token.symbol, mint: leg.token.mint,
+        amount_units: leg.amountUnits.toString(), claim_key_sealed: seal(claim.secretKey) })
+      continue
+    }
+    // Program: lock the funds in a claim-link escrow they can claim on sign-up.
     const claim = Keypair.generate()
     const f = await flowAccounts('escrow', userAddress, leg.token)
     instructions.push(toIx(buildIx(programId(), 'create_escrow', {
       sender: userAddress, payer: feePayerAddress(), mint: leg.token.mint, senderToken: f.ownerToken,
       escrow: f.flow, vault: f.vault, tokenProgram: f.tp.toBase58(), associatedTokenProgram: atp(), systemProgram: sys(),
     }, { id: f.id, amount: leg.amountUnits, claimAuthority: claim.publicKey.toBase58(), window: 7 * 86_400 })))
-    invites.push({ email: leg.email, escrow: f.flow, token: leg.token.symbol, mint: leg.token.mint,
+    invites.push({ email: leg.email, escrow: f.flow, mode: 'program', token: leg.token.symbol, mint: leg.token.mint,
       amount_units: leg.amountUnits.toString(), claim_key_sealed: seal(claim.secretKey) })
   }
-  return { instructions, invites, legs }
+  return { instructions, invites, legs, newAccounts }
+}
+
+// ── lite schedules (an allowance, no program) ──────────────────────────────
+// The user lets Velfi's agent spend up to `allowanceUnits` of this token from
+// their wallet. That total cap is enforced by Solana itself. Who gets paid, how
+// much each time and when are enforced by Velfi's server.
+export async function buildSetAllowance({ userAddress, token, allowanceUnits }) {
+  requireSpl(token, 'Scheduling')
+  return allowanceIxs({ owner: userAddress, token, amountUnits: allowanceUnits })
+}
+
+// One scheduled payment, sent by the agent as the approved delegate.
+export async function buildDelegatedPayment({ owner, recipient, token, amountUnits }) {
+  return transferIxs({ from: owner, to: recipient, token, amountUnits, authority: agentAddress() })
+}
+
+// Move an email invite out of its claim wallet (to the new user, or back).
+export async function buildSweepInvite({ claimWallet, to, token }) {
+  return sweepClaimWalletIxs({ claimWallet, to, token })
 }
 
 // ── streams ────────────────────────────────────────────────────────────────

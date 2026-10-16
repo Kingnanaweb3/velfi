@@ -2,7 +2,7 @@
 
 ### Is Velfi custodial?
 
-No. Velfi is non-custodial by design. Every payment is approved by you, and only your keys can move money. Velfi never takes custody of your funds. Read more in [Non-custodial by design](/velfi/security/non-custodial.md).
+No. Velfi is non-custodial by design: your money stays in your own wallet and every payment needs your approval. The one exception is money sent to an email that isn't on Velfi yet, which waits in a holding wallet Velfi manages for up to 7 days. Read more in [Non-custodial by design](/velfi/security/non-custodial.md).
 
 ### What does a .vel name cost?
 
@@ -14,7 +14,7 @@ Velfi is launching on **Solana**, chosen for its near-instant settlement, fees o
 
 ### Is my money safe?
 
-Velfi is designed so nothing moves without your approval. Your funds stay in your own wallet, you sign in without a seed phrase, payments run as programs on Solana, and every transaction is recorded on-chain and verifiable. See [Security](/velfi/security/non-custodial.md).
+Velfi is designed so nothing moves without your approval. Your funds stay in your own wallet, you sign in without a seed phrase, payments run on Solana, and every transaction is recorded on-chain and verifiable. See [Security](/velfi/security/non-custodial.md).
 
 ### Do I need crypto experience?
 
@@ -34,7 +34,7 @@ Yes. You can send to an email address, and the recipient claims the funds when t
 
 ### Can I cancel a payment?
 
-One-time payments settle instantly and can't be reversed once approved, so check details before confirming. Escrow funds and unclaimed email payments can be reclaimed before they're released or claimed. Automations can be canceled anytime.
+One-time payments settle instantly and can't be reversed once approved, so check details before confirming. Unclaimed email payments come back to you automatically after 7 days. Scheduled payments can be cancelled anytime in Flows.
 
 ### When does Velfi launch?
 

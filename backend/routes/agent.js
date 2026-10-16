@@ -1,6 +1,6 @@
 import express from 'express'
 import crypto from 'crypto'
-import supabase from '../lib/supabase.js'
+import supabase from '../lib/supabaseAdmin.js'
 import supabaseAdmin from '../lib/supabaseAdmin.js'
 import { requireAuth } from '../middleware/auth.js'
 import { callModel, MODELS } from '../lib/openrouter.js'
@@ -14,13 +14,15 @@ import {
   normalizeVel, normalizeSplit, validateActions
 } from '../lib/agentValidators.js'
 import { buildSummary } from '../lib/summarize.js'
-import { buildPayment, buildStartStream, buildCreateScheduleMandate } from '../lib/txBuilder.js'
-import { prepareForUser, submitUserSigned, submitVersioned, versionedHash, explorerTx } from '../lib/solana.js'
+import { buildPayment, buildStartStream, buildCreateScheduleMandate, buildSetAllowance } from '../lib/txBuilder.js'
+import { prepareForUser, submitUserSigned, submitVersioned, versionedHash, explorerTx, PROGRAM_ENABLED, feePayerLamports } from '../lib/solana.js'
 import { quoteSwap, buildSwapTx } from '../lib/jupiter.js'
 import { recordStream, streamProgress } from '../lib/streams.js'
 import { recordSchedule, tickSchedules } from '../lib/schedule.js'
 import { saveInvites } from '../lib/invites.js'
-import { remember, take, allowSubmission } from '../lib/prepared.js'
+import { remember, take, allowSubmission, canOpenAccounts, recordOpenedAccounts } from '../lib/prepared.js'
+import { allowanceFor } from '../lib/chain/lite.js'
+import { scheduleToMandate } from '../lib/chain/plan.js'
 import { isSolanaAddress } from '../lib/chain/base58.js'
 import { toBaseUnits } from '../lib/chain/amounts.js'
 
@@ -29,18 +31,22 @@ const router = express.Router()
 // Non-custodial: every payment is signed by the user's own wallet. Balance
 // checks read the user's wallet, because that is where the money comes from.
 
+const STREAMS_SOON = 'Streaming payments are coming soon. For now I can send it all now, or set it up as a scheduled payment (for example weekly). Want one of those?'
+const AUTOPILOT_KB = PROGRAM_ENABLED
+  ? 'Autopilot (scheduled payments run from an on-chain mandate you fund and sign once: it can only pay the recipient you chose, at most the amount you set, until it expires, and you can cancel it anytime)'
+  : 'Autopilot (for a schedule you approve once, letting Velfi spend up to that schedule\'s total from your wallet. The money stays in your wallet until each payment. Solana itself caps the total; Velfi\'s server sticks to the recipient, amount and timing you chose. Cancel anytime in Flows and the permission is removed)'
 const VELFI_KB = `
 Velfi is a non-custodial AI money agent launching on Solana. Tagline: tell your money what to do.
 - Sign in with Google. Velfi creates your Solana wallet for you: no seed phrase, no extension. Switch devices and the same wallet comes back.
 - Claim a .vel name (like alice.vel) so people pay you by name instead of a long wallet address.
 - Just say what you want in plain language. Velfi reads it, proposes the exact action, and only moves money after you approve and sign.
-- Money actions: send, split (one amount across people), stream (pays out second by second, the recipient claims anytime), schedule (recurring payments), send to an email (held safely until they sign up), and swaps on mainnet through Jupiter.
+- Money actions: send, split (one amount across people), ${PROGRAM_ENABLED ? 'stream (pays out second by second, the recipient claims anytime), ' : ''}schedule (recurring payments), send to an email (held until they sign up), and swaps on mainnet through Jupiter.${PROGRAM_ENABLED ? '' : ' Streaming payments are coming soon.'}
 - Gasless: Velfi pays the Solana network fee for your payments, so you don't need SOL to move USDC.
-- Pay a .vel name, a Solana address, or an email. If they're not on Velfi yet, the money waits in an on-chain escrow for 7 days and lands in their wallet when they sign up; otherwise it comes back to you.
-- Right now Velfi moves SOL and USDC (plus USDT on mainnet). Streams and schedules use USDC.
+- Pay a .vel name, a Solana address, or an email. If they're not on Velfi yet, the money waits ${PROGRAM_ENABLED ? 'in an on-chain escrow' : 'in a one-off holding wallet Velfi manages'} for up to 7 days and lands in their wallet when they sign up; otherwise it comes back to you.
+- Right now Velfi moves SOL and USDC (plus USDT on mainnet). Schedules and email payments use USDC or other tokens, not SOL.
 - Every payment is a Solana transaction anyone can check on Solscan.
-- Non-custodial: only you hold the keys. The agent never moves money on its own - every one-off payment needs your approval and signature.
-- Two modes: Assisted (you approve and sign each action) and Autopilot (scheduled payments run from an on-chain mandate you fund and sign once: it can only pay the recipient you chose, at most the amount you set, until it expires, and you can cancel it anytime).
+- Self-custody: your wallet is yours and every one-off payment needs your approval and signature. The agent never moves money on its own.
+- Two modes: Assisted (you approve and sign each action) and ${AUTOPILOT_KB}.
 What Velfi can't do yet (be honest, never promise these):
 - No fiat on/off-ramp - you can't buy crypto with a card or cash out to a bank inside Velfi.
 - No loans, credit, yield, or investment products. Velfi never gives financial, tax, or legal advice.
@@ -330,6 +336,16 @@ router.post('/message', requireAuth, async (req, res) => {
   }
 })
 
+// Keep a float in Velfi's fee payer. Below this, pause new payments rather than fail mid-way.
+const MIN_FEE_PAYER_LAMPORTS = Number(process.env.MIN_FEE_PAYER_SOL || 0.05) * 1e9
+async function feePayerLow() {
+  try {
+    const l = await feePayerLamports()
+    if (l < MIN_FEE_PAYER_LAMPORTS) { console.error(`FEE PAYER LOW: ${l / 1e9} SOL. Top it up now.`); return true }
+    return false
+  } catch { return false }
+}
+
 // For the signing flow: our own validation errors are written for people, so show
 // them; anything that looks like a crash gets the generic line.
 function userError(err) {
@@ -490,6 +506,7 @@ async function routePayment(res, user, parsed, ctxBlock = '') {
 
     // STREAM: dedicated path — resolve recipient, persist + auto-run via the stream engine
     if (parsed.intent === 'stream') {
+      if (!PROGRAM_ENABLED) return res.json({ mode: 'assistant', reply: STREAMS_SOON })
       const pay = parsed.payment || {}
       const sym = String(pay.currency || 'USDC').toUpperCase()
       const total = Number(pay.amount)
@@ -528,7 +545,8 @@ async function routePayment(res, user, parsed, ctxBlock = '') {
       const rc = (pay.recipients || [])[0] || {}
       const sch = pay.schedule || {}
       const frequency = sch.frequency || null
-      const occurrences = sch.occurrences || sch.count || null
+      // No count given: 4 payments (the approval covers exactly that many, so say it).
+      const occurrences = Math.min(Number(sch.occurrences || sch.count) || 4, 120)
       const tk = getToken(sym)
       if (!tk || tk.mint === 'native')
         return res.json({ mode: 'clarify', reply: 'I can schedule USDC payments for now. Want to schedule it in USDC?' })
@@ -536,6 +554,8 @@ async function routePayment(res, user, parsed, ctxBlock = '') {
         return res.json({ mode: 'clarify', reply: 'How much should each scheduled payment be?' })
       if (!frequency)
         return res.json({ mode: 'clarify', reply: 'How often \u2014 daily, weekly, or monthly?' })
+      try { scheduleToMandate({ amountUnits: 1n, frequency, occurrences }) }
+      catch (e) { return res.json({ mode: 'clarify', reply: e.message }) }
       const who = rc.name || rc.email || rc.address
       if (!who)
         return res.json({ mode: 'clarify', reply: 'Who should the scheduled payments go to? A .vel name, address, or email.' })
@@ -544,10 +564,11 @@ async function routePayment(res, user, parsed, ctxBlock = '') {
         return res.json({ mode: 'clarify', reply: `I couldn't find ${who}. Try a .vel name, address, or email.` })
       const held = await balanceOf(user.address, sym)
       if (held < amount)
-        return res.json({ mode: 'insufficient', reply: `This schedule locks in ${amount} ${sym} per payment up front, but your wallet only holds ${held.toFixed(4)} ${sym}.` })
+        return res.json({ mode: 'insufficient', reply: `Each payment is ${amount} ${sym}, but your wallet only holds ${held.toFixed(4)} ${sym}.` })
       parsed.payment = { ...pay, currency: sym, amount, recipients: [{ name: rc.name || null, address: resolved.address }],
         sched: { recipient: resolved.address, recipientName: rc.name || who, token: sym, amount, frequency, occurrences } }
       parsed.summary = `Scheduling ${amount} ${sym} to ${rc.name || who} ${frequency}${occurrences ? ` for ${occurrences} payments` : ''} \u2014 starts once you approve.`
+        + (PROGRAM_ENABLED ? '' : ' You approve once; the money stays in your wallet until each payment, and you can cancel anytime.')
       return res.json(await propose(user, parsed))
     }
 
@@ -555,7 +576,7 @@ async function routePayment(res, user, parsed, ctxBlock = '') {
     if (!['send', 'split'].includes(parsed.intent)) {
       const _names = { swap: 'Token swaps', stream: 'Streaming payments', schedule: 'Scheduled payments', escrow: 'Escrow', automate: 'Automations' }
       const _what = _names[parsed.intent] || 'That feature'
-      return res.json({ mode: 'assistant', reply: `${_what} — coming soon. Right now I can send, split, stream and schedule. Want to do one of those?` })
+      return res.json({ mode: 'assistant', reply: `${_what} — coming soon. Right now I can send, split${PROGRAM_ENABLED ? ', stream' : ''} and schedule. Want to do one of those?` })
     }
 
     // low-confidence double-check
@@ -737,6 +758,10 @@ router.post('/prepare/:id', requireAuth, async (req, res) => {
     const user = req.user
     const pending = await loadPending(user.address, req.params.id)
     if (!pending) return res.status(404).json({ error: 'That proposal has expired. Ask me again and I\'ll set it up.' })
+    if (process.env.PAUSE_PAYMENTS === 'on')
+      return res.status(503).json({ error: 'Velfi payments are paused for a few minutes of maintenance. Nothing was sent. Try again soon.' })
+    if (pending.intent !== 'swap' && await feePayerLow())
+      return res.status(503).json({ error: 'Velfi is topping up its network-fee wallet. Try again in a few minutes. Nothing was sent.' })
 
     if (pending.intent === 'swap') {
       const sw = pending.payment?.swap || {}
@@ -747,6 +772,7 @@ router.post('/prepare/:id', requireAuth, async (req, res) => {
     }
 
     if (pending.intent === 'stream') {
+      if (!PROGRAM_ENABLED) return res.status(400).json({ error: STREAMS_SOON })
       const st = pending.payment?.stream || {}
       const token = getToken(st.token)
       const amountUnits = toBaseUnits(Number(st.total_amount).toFixed(token.decimals), token.decimals)
@@ -761,6 +787,22 @@ router.post('/prepare/:id', requireAuth, async (req, res) => {
       const sd = pending.payment?.sched || {}
       const token = getToken(sd.token)
       const amountUnits = toBaseUnits(Number(sd.amount).toFixed(token.decimals), token.decimals)
+      if (!PROGRAM_ENABLED) {
+        // Lite: one approval covering this schedule plus the user's other active ones in this token.
+        const plan = scheduleToMandate({ amountUnits, frequency: sd.frequency, occurrences: sd.occurrences })
+        // Limits how much any one approval exposes while Autopilot runs without the on-chain program.
+        const cap = Number(process.env.MAX_SCHEDULE_TOTAL || 500)
+        if (Number(sd.amount) * plan.count > cap)
+          return res.status(400).json({ error: `For now a schedule can cover up to ${cap} ${token.symbol} in total. Try fewer payments or a smaller amount.` })
+        const { data: mine } = await supabaseAdmin.from('scheduled_payments').select('*').eq('user_address', user.address)
+        const allowanceUnits = allowanceFor(mine, token.mint, { plus: plan.totalBudget })
+        const prep = await prepareForUser(await buildSetAllowance({ userAddress: user.address, token, allowanceUnits }))
+        const prepId = remember({ userAddress: user.address, messageHash: prep.messageHash,
+          after: { type: 'schedule', mode: 'delegate', pending, token: token.symbol, mint: token.mint, amountUnits: amountUnits.toString(),
+            plan: { intervalSecs: plan.intervalSecs, count: plan.count } } })
+        const total = Number(sd.amount) * plan.count
+        return res.json({ prepId, tx: prep.tx, note: `This lets Velfi pay ${sd.recipientName} ${sd.amount} ${token.symbol} ${sd.frequency}, ${plan.count} times (${total} ${token.symbol} in total). The money stays in your wallet until each payment. Cancel anytime in Flows.` })
+      }
       const built = await buildCreateScheduleMandate({ userAddress: user.address, recipient: sd.recipient, token, amountUnits, frequency: sd.frequency, occurrences: sd.occurrences })
       const prep = await prepareForUser(built.instructions)
       const prepId = remember({ userAddress: user.address, messageHash: prep.messageHash,
@@ -772,9 +814,13 @@ router.post('/prepare/:id', requireAuth, async (req, res) => {
 
     // send / split / multi-token / email invites
     const built = await buildPayment(pending, user.address)
+    const room = canOpenAccounts(user.address, built.newAccounts)
+    if (!room.ok) return res.status(429).json({ error: room.reason === 'user'
+      ? 'You\'ve sent to a lot of new wallets today. Velfi covers their setup cost, so there is a daily limit. Try again tomorrow, or send to people who already hold this token.'
+      : 'Velfi is busy setting up new wallets right now. Try again in a little while. Nothing was sent.' })
     const prep = await prepareForUser(built.instructions)
     const prepId = remember({ userAddress: user.address, messageHash: prep.messageHash,
-      after: { type: 'payment', pending, invites: built.invites.map(i => ({ ...i })) } })
+      after: { type: 'payment', pending, newAccounts: built.newAccounts, invites: built.invites.map(i => ({ ...i })) } })
     return res.json({ prepId, tx: prep.tx })
   } catch (err) {
     console.error('prepare error:', err)
@@ -793,10 +839,13 @@ router.post('/approve/:id', requireAuth, async (req, res) => {
       return res.status(410).json({ error: 'That approval expired. Slide again and I\'ll prepare a fresh one.' })
     const { after } = prep
     const pending = after.pending
+    if (after.newAccounts && !canOpenAccounts(user.address, after.newAccounts).ok)
+      return res.status(429).json({ error: 'Too many new wallets today. Try again tomorrow. Nothing was sent.' })
 
     const signature = after.type === 'swap'
       ? await submitVersioned(signedTx, prep.messageHash)
       : await submitUserSigned(signedTx, prep.messageHash)
+    recordOpenedAccounts(user.address, after.newAccounts || 0)
     await supabaseAdmin.from('agent_conversations').update({ pending_tx: null }).eq('user_address', user.address)
 
     let message = 'Done.'
@@ -813,7 +862,8 @@ router.post('/approve/:id', requireAuth, async (req, res) => {
     } else if (after.type === 'schedule') {
       const sd = pending.payment?.sched || {}
       await recordSchedule({ userAddress: user.address, recipient: sd.recipient, recipientName: sd.recipientName, token: after.token, mint: after.mint,
-        amount: Number(sd.amount), amountUnits: BigInt(after.amountUnits), frequency: sd.frequency, plan: after.plan, mandate: after.mandate, signature })
+        amount: Number(sd.amount), amountUnits: BigInt(after.amountUnits), frequency: sd.frequency, plan: after.plan,
+        mandate: after.mandate || null, mode: after.mode || 'mandate', signature })
       tickSchedules().catch(e => console.error('initial schedule tick:', e.message))
       message = 'Schedule set. The first payment goes out now, the rest run on time.'
     } else if (after.type === 'swap') {
@@ -858,7 +908,7 @@ router.get('/flows', requireAuth, async (req, res) => {
       supabaseAdmin.from('streams').select('*').eq('user_address', addr).order('created_at', { ascending: false }),
       supabaseAdmin.from('scheduled_payments').select('*').eq('user_address', addr).order('created_at', { ascending: false }),
     ])
-    const ACTIVE = new Set(['active', 'running', 'pending', 'streaming'])
+    const ACTIVE = new Set(['active', 'running', 'pending', 'streaming', 'failed'])
     const streams = (streamsRes.data || [])
       .filter(s => ACTIVE.has(String(s.status || 'active').toLowerCase()))
       .map(s => {

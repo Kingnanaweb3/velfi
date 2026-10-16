@@ -1,5 +1,7 @@
 # Velfi on Solana: build, deploy and run (devnet)
 
+> **Launching on mainnet? Read [MAINNET.md](MAINNET.md).** Mainnet v1 runs in *lite mode* (no custom program, nothing to deploy). This file covers the full program, which turns on when `VELFI_PROGRAM_ID` is set, after an audit.
+
 This branch moves Velfi from Sui to Solana. It has three parts:
 
 - `solana/`: the on-chain program (Anchor). Guardrail mandates (Autopilot budgets), claim-link escrow (send to an email), streams, split streams, SafePay and staged pay.
@@ -98,8 +100,8 @@ npm install && npm run dev
 |---|---|---|
 | Money rules (Rust, every Sui test case ported, plus conservation checks) | `cd solana && cargo test -p velfi-core` | 50 |
 | Program end to end on a local validator | `cd solana && anchor test` | 8 flows |
-| JS client vs the Rust source (account order, args, layouts), amounts, planning | `cd backend && npm test` | 47 |
-| API routes and chat pipeline with fake chain, DB and AI | included in `npm test` | 19 |
+| JS client vs the Rust source (account order, args, layouts), amounts, planning, lite-mode rules, start-up checks | `cd backend && npm test` | 53 |
+| API routes and chat pipeline with fake chain, DB and AI (program mode and lite mode) | included in `npm test` | 34 |
 
 ## Before mainnet (not today)
 

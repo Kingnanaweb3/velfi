@@ -1,5 +1,9 @@
 # Escrow
 
+{% hint style="info" %}
+**Coming soon.** This isn't live in the app yet. Until it is, sending to an email already holds money until the person signs up.
+{% endhint %}
+
 Escrow holds money safely until a condition is met — then releases it. It's how you pay for something with confidence that the other side delivers.
 
 ### How to set up escrow

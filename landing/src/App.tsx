@@ -197,7 +197,7 @@ function App() {
             <h2 className="what-headline">What is Velfi?</h2>
             <a href="#waitlist" className="what-explore">Explore now</a>
           </div>
-          <p className="what-def">Velfi is an AI money agent that turns plain text into on-chain financial actions — send, stream, split, schedule, and invest, all from a single instruction.</p>
+          <p className="what-def">Velfi is an AI money agent that turns plain text into on-chain financial actions — send, split, schedule and swap, all from a single instruction. Streaming is next.</p>
         </div>
 
         <div className="what-cards">
@@ -252,7 +252,7 @@ function App() {
             <p className="who-text">For anyone running repeat payments: salaries, subscriptions, and deals that pay out continuously. Configure it once and Velfi keeps it running.</p>
           </div>
           <div className="who-col reveal" style={{ transitionDelay: '240ms' }}>
-            <p className="who-text">Time-based, trigger-activated, and conditional payments you set just by texting. Escrow is built in, and you can cancel any payment flow anytime.</p>
+            <p className="who-text">Scheduled payments you set just by texting, and money sent to an email waits until they sign up. Cancel any schedule anytime.</p>
           </div>
         </div>
       </section>
@@ -303,7 +303,7 @@ function App() {
           <div className="sec-card reveal" style={{ transitionDelay: '200ms' }}>
             <span className="sec-label">NON-CUSTODIAL</span>
             <h3 className="sec-card-title">Velfi never holds your funds.</h3>
-            <p className="sec-card-body">Every action runs on your instruction and is signed by you. Velfi builds the workflow, but only your keys can move money — we never take custody.</p>
+            <p className="sec-card-body">Every action runs on your instruction. Velfi builds it and pays the fee, but money only leaves your wallet when you sign, or within a schedule you approved. We never hold your balance.</p>
           </div>
           <div className="sec-card reveal" style={{ transitionDelay: '400ms' }}>
             <span className="sec-label">ON-CHAIN & VERIFIABLE</span>
@@ -320,7 +320,7 @@ function App() {
           <div className="own-card reveal">
             <span className="own-tag">YOUR MONEY</span>
             <h3 className="own-col-title">Non-custodial by design.</h3>
-            <p className="own-col-body">Every action is signed by you. Velfi builds the workflow, but only your keys can move money — we never take custody.</p>
+            <p className="own-col-body">Velfi builds the workflow, but money only leaves your wallet when you sign, or within a schedule you approved. We never hold your balance.</p>
           </div>
           <div className="own-card reveal" style={{ transitionDelay: '100ms' }}>
             <span className="own-tag">YOUR MEMORY</span>
@@ -335,7 +335,7 @@ function App() {
           <div className="own-card reveal" style={{ transitionDelay: '300ms' }}>
             <span className="own-tag">YOUR RULES</span>
             <h3 className="own-col-title">The agent obeys your limits.</h3>
-            <p className="own-col-body">Set a policy once and Autopilot executes within it — bounded by on-chain guardrails it can never override. You stay in control.</p>
+            <p className="own-col-body">Approve a schedule once and Autopilot pays only that person, that amount, on that timetable. Solana caps the total it can ever spend, and you can cancel anytime.</p>
           </div>
         </div>
         <div className="own-swipe-hint">
@@ -356,15 +356,15 @@ function App() {
             <div className="uc-bubble">Send $50 to jordan@gmail.com — they claim it when they sign up.</div>
           </div>
           <div className="uc-card reveal" style={{ transitionDelay: '90ms' }}>
-            <span className="uc-tag">Stream a salary</span>
+            <span className="uc-tag">Stream a salary · soon</span>
             <div className="uc-bubble">Stream $4,000 to alex.vel over 30 days.</div>
           </div>
           <div className="uc-card reveal" style={{ transitionDelay: '180ms' }}>
-            <span className="uc-tag">Auto-save</span>
+            <span className="uc-tag">Auto-save · soon</span>
             <div className="uc-bubble">Move 10% of every payment I receive into savings.</div>
           </div>
           <div className="uc-card reveal" style={{ transitionDelay: '270ms' }}>
-            <span className="uc-tag">Escrow a deal</span>
+            <span className="uc-tag">Escrow a deal · soon</span>
             <div className="uc-bubble">Hold $2,000 until the work is delivered, then release.</div>
           </div>
           <div className="uc-card reveal" style={{ transitionDelay: '360ms' }}>
@@ -414,7 +414,7 @@ function App() {
             <div className="tk-use reveal">
               <span className="tk-use-tag">Velfi Pro</span>
               <h3 className="tk-use-title">Unlock Pro automations</h3>
-              <p className="tk-use-body">Hold $VELFI to unlock team payroll, larger escrows and more Autopilot rules.</p>
+              <p className="tk-use-body">Hold $VELFI to unlock team payroll, higher limits and more Autopilot rules.</p>
             </div>
             <div className="tk-use reveal" style={{ transitionDelay: '100ms' }}>
               <span className="tk-use-tag">Lower fees</span>
@@ -449,7 +449,7 @@ function App() {
               <span className={`faq-icon${openFaq === 0 ? ' open' : ''}`}>+</span>
             </button>
             <div className={`faq-a${openFaq === 0 ? ' open' : ''}`}>
-              <p>No. Velfi is non-custodial by design. Every action is signed by you and only your keys can move money — we never take custody of your funds.</p>
+              <p>No. Your wallet is yours and Velfi never holds your balance. Every payment needs your signature, or a schedule you approved and can cancel anytime. One exception: money you send to an email that isn't on Velfi yet waits in a holding wallet Velfi manages, for up to 7 days, then lands with them when they sign up or comes back to you.</p>
             </div>
           </div>
           <div className="faq-item">

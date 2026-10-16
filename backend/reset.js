@@ -1,4 +1,5 @@
-import supabase from './lib/supabase.js'
+import 'dotenv/config'
+import supabase from './lib/supabaseAdmin.js'
 const addr = process.argv[2]
 const { error } = await supabase.from('agent_conversations')
   .update({ pending_state: null, pending_parse: null, pending_tx: null, history: [] })

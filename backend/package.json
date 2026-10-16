@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "node --test test/*.test.js && node --import ./test/harness/register.mjs --test test/routes.test.mjs"
+    "test": "node --test test/*.test.js && node --import ./test/harness/register.mjs --test test/routes.test.mjs test/lite-routes.test.mjs"
   },
   "keywords": [],
   "author": "",

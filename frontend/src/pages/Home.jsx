@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
-import { supabase } from '../lib/supabase.js'
 import otterImg from '../assets/otter.png'
 import otterAvatar from '../assets/otter-avatar.png'
 import otterCard from '../assets/otter.png'
@@ -283,7 +282,7 @@ function HomeFlows({ token, navigate }) {
   }, [token])
   if (!flows) return <div className="vh-empty">Loading flows…</div>
   const items = [...(flows.streams || []), ...(flows.schedules || [])]
-  if (items.length === 0) return <div className="vh-empty">No active flows yet — start a stream or schedule with a command.</div>
+  if (items.length === 0) return <div className="vh-empty">No active flows yet. Set up a scheduled payment with a command.</div>
   return (
     <div className="vh-flows">
       {items.slice(0, 3).map(f => (

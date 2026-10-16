@@ -21,7 +21,7 @@ function desc(p) {
   const intent = p?.intent, pay = p?.payment || {}
   if (intent === 'swap') { const sw = pay.swap || {}; return { kind: 'swap', done: 'Swapped', title: 'Swap', rows: [{ label: `${sw.from_token} \u2192 ${sw.to_token}`, amount: `${fmt(sw.amount)} ${sw.from_token}` }], note: p.summary || null } }
   if (intent === 'stream') { const st = pay.stream || {}; return { kind: 'stream', done: 'Stream started', title: 'Stream', rows: [{ label: st.recipientName || 'recipient', amount: `${fmt(st.total_amount)} ${st.token}` }], note: `Vests every second over ${humanDur(st.duration_secs)}; they claim anytime` } }
-  if (intent === 'schedule') { const sc = pay.sched || {}; return { kind: 'schedule', done: 'Scheduled', title: 'Schedule', rows: [{ label: sc.recipientName || 'recipient', amount: `${fmt(sc.amount)} ${sc.token}` }], note: `${sc.frequency}${sc.occurrences ? ` \u00B7 ${sc.occurrences} payments` : ''}` } }
+  if (intent === 'schedule') { const sc = pay.sched || {}; return { kind: 'schedule', done: 'Scheduled', title: 'Schedule', rows: [{ label: sc.recipientName || 'recipient', amount: `${fmt(sc.amount)} ${sc.token}` }], note: `${sc.frequency}${sc.occurrences ? ` \u00B7 ${sc.occurrences} payments` : ''} \u00B7 cancel anytime in Flows` } }
   const rec = recipientsOf(pay), s = sym(pay)
   const toks = (pay.recipients || []).map(r => r.token)
   return { kind: intent === 'split' ? 'split' : 'send', done: 'Sent', title: intent === 'split' ? `Split ${rec.length} ways` : 'Payment', rows: rec.map((r, i) => ({ label: r.label, amount: `${fmt(r.amount)} ${toks[i] || s}` })), note: null }
