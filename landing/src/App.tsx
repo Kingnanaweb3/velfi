@@ -3,103 +3,17 @@ import logo from './assets/logo.png'
 import cardImg from './assets/what-card.webp'
 import waitlistBg from './assets/waitlist-bg.webp'
 import otter from './assets/otter.webp'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL || '',
-  import.meta.env.VITE_SUPABASE_ANON_KEY || ''
-)
 import { useState, useEffect, useRef } from 'react'
+
+// The Velfi web app (sign in with Google, claim a .vel name).
+const APP_URL = 'https://app.velfi.xyz'
 
 function App() {
   const [scrolled, setScrolled] = useState(false)
   const [resourcesOpen, setResourcesOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
-  const [username, setUsername] = useState('')
-  const [email, setEmail] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const [joined, setJoined] = useState(false)
-  const [formError, setFormError] = useState('')
   const [openFaq, setOpenFaq] = useState<number | null>(0)
   const [menuOpen, setMenuOpen] = useState(false)
-  const [claimedCount, setClaimedCount] = useState<number>(0)
-
-  useEffect(() => {
-    let cancelled = false
-    async function loadCount() {
-      const { data: count } = await supabase.rpc('signup_count')
-      if (!cancelled && typeof count === 'number') setClaimedCount(count)
-    }
-    loadCount()
-    const id = setInterval(loadCount, 15000)
-    return () => { cancelled = true; clearInterval(id) }
-  }, [])
-
-  const [refCount, setRefCount] = useState<number>(0)
-  const [myCode, setMyCode] = useState('')
-
-  function getRefParam() {
-    const p = new URLSearchParams(window.location.search)
-    return (p.get('ref') || '').toLowerCase().replace(/[^a-z0-9]/g, '')
-  }
-
-  async function handleWaitlist() {
-    setFormError('')
-    if (!username || username.length < 3) { setFormError('Pick a username (3+ characters)'); return }
-    if (!email || !email.includes('@')) { setFormError('Enter a valid email'); return }
-    setSubmitting(true)
-    try {
-      const referredBy = getRefParam()
-      const code = username.trim()
-      const { error } = await supabase.from('waitlist').insert({
-        email: email.trim(),
-        username: code,
-        referral_code: code,
-        referred_by: referredBy && referredBy !== code ? referredBy : null,
-      })
-      if (error) {
-        if (error.code === '23505') {
-          if (error.message.includes('username')) setFormError('That username is taken')
-          else setFormError('You are already on the list')
-        } else { setFormError('Something went wrong. Try again.') }
-      } else {
-        setMyCode(code)
-        const { count } = await supabase
-          .from('waitlist')
-          .select('*', { count: 'exact', head: true })
-          .eq('referred_by', code)
-        setRefCount(count || 0)
-        setJoined(true)
-      }
-    } catch {
-      setFormError('Something went wrong. Try again.')
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  const refLink = myCode ? `https://velfi.xyz/waitlist?ref=${myCode}` : ''
-
-  const [copied, setCopied] = useState(false)
-  function copyRefLink() {
-    if (!refLink) return
-    const done = () => { setCopied(true); setTimeout(() => setCopied(false), 1800) }
-    if (navigator.clipboard && window.isSecureContext) {
-      navigator.clipboard.writeText(refLink).then(done).catch(() => fallbackCopy())
-    } else {
-      fallbackCopy()
-    }
-    function fallbackCopy() {
-      const ta = document.createElement('textarea')
-      ta.value = refLink
-      ta.style.position = 'fixed'
-      ta.style.opacity = '0'
-      document.body.appendChild(ta)
-      ta.focus(); ta.select()
-      try { document.execCommand('copy'); done() } catch {}
-      document.body.removeChild(ta)
-    }
-  }
 
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -166,7 +80,7 @@ function App() {
             </div>
           </div>
         </div>
-        <a href="#waitlist" className="nav-cta">Join Waitlist</a>
+        <a href={APP_URL} className="nav-cta">Open App</a>
         <button className={`nav-burger${menuOpen ? ' open' : ''}`} onClick={() => setMenuOpen(!menuOpen)} aria-label="Menu">
           <span></span><span></span><span></span>
         </button>
@@ -179,7 +93,7 @@ function App() {
         <a href="/docs" target="_blank" rel="noreferrer" onClick={() => setMenuOpen(false)}>Docs</a>
         <a href="/docs/guides/sending-money" target="_blank" rel="noreferrer" onClick={() => setMenuOpen(false)}>Guides</a>
         <a href="/litepaper" target="_blank" rel="noreferrer" onClick={() => setMenuOpen(false)}>Litepaper</a>
-        <a href="#waitlist" className="mobile-menu-cta" onClick={() => setMenuOpen(false)}>Join Waitlist</a>
+        <a href={APP_URL} className="mobile-menu-cta" onClick={() => setMenuOpen(false)}>Open App</a>
       </div>
 
       <section className="hero">
@@ -187,7 +101,7 @@ function App() {
           <a href="#token" className="hero-token"><span className="hero-token-dot"></span>$VELFI token coming soon on Solana <span className="hero-token-arrow">→</span></a>
           <h1 className="hero-headline">Tell Your Money<br />What To Do.</h1>
           <p className="hero-body">The AI money agent that lets you perform sophisticated and complex transactions by just texting them into on-chain financial workflows.</p>
-          <a href="#waitlist" className="hero-cta">Join the waitlist</a>
+          <a href={APP_URL} className="hero-cta">Open the app</a>
         </div>
       </section>
 
@@ -195,7 +109,7 @@ function App() {
         <div className="what-top">
           <div className="what-left">
             <h2 className="what-headline">What is Velfi?</h2>
-            <a href="#waitlist" className="what-explore">Explore now</a>
+            <a href={APP_URL} className="what-explore">Explore now</a>
           </div>
           <p className="what-def">Velfi is an AI money agent that turns plain text into on-chain financial actions — send, split, schedule and swap, all from a single instruction. Streaming is next.</p>
         </div>
@@ -384,9 +298,6 @@ function App() {
             </svg>
             <span>Swipe to see more</span>
           </div>
-          <div className="uc-claimed">
-            <span className="uc-claimed-num">{claimedCount.toLocaleString()}</span> .vel names claimed
-          </div>
         </div>
       </section>
 
@@ -490,11 +401,11 @@ function App() {
           </div>
           <div className="faq-item">
             <button className="faq-q" onClick={() => setOpenFaq(openFaq === 5 ? null : 5)}>
-              <span>When does Velfi launch?</span>
+              <span>How do I start?</span>
               <span className={`faq-icon${openFaq === 5 ? ' open' : ''}`}>+</span>
             </button>
             <div className={`faq-a${openFaq === 5 ? ' open' : ''}`}>
-              <p>You can join the waitlist now and claim your name. The app is coming to the App Store soon — waitlist members get early access first.</p>
+              <p>Open <a href={APP_URL}>app.velfi.xyz</a>, sign in with Google and claim your .vel name. It runs in your browser, on desktop and phone. A mobile app is coming soon.</p>
             </div>
           </div>
           <div className="faq-item">
@@ -509,60 +420,20 @@ function App() {
         </div>
       </section>
 
-      <section className="wl-section" id="waitlist">
+      <section className="wl-section" id="get-started">
+        <span id="waitlist" aria-hidden="true"></span>
         <div className="wl-inner" style={{ backgroundImage: `url(${waitlistBg})` }}>
           <div className="wl-content">
             <div className="wl-icon">✦</div>
             <h2 className="wl-headline">Tell your money<br />what to do.</h2>
-            <p className="wl-sub">Claim your .vel name and join the waitlist before someone else takes it.</p>
-            <div className="wl-count" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(20,12,30,0.5)', border: '1px solid rgba(180,168,208,0.35)', backdropFilter: 'blur(4px)', borderRadius: '30px', padding: '8px 16px', margin: '6px 0 26px', fontSize: '14px', fontWeight: 600, color: '#e1dcfa' }}>
-              <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#7b4fff', display: 'inline-block', boxShadow: '0 0 8px #7b4fff' }}></span>
-              {claimedCount.toLocaleString()} .vel {claimedCount === 1 ? 'name' : 'names'} claimed
+            <p className="wl-sub">Sign in with Google and claim your .vel name before someone else takes it.</p>
+            <div className="wl-form">
+              <a href={APP_URL} className="hero-cta wl-open">Open Velfi</a>
+              <div className="wl-extras">
+                <span className="wl-ios"> iOS · Coming soon</span>
+                <span className="wl-litepaper">Want the full picture? <a href="/litepaper" target="_blank" rel="noreferrer">Read the litepaper</a>.</span>
+              </div>
             </div>
-            {joined ? (
-              <div className="wl-success">
-                <div className="wl-success-top">You're on the list ✦</div>
-                <p className="wl-success-sub">Share your link — the more friends who join with it, the higher you move up.</p>
-                <div className="wl-ref-box">
-                  <span className="wl-ref-link">{refLink}</span>
-                  <button className="wl-ref-copy" onClick={copyRefLink}>{copied ? 'Copied✓' : 'Copy'}</button>
-                </div>
-                <div className="wl-ref-actions">
-                  <span className="wl-ref-count">{refCount} referred so far</span>
-                </div>
-              </div>
-            ) : (
-              <div className="wl-form">
-                <div className="wl-username">
-                  <input
-                    type="text"
-                    placeholder="yourname"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))}
-                    className="wl-input wl-input-name"
-                  />
-                  <span className="wl-suffix">.vel</span>
-                </div>
-                <div className="wl-email-row">
-                  <input
-                    type="email"
-                    placeholder="you@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="wl-input wl-input-email"
-                    onKeyDown={(e) => { if (e.key === 'Enter') handleWaitlist() }}
-                  />
-                  <button className="wl-submit" onClick={handleWaitlist} disabled={submitting}>
-                    {submitting ? 'Joining…' : 'Join Waitlist'}
-                  </button>
-                </div>
-                {formError && <p className="wl-error">{formError}</p>}
-                <div className="wl-extras">
-                  <span className="wl-ios"> iOS · Coming soon</span>
-                  <span className="wl-litepaper">Want the full picture? <a href="/litepaper" target="_blank" rel="noreferrer">Read the litepaper</a>.</span>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </section>
@@ -573,7 +444,7 @@ function App() {
             <span className="footer-col-title">Product</span>
             <a href="#how-it-works">How it works</a>
             <a href="#features">Features</a>
-            <a href="#waitlist">Join waitlist</a>
+            <a href={APP_URL}>Open the app</a>
             <a href="#security">Security</a>
           </div>
           <div className="footer-col">

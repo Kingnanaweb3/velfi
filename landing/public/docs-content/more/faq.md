@@ -36,9 +36,9 @@ Yes. You can send to an email address, and the recipient claims the funds when t
 
 One-time payments settle instantly and can't be reversed once approved, so check details before confirming. Unclaimed email payments come back to you automatically after 7 days. Scheduled payments can be cancelled anytime in Flows.
 
-### When does Velfi launch?
+### How do I start?
 
-You can join the waitlist now and claim your name. The app is coming soon — waitlist members get early access first.
+Open [app.velfi.xyz](https://app.velfi.xyz), sign in with Google and claim your .vel name. It runs in your browser, on desktop and phone. A mobile app is coming soon.
 
 ### Does Velfi have a token?
 
