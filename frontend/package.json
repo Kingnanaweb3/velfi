@@ -12,6 +12,10 @@
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@privy-io/react-auth": "^2.12.0",
+    "@solana-program/memo": "^0.16.0",
+    "@solana-program/system": "^0.16.0",
+    "@solana-program/token": "^0.18.0",
+    "@solana/kit": "^8.5.0",
     "@solana/spl-token": "^0.4.15",
     "@solana/web3.js": "^1.98.0",
     "@supabase/supabase-js": "^2.108.0",
