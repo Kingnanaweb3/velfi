@@ -31,7 +31,22 @@ router.post('/privy', async (req, res) => {
     const email = (pu.google?.email || pu.email?.address || '').toLowerCase() || null
     const avatar = null
 
-    const { data: existing } = await supabase.from('users').select('*').eq('privy_id', claims.userId).maybeSingle()
+    let { data: existing } = await supabase.from('users').select('*').eq('privy_id', claims.userId).maybeSingle()
+
+    // Someone who used Velfi before the move to Solana already has a row (with
+    // their .vel name) under the same Google email. Carry that account over
+    // instead of creating a second one. Only Google's verified email is used.
+    const googleEmail = (pu.google?.email || '').toLowerCase()
+    if (!existing && googleEmail) {
+      const { data: old } = await supabase.from('users').select('*').eq('email', googleEmail)
+      const match = (old || []).filter(u => !u.privy_id).sort((a, b) => (b.username ? 1 : 0) - (a.username ? 1 : 0))[0]
+      if (match) {
+        const { data, error } = await supabase.from('users').update({ privy_id: claims.userId, wallet_address: wallet.address }).eq('id', match.id).select().single()
+        if (error) throw error
+        existing = data
+      }
+    }
+
     let user = existing
     if (!user) {
       const { data, error } = await supabase.from('users')

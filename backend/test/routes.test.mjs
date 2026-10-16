@@ -203,6 +203,28 @@ test('sign-in: wallet comes from Privy, never from the client', async () => {
   assert.equal(tables.users[0].email, 'me@gmail.com')
 })
 
+test('sign-in: an account from before Solana is carried over, keeping its .vel name', async () => {
+  tables.users = [{ id: 'old1', email: 'velfisui@gmail.com', username: 'almond', sui_address: '0xabc', privy_id: null, wallet_address: null }]
+  privyState.users = {
+    returning: { linkedAccounts: [{ type: 'wallet', chainType: 'solana', walletClientType: 'privy', address: ME }], google: { email: 'VelfiSui@gmail.com' } },
+    stranger: { linkedAccounts: [{ type: 'wallet', chainType: 'solana', walletClientType: 'privy', address: MAYA }], email: { address: 'velfisui@gmail.com' } },
+  }
+  const r = await call(auth, 'post', '/privy', { user: null, body: { accessToken: 'returning' } })
+  assert.equal(r.status, 200, JSON.stringify(r.body))
+  assert.equal(r.body.isNew, false, 'goes straight in: the .vel name is kept')
+  assert.equal(tables.users.length, 1, 'no duplicate account')
+  assert.equal(tables.users[0].privy_id, 'returning')
+  assert.equal(tables.users[0].wallet_address, ME)
+  assert.equal(tables.users[0].username, 'almond')
+  // a second sign-in finds the same row by Privy id
+  const again = await call(auth, 'post', '/privy', { user: null, body: { accessToken: 'returning' } })
+  assert.equal(again.status, 200); assert.equal(tables.users.length, 1)
+  // a non-Google (unverified) email never takes over an old account
+  const s2 = await call(auth, 'post', '/privy', { user: null, body: { accessToken: 'stranger' } })
+  assert.equal(s2.status, 200)
+  assert.equal(tables.users.find(u => u.id === 'old1').privy_id, 'returning')
+})
+
 test('register only renames your own account', async () => {
   tables.users = [{ id: 'U1', wallet_address: ME, username: null }, { id: 'U2', wallet_address: MAYA, username: 'maya' }]
   const anon = await call(auth, 'post', '/register', { user: null, body: { username: 'thief' } })
