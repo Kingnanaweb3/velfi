@@ -135,7 +135,35 @@ export async function feePayerLamports() {
   return _fpCache.lamports
 }
 
-const priority = () => ComputeBudgetProgram.setComputeUnitPrice({ microLamports: Number(process.env.PRIORITY_MICROLAMPORTS || 1000) })
+// Mainnet validators skip transactions with too small a tip. A compute limit sized
+// to the work keeps the tip cheap: about 0.00001 SOL for a normal payment.
+const PRIORITY = Number(process.env.PRIORITY_MICROLAMPORTS || 100_000)
+export function computeLimit(instructionCount) {
+  return Math.min(1_400_000, 30_000 + 40_000 * Math.max(1, instructionCount))
+}
+const budget = (instructions) => [
+  ComputeBudgetProgram.setComputeUnitLimit({ units: computeLimit(instructions.length) }),
+  ComputeBudgetProgram.setComputeUnitPrice({ microLamports: PRIORITY }),
+]
+const sleep = (ms) => new Promise(r => setTimeout(r, ms))
+
+// Send, then keep re-sending the same signed bytes every 2 seconds until it is
+// confirmed or its blockhash expires. A single send is often dropped on mainnet.
+// Re-sending the same transaction can never pay twice: it has one signature.
+async function sendAndConfirm(raw, blockhash, lastValidBlockHeight) {
+  const signature = await connection.sendRawTransaction(raw, { skipPreflight: false, maxRetries: 0 })
+  let done = false
+  ;(async () => {
+    while (!done) {
+      await sleep(2000)
+      if (done) break
+      try { await connection.sendRawTransaction(raw, { skipPreflight: true, maxRetries: 0 }) } catch {}
+    }
+  })()
+  try { await confirm(signature, blockhash, lastValidBlockHeight) }
+  finally { done = true }
+  return signature
+}
 export const messageHash = (tx) => crypto.createHash('sha256').update(tx.serializeMessage()).digest('hex')
 
 // Build a tx for the user's wallet to sign. Velfi signs first as fee payer, so the
@@ -143,7 +171,7 @@ export const messageHash = (tx) => crypto.createHash('sha256').update(tx.seriali
 export async function prepareForUser(instructions, extraSigners = []) {
   const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed')
   const tx = new Transaction({ feePayer: feePayer().publicKey, blockhash, lastValidBlockHeight })
-  tx.add(priority(), ...instructions)
+  tx.add(...budget(instructions), ...instructions)
   tx.partialSign(feePayer(), ...extraSigners)
   return {
     tx: tx.serialize({ requireAllSignatures: false, verifySignatures: false }).toString('base64'),
@@ -159,9 +187,7 @@ export async function submitUserSigned(base64, expectedHash) {
   if (messageHash(tx) !== expectedHash) throw new Error('This transaction does not match what you approved.')
   if (!tx.verifySignatures()) throw new Error('The transaction is missing a signature.')
   try {
-    const signature = await connection.sendRawTransaction(raw, { skipPreflight: false, maxRetries: 3 })
-    await confirm(signature, tx.recentBlockhash)
-    return signature
+    return await sendAndConfirm(raw, tx.recentBlockhash)
   } catch (e) { throw readable(e) }
 }
 
@@ -184,14 +210,12 @@ export async function submitVersioned(base64, expectedHash) {
   const vtx = VersionedTransaction.deserialize(raw)
   if (versionedHash(base64) !== expectedHash) throw new Error('This swap does not match what you approved.')
   try {
-    const signature = await connection.sendRawTransaction(raw, { maxRetries: 3 })
-    await confirm(signature, vtx.message.recentBlockhash)
-    return signature
+    return await sendAndConfirm(raw, vtx.message.recentBlockhash)
   } catch (e) { throw readable(e) }
 }
 
-async function confirm(signature, blockhash) {
-  const { lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed')
+async function confirm(signature, blockhash, lastValidBlockHeight) {
+  if (!lastValidBlockHeight) ({ lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed'))
   const res = await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed')
   if (res.value.err) throw new Error(`Transaction failed on-chain: ${JSON.stringify(res.value.err)}`)
 }
@@ -203,12 +227,10 @@ export function sendAsServer(instructions, signers = []) {
   const run = async () => {
     const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed')
     const tx = new Transaction({ feePayer: feePayer().publicKey, blockhash, lastValidBlockHeight })
-    tx.add(priority(), ...instructions)
+    tx.add(...budget(instructions), ...instructions)
     const uniq = [feePayer(), ...signers].filter((k, i, a) => a.findIndex(x => x.publicKey.equals(k.publicKey)) === i)
     tx.sign(...uniq)
-    const signature = await connection.sendRawTransaction(tx.serialize(), { maxRetries: 3 })
-    await confirm(signature, blockhash)
-    return signature
+    return await sendAndConfirm(tx.serialize(), blockhash, lastValidBlockHeight)
   }
   const result = _chain.then(run)
   _chain = result.then(() => {}, () => {})
