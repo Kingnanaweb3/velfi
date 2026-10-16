@@ -1,63 +1,79 @@
 import { useState, useEffect, useRef, Fragment } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { ArrowLeft, ArrowUp, ArrowRight, Check, ShieldCheck, SquarePen, TriangleAlert } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useVelfiWallet } from '../hooks/useVelfiWallet.js'
 import { explorerTx, EXPLORER_NAME } from '../lib/chain.js'
-import { ArrowLeft, ArrowUp, Plus, Wallet, Check, ExternalLink, ShieldCheck, SquarePen, AlertTriangle, Info, BadgeCheck } from 'lucide-react'
-import otterAgent from '../assets/otter-agent.png'
-import otterImg from '../assets/otter.png'
+import { api, dayLabel, shortAddr } from '../lib/api.js'
+import { Sheet, CloseButton, Pill, Row, useToast, fmtAmt } from '../ui/kit.jsx'
+import otterAgent from '../assets/otter-agent.webp'
+import otterFace from '../assets/otter-face.webp'
 
-const API = '/api'
 const STORE = 'velfi_chat_v1'
-const h = (token) => ({ 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'ngrok-skip-browser-warning': 'true' })
-const now = () => new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
-const short = (a) => a ? a.slice(0, 6) + '…' + a.slice(-4) : ''
-const recipientsOf = (p) => (p?.recipients || []).map(r => ({ label: r.resolved?.label || r.name || r.email || short(r.resolved?.address) || 'recipient', amount: r.amount ?? p?.token_amount ?? p?.amount }))
+const clock = () => new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
 const sym = (p) => (p?.currency && p.currency !== 'USD') ? p.currency : 'USDC'
-const totalOf = (p) => { const r = recipientsOf(p); const s = r.reduce((a, x) => a + (Number(x.amount) || 0), 0); return s || p?.token_amount || p?.amount || 0 }
-const fmt = (n) => Number(n).toLocaleString(undefined, { maximumFractionDigits: 4 })
-const humanDur = (s) => { s = Number(s) || 0; if (s >= 86400 && s % 86400 === 0) { const d = s / 86400; return d + (d === 1 ? ' day' : ' days') } if (s >= 3600) return Math.round(s / 3600) + 'h'; if (s >= 60) return Math.round(s / 60) + ' min'; return s + 's' }
-function desc(p) {
+const recipientsOf = (p) => (p?.recipients || []).map(r => ({
+  label: r.resolved?.label || r.name || r.email || r.resolved?.email || shortAddr(r.resolved?.address) || 'recipient',
+  amount: r.amount ?? p?.token_amount ?? p?.amount,
+  token: r.token,
+}))
+const humanDur = (s) => { s = Number(s) || 0; if (s >= 86400 && s % 86400 === 0) { const d = s / 86400; return d + (d === 1 ? ' day' : ' days') } if (s >= 3600) return Math.round(s / 3600) + ' hours'; if (s >= 60) return Math.round(s / 60) + ' min'; return s + 's' }
+
+// What a proposal will do, in the person's words.
+function describe(p) {
   const intent = p?.intent, pay = p?.payment || {}
-  if (intent === 'swap') { const sw = pay.swap || {}; return { kind: 'swap', done: 'Swapped', title: 'Swap', rows: [{ label: `${sw.from_token} \u2192 ${sw.to_token}`, amount: `${fmt(sw.amount)} ${sw.from_token}` }], note: p.summary || null } }
-  if (intent === 'stream') { const st = pay.stream || {}; return { kind: 'stream', done: 'Stream started', title: 'Stream', rows: [{ label: st.recipientName || 'recipient', amount: `${fmt(st.total_amount)} ${st.token}` }], note: `Vests every second over ${humanDur(st.duration_secs)}; they claim anytime` } }
-  if (intent === 'schedule') { const sc = pay.sched || {}; return { kind: 'schedule', done: 'Scheduled', title: 'Schedule', rows: [{ label: sc.recipientName || 'recipient', amount: `${fmt(sc.amount)} ${sc.token}` }], note: `${sc.frequency}${sc.occurrences ? ` \u00B7 ${sc.occurrences} payments` : ''} \u00B7 cancel anytime in Flows` } }
-  const rec = recipientsOf(pay), s = sym(pay)
-  const toks = (pay.recipients || []).map(r => r.token)
-  return { kind: intent === 'split' ? 'split' : 'send', done: 'Sent', title: intent === 'split' ? `Split ${rec.length} ways` : 'Payment', rows: rec.map((r, i) => ({ label: r.label, amount: `${fmt(r.amount)} ${toks[i] || s}` })), note: null }
+  if (intent === 'swap') {
+    const sw = pay.swap || {}
+    return { kind: 'swap', title: 'Swap', done: 'Swapped', rows: [{ label: `${sw.from_token} → ${sw.to_token}`, amount: sw.amount, token: sw.from_token }], note: p.summary || null, fee: 'Small SOL fee' }
+  }
+  if (intent === 'stream') {
+    const st = pay.stream || {}
+    return { kind: 'stream', title: 'Stream', done: 'Started', rows: [{ label: st.recipientName || 'recipient', amount: st.total_amount, token: st.token }], note: `Pays out every second over ${humanDur(st.duration_secs)}. They can claim anytime.` }
+  }
+  if (intent === 'schedule') {
+    const sc = pay.sched || {}
+    return { kind: 'schedule', title: 'Schedule', done: 'Set', each: true, rows: [{ label: sc.recipientName || 'recipient', amount: sc.amount, token: sc.token }],
+      note: `${sc.frequency || 'Recurring'}${sc.occurrences ? `, ${sc.occurrences} payments` : ''}. Cancel anytime in Flows.` }
+  }
+  const s = sym(pay)
+  const rows = recipientsOf(pay).map(r => ({ ...r, token: r.token || s }))
+  return { kind: intent === 'split' ? 'split' : 'send', title: intent === 'split' ? 'Split' : 'Send', done: intent === 'split' ? 'Split' : 'Sent', rows, note: null }
+}
+function totalOf(rows) {
+  const by = {}
+  for (const r of rows) by[r.token] = (by[r.token] || 0) + (Number(r.amount) || 0)
+  return Object.entries(by).map(([t, v]) => `${fmtAmt(v)} ${t}`).join(' + ')
 }
 
-function dayLabel(ts) {
-  if (!ts) return ''
-  const d = new Date(ts), n = new Date()
-  const same = (a, b) => a.toDateString() === b.toDateString()
-  if (same(d, n)) return 'Today'
-  const y = new Date(n); y.setDate(n.getDate() - 1)
-  if (same(d, y)) return 'Yesterday'
-  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-}
 function inlineBold(s, k) {
   return String(s).split(/(\*\*[^*]+\*\*)/g).map((p, i) =>
     /^\*\*[^*]+\*\*$/.test(p) ? <strong key={k + '-' + i}>{p.slice(2, -2)}</strong> : <Fragment key={k + '-' + i}>{p}</Fragment>)
 }
-function renderRich(text) {
+function rich(text) {
   return String(text).split('\n').map((line, i) => {
     const t = line.trim()
-    if (!t) return <span key={i} className="vc-br" />
-    const bullet = /^[\*\-•]\s+/.test(t)
-    const body = bullet ? t.replace(/^[\*\-•]\s+/, '') : line
+    if (!t) return <span key={i} className="c-br" />
+    const bullet = /^[*\-•]\s+/.test(t)
     return bullet
-      ? <span key={i} className="vc-li"><span className="vc-dot">•</span><span>{inlineBold(body, i)}</span></span>
-      : <span key={i} className="vc-ln">{inlineBold(body, i)}</span>
+      ? <span key={i} className="c-li"><span aria-hidden="true">•</span><span>{inlineBold(t.replace(/^[*\-•]\s+/, ''), i)}</span></span>
+      : <span key={i} className="c-ln">{inlineBold(line, i)}</span>
   })
 }
+
+const STARTERS = [
+  { text: 'Send 5 USDC to ', label: 'Send money', sub: 'to a .vel name, email or address' },
+  { text: 'Split 30 USDC between ', label: 'Split a bill', sub: 'one amount, many people' },
+  { text: 'Every month send ', label: 'Pay on a schedule', sub: 'rent, allowance, subscriptions' },
+  { text: "What's my balance?", label: 'Check my money', sub: 'see what you hold', send: true },
+]
 
 export default function Chat() {
   const navigate = useNavigate()
   const { token } = useAuth()
   const wallet = useVelfiWallet()
+  const toast = useToast()
   const inputRef = useRef(null)
-  const scroll = useRef(null)
+  const scroller = useRef(null)
   const [messages, setMessages] = useState(() => {
     try { const d = JSON.parse(localStorage.getItem(STORE)); return (d?.messages || []).map(m => ({ ts: Date.now(), ...m })) } catch { return [] }
   })
@@ -65,347 +81,304 @@ export default function Chat() {
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [sheet, setSheet] = useState(null)
-  const push = (m) => setMessages(prev => [...prev, { ts: Date.now(), time: now(), ...m }])
+  const push = (m) => setMessages(prev => [...prev, { ts: Date.now(), time: clock(), ...m }])
+  const dropProposal = (id) => setMessages(prev => prev.map(m => (m.proposal && m.proposal.id === id) ? { ...m, proposal: null } : m))
 
-  useEffect(() => { try { localStorage.setItem(STORE, JSON.stringify({ messages, pending })) } catch {} }, [messages, pending])
+  useEffect(() => { try { localStorage.setItem(STORE, JSON.stringify({ messages: messages.slice(-80), pending })) } catch {} }, [messages, pending])
   useEffect(() => {
-    const pm = sessionStorage.getItem('velfi_pending_msg')
-    if (pm) { sessionStorage.removeItem('velfi_pending_msg'); send(pm) }
-    else setTimeout(() => inputRef.current?.focus(), 250)
+    let pm = null, dr = null
+    try { pm = sessionStorage.getItem('velfi_pending_msg'); dr = sessionStorage.getItem('velfi_draft'); sessionStorage.removeItem('velfi_pending_msg'); sessionStorage.removeItem('velfi_draft') } catch {}
+    if (pm) send(pm)
+    else { if (dr) setInput(dr); setTimeout(() => { inputRef.current?.focus(); const n = (dr || '').length; inputRef.current?.setSelectionRange?.(n, n) }, 250) }
   }, [])
-  useEffect(() => { scroll.current?.scrollTo({ top: scroll.current.scrollHeight, behavior: 'smooth' }) }, [messages, busy])
+  useEffect(() => { scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: 'smooth' }) }, [messages, busy])
 
   async function send(text) {
     const t = (text ?? input).trim(); if (!t || busy) return
     setInput(''); push({ role: 'user', text: t }); setBusy(true)
     try {
-      const r = await fetch(`${API}/agent/message`, { method: 'POST', headers: h(token), body: JSON.stringify({ message: t }) })
-      const d = await r.json()
-      if (d.mode === 'propose') { const p = { id: d.pendingTxId, summary: d.summary, payment: d.payment, intent: d.intent }; setPending(p); push({ role: 'assistant', text: d.summary || 'Here’s what I’ll do:', proposal: p }) }
+      const d = await api(token, '/agent/message', { method: 'POST', body: { message: t } })
+      if (d.mode === 'propose') {
+        const p = { id: d.pendingTxId, summary: d.summary, payment: d.payment, intent: d.intent }
+        if (pending) dropProposal(pending.id)
+        setPending(p); push({ role: 'assistant', text: d.summary || 'Here’s what I’ll do:', proposal: p })
+      }
       else if (d.mode === 'choose_token') push({ role: 'assistant', text: d.reply || 'Which token would you like to use?', tokens: ['USDC', 'SOL'] })
-      else push({ role: 'assistant', text: d.reply || d.summary || d.error || 'Okay.' })
-    } catch { push({ role: 'assistant', text: 'I couldn’t reach the network — try again?' }) }
+      else push({ role: 'assistant', text: d.reply || d.summary || 'Okay.' })
+    } catch (e) { push({ role: 'assistant', text: e.status ? e.message : 'I couldn’t reach Velfi just now. Check your connection and try again.' }) }
     finally { setBusy(false) }
   }
 
-  async function run() {
+  // Velfi prepares and pays the fee, your wallet signs, Velfi checks and sends.
+  async function approve() {
     if (!pending) return
-    setSheet(s => ({ ...s, type: 'confirm', running: true }))
+    const p = pending
+    setSheet({ type: 'confirm', running: true })
+    let prep
     try {
-      // 1. Velfi builds the transaction and pays its network fee.
-      const pr = await fetch(`${API}/agent/prepare/${pending.id}`, { method: 'POST', headers: h(token), body: '{}' })
-      const prep = await pr.json()
-      if (!pr.ok) throw Object.assign(new Error(prep.error || 'Could not prepare that.'), { shown: true })
-      // 2. Your wallet signs it. Nothing moves without this.
-      const signedTx = await wallet.sign(prep.tx, { versioned: !!prep.versioned })
-      // 3. Velfi checks it is exactly what you approved, then sends it.
-      const r = await fetch(`${API}/agent/approve/${pending.id}`, { method: 'POST', headers: h(token), body: JSON.stringify({ prepId: prep.prepId, signedTx }) })
-      const d = await r.json()
-      if (d.success) { setMessages(prev => prev.map(m => (m.proposal && pending && m.proposal.id === pending.id) ? { ...m, proposal: null } : m)); setSheet({ type: 'success', digest: d.digest, payment: pending.payment, intent: pending.intent }); push({ role: 'assistant', done: { digest: d.digest, payment: pending.payment, intent: pending.intent } }); setPending(null) }
-      else {
-        setMessages(prev => prev.map(m => (m.proposal && m.proposal.id === pending.id) ? { ...m, proposal: null } : m))
-        setSheet(null); setPending(null)
-        push({ role: 'assistant', text: d.error || 'That did not go through on-chain.', txDigest: d.digest || null })
-      }
+      prep = await api(token, `/agent/prepare/${p.id}`, { method: 'POST', body: {} })
     } catch (e) {
+      if (e.status === 404 || e.status === 410) { dropProposal(p.id); setPending(null) }
+      setSheet({ type: 'failed', message: e.message }); return
+    }
+    let signedTx
+    try { signedTx = await wallet.sign(prep.tx, { versioned: !!prep.versioned }) }
+    catch (e) {
       setSheet(null)
-      push({ role: 'assistant', text: e?.shown ? e.message : /reject|denied|cancel/i.test(String(e?.message)) ? 'Okay, you didn’t sign it, so nothing was sent.' : 'Something went wrong while signing — nothing was sent.' })
+      toast(/reject|denied|cancel|closed/i.test(String(e?.message)) ? 'You didn’t sign it, so nothing was sent.' : 'Your wallet couldn’t sign that. Nothing was sent.')
+      return
+    }
+    try {
+      const d = await api(token, `/agent/approve/${p.id}`, { method: 'POST', body: { prepId: prep.prepId, signedTx } })
+      dropProposal(p.id); setPending(null)
+      setSheet({ type: 'success', digest: d.digest, pending: p, message: d.message })
+      push({ role: 'assistant', done: { digest: d.digest, ...p }, text: d.message || null })
+    } catch (e) {
+      setSheet({ type: 'failed', message: e.message })
     }
   }
 
   function newChat() { setMessages([]); setPending(null); setSheet(null); try { localStorage.removeItem(STORE) } catch {} setTimeout(() => inputRef.current?.focus(), 100) }
   function cancel() {
-    if (pending) fetch(`${API}/agent/cancel/${pending.id}`, { method: 'POST', headers: h(token), body: '{}' }).catch(() => {})
-    setMessages(prev => prev.map(m => (m.proposal && pending && m.proposal.id === pending.id) ? { ...m, proposal: null } : m))
+    if (pending) api(token, `/agent/cancel/${pending.id}`, { method: 'POST', body: {} }).catch(() => {})
+    if (pending) dropProposal(pending.id)
     setPending(null); setSheet(null)
-    push({ role: 'assistant', text: 'Okay, cancelled \u2014 nothing was sent.' })
+    push({ role: 'assistant', text: 'Cancelled. Nothing was sent.' })
   }
   function revise() {
-    if (pending) fetch(`${API}/agent/cancel/${pending.id}`, { method: 'POST', headers: h(token), body: '{}' }).catch(() => {})
+    if (pending) api(token, `/agent/cancel/${pending.id}`, { method: 'POST', body: {} }).catch(() => {})
     const lastUser = [...messages].reverse().find(m => m.role === 'user')
-    setMessages(prev => prev.map(m => (m.proposal && pending && m.proposal.id === pending.id) ? { ...m, proposal: null } : m))
+    if (pending) dropProposal(pending.id)
     setPending(null); setSheet(null)
     if (lastUser?.text) setInput(lastUser.text)
     setTimeout(() => inputRef.current?.focus(), 50)
   }
+  function start(s) {
+    if (s.send) return send(s.text)
+    setInput(s.text); setTimeout(() => { inputRef.current?.focus(); inputRef.current?.setSelectionRange?.(s.text.length, s.text.length) }, 30)
+  }
 
-  const chips = ['What can I do?', 'Check my balance', 'Recent activity']
   let lastDay = null
-
   return (
-    <div className="vchat">
-      <style>{CHAT_CSS}</style>
-      <header className="vc-head">
-        <button className="vc-back" onClick={() => navigate('/')}><ArrowLeft size={20} /></button>
-        <img className="vc-ava" src={otterAgent} alt="" />
-        <div className="vc-id"><p className="vc-name">Velfi Agent<BadgeCheck size={17} className="vc-verified" /></p><p className="vc-stat">Always here to help</p></div>
-        <button className="vc-new" onClick={newChat} aria-label="New chat"><SquarePen size={19} /></button>
+    <div className="chat">
+      <header className="chat-top">
+        <button className="circle-btn" onClick={() => navigate('/')} aria-label="Back to home"><ArrowLeft size={20} /></button>
+        <img className="chat-ava" src={otterAgent} alt="" />
+        <div className="top-title"><small>Your money agent</small><b>Velfi</b></div>
+        <button className="circle-btn" onClick={newChat} aria-label="New chat"><SquarePen size={18} /></button>
       </header>
 
-      <div className="vc-scroll" ref={scroll}>
+      <div className="chat-scroll" ref={scroller}>
+        <div className="chat-col">
+          {messages.length === 0 && !busy && (
+            <div className="welcome">
+              <img src={otterFace} alt="" />
+              <h1>What should your money do?</h1>
+              <p>Say it the way you’d text a friend. I’ll show you exactly what will happen, and nothing moves until you approve it.</p>
+              <div className="starters">
+                {STARTERS.map(s => (
+                  <button key={s.label} className="starter" onClick={() => start(s)}>
+                    <b>{s.label}</b><small>{s.sub}</small><ArrowRight size={16} aria-hidden="true" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
-        {messages.map((m, i) => {
-          const lbl = dayLabel(m.ts); const showDay = lbl && lbl !== lastDay; lastDay = lbl
-          return (
-            <Fragment key={i}>
-              {showDay && <div className="vc-day"><span>{lbl}</span></div>}
-              <Msg m={m} onConfirm={() => setSheet({ type: 'confirm' })} onCancel={cancel} onRevise={revise} onSend={send} />
-            </Fragment>
-          )
-        })}
+          {messages.map((m, i) => {
+            const lbl = dayLabel(m.ts); const showDay = lbl && lbl !== lastDay; lastDay = lbl
+            return (
+              <Fragment key={i}>
+                {showDay && <p className="c-day"><span>{lbl}</span></p>}
+                <Message m={m} onReview={() => setSheet({ type: 'confirm' })} onCancel={cancel} onRevise={revise} onSend={send} />
+              </Fragment>
+            )
+          })}
 
-        {busy && <div className="vc-row left"><img className="vc-bubava" src={otterAgent} alt="" /><div className="vc-bubble assistant vc-typing"><span /><span /><span /></div></div>}
-      </div>
-
-      <div className="vc-bottom">
-        <div className="vc-chips">{chips.map(c => <button key={c} className="vc-chip" onClick={() => send(c)}>{c}</button>)}</div>
-        <div className="vc-input">
-          <button className="vc-plus"><Plus size={20} /></button>
-          <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()} placeholder="Message Velfi…" />
-          <button className="vc-send" onClick={() => send()} disabled={busy}><ArrowUp size={18} color="#fff" strokeWidth={2.4} /></button>
+          {busy && <div className="c-row left"><div className="c-bubble them c-typing" aria-label="Velfi is typing"><span /><span /><span /></div></div>}
         </div>
       </div>
 
-      {sheet?.type === 'confirm' && <ConfirmSheet pending={pending} running={sheet.running} onApprove={run} onClose={() => setSheet(null)} />}
-      {sheet?.type === 'success' && <SuccessSheet data={sheet} onClose={() => setSheet(null)} />}
+      <div className="composer">
+        <div className="chat-col">
+          {messages.length > 0 && (
+            <div className="c-chips">
+              {['What can I do?', 'Check my balance', 'Recent activity'].map(c => <button key={c} className="pill soft" onClick={() => send(c)}>{c}</button>)}
+            </div>
+          )}
+          <form className="ask" onSubmit={e => { e.preventDefault(); send() }}>
+            <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)} placeholder="Tell your money what to do…" aria-label="Message Velfi" enterKeyHint="send" />
+            <button className="go" type="submit" disabled={busy || !input.trim()} aria-label="Send"><ArrowUp size={20} strokeWidth={2.2} /></button>
+          </form>
+        </div>
+      </div>
+
+      <ConfirmSheet open={sheet?.type === 'confirm'} pending={pending} running={!!sheet?.running} onApprove={approve} onClose={() => !sheet?.running && setSheet(null)} />
+      <SuccessSheet open={sheet?.type === 'success'} data={sheet} onClose={() => setSheet(null)} />
+      <FailedSheet open={sheet?.type === 'failed'} message={sheet?.message} canRetry={!!pending} onRetry={() => setSheet({ type: 'confirm' })} onClose={() => setSheet(null)} />
     </div>
   )
 }
 
-function Msg({ m, onConfirm, onCancel, onRevise, onSend }) {
-  if (m.role === 'user') return <div className="vc-row right"><div className="vc-bubble user"><span className="vc-utext">{m.text}</span><span className="vc-time">{m.time}</span></div></div>
+function Message({ m, onReview, onCancel, onRevise, onSend }) {
+  if (m.role === 'user') return <div className="c-row right"><div className="c-bubble me"><span className="c-text">{m.text}</span><span className="c-time">{m.time}</span></div></div>
   return (
-    <div className="vc-row left">
-      <img className="vc-bubava" src={otterAgent} alt="" />
-      <div className="vc-astack">
-        {m.text && <div className="vc-bubble assistant">{renderRich(m.text)}<span className="vc-time">{m.time}</span></div>}
-          {m.txDigest && <a className="vc-done-link" href={explorerTx(m.txDigest)} target="_blank" rel="noreferrer">View on {EXPLORER_NAME} <ExternalLink size={12} /></a>}
-        {m.tokens && <div className="vc-tokpick">{m.tokens.map(tk => <button key={tk} className="vc-tokbtn" onClick={() => onSend(tk)}>{tk}</button>)}</div>}
-        {m.proposal && <ProposalCard p={m.proposal} onConfirm={onConfirm} onCancel={onCancel} onRevise={onRevise} />}
-        {m.done && <DoneCard done={m.done} />}
+    <div className="c-row left">
+      <div className="c-stack">
+        {m.text && <div className="c-bubble them">{rich(m.text)}<span className="c-time">{m.time}</span></div>}
+        {m.txDigest && <a className="link-btn" href={explorerTx(m.txDigest)} target="_blank" rel="noreferrer">View on {EXPLORER_NAME}</a>}
+        {m.tokens && <div className="c-chips">{m.tokens.map(tk => <button key={tk} className="pill" onClick={() => onSend(tk)}>{tk}</button>)}</div>}
+        {m.proposal && <Proposal p={m.proposal} onReview={onReview} onCancel={onCancel} onRevise={onRevise} />}
+        {m.done && <Done done={m.done} />}
       </div>
     </div>
   )
 }
-function guardianChecks(p, d, bals) {
+
+function warningsFor(p, d, bals) {
   const out = []
-  const pay = p.payment || {}
-  const recs = pay.recipients || []
+  const recs = p.payment?.recipients || []
   if (recs.some(r => (r.resolved?.address || r.address) && !(r.name || r.email || r.resolved?.label)))
-    out.push("You're paying a raw wallet address — if it's even slightly off, the funds can't be recovered.")
+    out.push('You’re paying a raw wallet address. If it’s even slightly wrong, the money can’t be recovered.')
   if (d.kind !== 'swap' && bals?.tokens) {
-    const tok = sym(pay)
-    const total = recipientsOf(pay).reduce((a, r) => a + (Number(r.amount) || 0), 0)
-    const held = bals.tokens.find(t => String(t.symbol || '').toUpperCase() === String(tok).toUpperCase())?.human || 0
-    if (held > 0 && total / held >= 0.5) out.push(`This moves ${Math.round((total / held) * 100)}% of your ${tok} balance in one transaction.`)
+    for (const [tok, total] of Object.entries(d.rows.reduce((a, r) => ({ ...a, [r.token]: (a[r.token] || 0) + (Number(r.amount) || 0) }), {}))) {
+      const held = bals.tokens.find(t => String(t.symbol).toUpperCase() === String(tok).toUpperCase())?.human || 0
+      if (held > 0 && total / held >= 0.5) out.push(`This moves ${Math.round((total / held) * 100)}% of your ${tok}.`)
+    }
   }
-  if (d.kind === 'swap') out.push('Swaps fill at the live market price — the amount you receive can shift with slippage before it lands.')
+  if (d.kind === 'swap') out.push('Swaps fill at the live price, so what you get can shift a little before it lands.')
   return out
 }
-function ProposalCard({ p, onConfirm, onCancel, onRevise }) {
-  const d = desc(p)
+
+function Proposal({ p, onReview, onCancel, onRevise }) {
+  const d = describe(p)
   const { token } = useAuth()
   const [bals, setBals] = useState(null)
-  useEffect(() => {
-    if (!token) return
-    fetch(`${API}/account/balances`, { headers: h(token) }).then(r => r.json()).then(setBals).catch(() => {})
-  }, [token])
-  const warns = guardianChecks(p, d, bals)
-  const _tok = sym(p.payment || {})
-  const _held = bals?.tokens?.find(t => String(t.symbol || '').toUpperCase() === String(_tok).toUpperCase())?.human
-  const steps = [`Parsed intent: ${d.title}`, `Resolved ${d.rows.map(r => r.label).join(', ')}`, _held != null ? `Balance: ${Number(_held) >= 1 ? Number(_held).toFixed(2) : Number(_held).toPrecision(3)} ${_tok} available` : 'Checked your balance']
+  useEffect(() => { if (token) api(token, '/account/balances').then(setBals).catch(() => {}) }, [token])
+  const warns = warningsFor(p, d, bals)
   return (
-    <div className="vc-prop">
-      <div className="vc-reason">{steps.map((st, i) => <div className="vc-reason-step" key={i} style={{ animationDelay: `${i * 0.12}s` }}><Check size={12} /> <span>{st}</span></div>)}</div>
-      <div className="vc-prop-rows">{d.rows.map((r, i) => <div className="vc-prop-row" key={i}><span className="vc-prop-to">{r.label}</span><span className="vc-prop-amt">{r.amount}</span></div>)}</div>
-      {d.note && <div className="vc-prop-note">{d.note}</div>}
-      <div className={`vc-guard-box ${warns.length ? 'warn' : 'ok'}`}>
-        {warns.length === 0
-          ? <div className="vc-guard-row vc-guard-ok"><ShieldCheck size={14} /> Guardian checked — no risks flagged</div>
-          : warns.map((w, i) => <div className="vc-guard-row" key={i}><AlertTriangle size={14} /> <span>{w}</span></div>)}
+    <div className="prop">
+      <div className="prop-top">
+        <span className="eyebrow">{d.title}{d.each ? ' · each payment' : ''}</span>
+        <Pill tone={d.kind === 'swap' ? 'amber' : 'lime'}>{d.fee ? d.fee : 'Fee covered'}</Pill>
       </div>
-      <div className="vc-prop-meta"><span>Network fee</span><span>Covered by Velfi</span></div>
-      <button className="vc-confirm" onClick={onConfirm}>Confirm</button>
-      <div className="vc-prop-sub"><button onClick={onRevise}>Revise</button><span>·</span><button onClick={onCancel}>Cancel</button></div>
+      <p className="amount-big">{totalOf(d.rows)}</p>
+      <ul className="feed">
+        {d.rows.map((r, i) => <li key={i}><Row title={r.label} end={`${fmtAmt(r.amount)} ${r.token}`} /></li>)}
+      </ul>
+      {d.note && <p className="flow-note">{d.note}</p>}
+      {warns.length > 0 && (
+        <div className="warnbox">{warns.map((w, i) => <p key={i}><TriangleAlert size={15} aria-hidden="true" /> <span>{w}</span></p>)}</div>
+      )}
+      <button className="btn primary block" onClick={onReview}>Review and approve</button>
+      <div className="prop-sub"><button onClick={onRevise}>Change it</button><span aria-hidden="true">·</span><button onClick={onCancel}>Cancel</button></div>
     </div>
   )
 }
-function DoneCard({ done }) {
-  const d = desc(done)
+
+function Done({ done }) {
+  const d = describe(done)
   return (
-    <div className="vc-done">
-      <div className="vc-done-ic"><Check size={16} color="#fff" strokeWidth={3} /></div>
-      <div><p className="vc-done-h">Done! 🎉 {d.done} {d.rows.map(r => r.amount).join(' + ')}</p>
-        {done.digest && <a className="vc-done-link" href={explorerTx(done.digest)} target="_blank" rel="noreferrer">View on {EXPLORER_NAME} <ExternalLink size={12} /></a>}</div>
+    <div className="done-card">
+      <span className="done-ic"><Check size={16} strokeWidth={3} /></span>
+      <div><b>{d.done} {totalOf(d.rows)}</b>
+        {done.digest && <a href={explorerTx(done.digest)} target="_blank" rel="noreferrer">Public receipt on {EXPLORER_NAME}</a>}</div>
     </div>
   )
 }
-function ConfirmSheet({ pending, running, onApprove, onClose }) {
-  const d = desc(pending)
+
+function ConfirmSheet({ open, pending, running, onApprove, onClose }) {
+  if (!pending) return null
+  const d = describe(pending)
   return (
-    <div className="vc-sheet-wrap" onClick={onClose}>
-      <div className="vc-sheet" onClick={e => e.stopPropagation()}>
-        <div className="vc-grab" />
-        <div className="vc-sheet-head"><div className="vc-sheet-ic"><Wallet size={20} color="var(--v-accent)" /></div><div><p className="vc-sheet-h">{d.title}</p><p className="vc-sheet-sub">Review and approve</p></div></div>
-        <div className="vc-sheet-list">{d.rows.map((r, i) => <div className="vc-sheet-row" key={i}><span className="vc-sheet-to">{r.label}</span><span className="vc-sheet-amt">{r.amount}</span></div>)}</div>
-        {d.note && <div className="vc-using">{d.note}</div>}
-        <div className="vc-guard"><ShieldCheck size={15} color="var(--v-sub)" /> Velfi can’t move money without you.</div>
-        <SlideToApprove running={running} onApprove={onApprove} />
+    <Sheet open={open} onClose={onClose} pale label={`Approve: ${d.title}`} dismissable={!running}>
+      <div className="flow-head">
+        <CloseButton onClick={onClose} label="Close" />
+        <Pill tone={d.kind === 'swap' ? 'amber' : 'lime'}>{d.fee || 'Velfi pays the fee'}</Pill>
       </div>
-    </div>
-  )
-}
-function SuccessSheet({ data, onClose }) {
-  const d = desc(data)
-  return (
-    <div className="vc-sheet-wrap" onClick={onClose}>
-      <div className="vc-sheet" onClick={e => e.stopPropagation()}>
-        <div className="vc-grab" />
-        <div className="vc-success-top"><img src={otterImg} alt="" className="vc-success-otter" /><div className="vc-success-check"><Check size={30} color="#fff" strokeWidth={3} /></div></div>
-        <p className="vc-success-h">{d.done}</p>
-        <p className="vc-success-sub">{d.title} · just now</p>
-        <div className="vc-sheet-list">{d.rows.map((r, i) => <div className="vc-sheet-row" key={i}><span className="vc-sheet-to"><Check size={13} color="var(--v-success)" strokeWidth={3} /> {r.label}</span><span className="vc-sheet-amt">{r.amount}</span></div>)}</div>
-        {data.digest && <a className="vc-tx" href={explorerTx(data.digest)} target="_blank" rel="noreferrer"><span>Transaction {short(data.digest)}</span><span className="vc-tx-link">View on {EXPLORER_NAME} <ExternalLink size={12} /></span></a>}
-        <button className="vc-done-btn" onClick={onClose}>Done</button>
+      <h2 className="flow-title">{d.title}</h2>
+      <p className="flow-sub">From your Velfi wallet</p>
+      <div className="amount-card">
+        <div className="amount-top"><span>{d.each ? 'Each payment' : 'Total'}</span><span>{d.rows.length} {d.rows.length === 1 ? 'recipient' : 'recipients'}</span></div>
+        <p className="amount-big">{totalOf(d.rows)}</p>
+        <ul className="feed">{d.rows.map((r, i) => <li key={i}><Row title={r.label} end={`${fmtAmt(r.amount)} ${r.token}`} /></li>)}</ul>
       </div>
-    </div>
+      {d.note && <p className="flow-note">{d.note}</p>}
+      <p className="flow-note" style={{ display: 'flex', gap: 8, alignItems: 'center' }}><ShieldCheck size={16} aria-hidden="true" /> Your wallet signs this, not Velfi. Nothing moves until you slide.</p>
+      <SlideToApprove running={running} onApprove={onApprove} />
+    </Sheet>
   )
 }
+
+function SuccessSheet({ open, data, onClose }) {
+  if (!data?.pending) return null
+  const d = describe(data.pending)
+  const big = d.done.length > 5
+  return (
+    <Sheet open={open} onClose={onClose} pale label="Payment complete">
+      <div className="flow-head"><Pill tone="lime">Confirmed on Solana</Pill><span /></div>
+      <div className={`stamp ${d.kind === 'swap' ? 'blue' : d.kind === 'schedule' ? 'lav' : ''}`}><span style={big ? { fontSize: 'clamp(60px, 19vw, 100px)' } : undefined}>{d.done}</span></div>
+      <div className="amount-card">
+        <div className="amount-top"><span>{d.title}</span><span>Just now</span></div>
+        <p className="amount-big">{totalOf(d.rows)}</p>
+        <ul className="feed">{d.rows.map((r, i) => <li key={i}><Row icon={<Check size={16} strokeWidth={2.6} />} tone="good" title={r.label} end={`${fmtAmt(r.amount)} ${r.token}`} /></li>)}</ul>
+        <div className="kv"><div><small>Network fee</small><b>{d.fee ? 'Paid by you' : 'Paid by Velfi'}</b></div><div><small>Receipt</small><b>{data.digest ? shortAddr(data.digest) : '—'}</b></div></div>
+      </div>
+      {data.message && <p className="flow-note">{data.message}</p>}
+      <div className="actions-row">
+        {data.digest ? <a className="btn pale" href={explorerTx(data.digest)} target="_blank" rel="noreferrer">View receipt</a> : <span />}
+        <button className="round" onClick={onClose} aria-label="Done"><Check size={22} strokeWidth={2.4} /></button>
+      </div>
+    </Sheet>
+  )
+}
+
+function FailedSheet({ open, message, canRetry, onRetry, onClose }) {
+  return (
+    <Sheet open={open} onClose={onClose} pale label="Payment not sent">
+      <div className="flow-head"><Pill tone="amber">Nothing was sent</Pill><span /></div>
+      <div className="stamp" style={{ background: 'linear-gradient(180deg, #FFD9A8 0%, #F7A86A 100%)' }}><span style={{ fontSize: 'clamp(60px, 19vw, 100px)' }}>Not sent</span></div>
+      <div className="amount-card">
+        <p style={{ fontSize: 17 }}>{message || 'That didn’t go through.'}</p>
+        <p className="flow-note">Your money is still in your wallet.</p>
+      </div>
+      <div className="actions-row">
+        {canRetry ? <button className="btn pale" onClick={onRetry}>Try again</button> : <span />}
+        <button className="round" onClick={onClose} aria-label="Close"><Check size={22} strokeWidth={2.4} /></button>
+      </div>
+    </Sheet>
+  )
+}
+
+// Drag the knob to the end to approve. Keyboard: focus the knob and press Enter.
 function SlideToApprove({ onApprove, running }) {
-  const track = useRef(null); const [x, setX] = useState(0); const [drag, setDrag] = useState(false); const [done, setDone] = useState(false); const KNOB = 54
+  const track = useRef(null)
+  const [x, setX] = useState(0)
+  const [drag, setDrag] = useState(false)
+  const [done, setDone] = useState(false)
+  const KNOB = 56
+  useEffect(() => { if (!running && done) { setDone(false); setX(0) } }, [running])
+  const max = () => (track.current ? track.current.getBoundingClientRect().width - KNOB - 8 : 0)
+  const finish = () => { setX(max()); setDone(true); setDrag(false); onApprove() }
   const down = (e) => { if (running || done) return; setDrag(true); e.currentTarget.setPointerCapture(e.pointerId) }
-  const move = (e) => { if (!drag) return; const t = track.current.getBoundingClientRect(); let nx = Math.max(0, Math.min(e.clientX - t.left - KNOB / 2, t.width - KNOB)); setX(nx); if (nx >= t.width - KNOB - 6) { setDone(true); setDrag(false); onApprove() } }
+  const move = (e) => {
+    if (!drag) return
+    const t = track.current.getBoundingClientRect()
+    const nx = Math.max(0, Math.min(e.clientX - t.left - KNOB / 2, max()))
+    setX(nx)
+    if (nx >= max() - 4) finish()
+  }
   const up = () => { if (!done) setX(0); setDrag(false) }
   return (
-    <div className="vc-slide" ref={track}>
-      <span className="vc-slide-label">{running ? 'Signing…' : done ? 'Approved' : 'Slide to approve & sign'}</span>
-      <div className="vc-slide-knob" style={{ transform: `translateX(${x}px)`, transition: drag ? 'none' : 'transform .25s' }} onPointerDown={down} onPointerMove={move} onPointerUp={up}>
-        {running ? <span className="vc-spin" /> : <ArrowUp size={20} color="#fff" strokeWidth={2.6} style={{ transform: 'rotate(90deg)' }} />}
-      </div>
+    <div className="slide" ref={track}>
+      <span className="slide-fill" style={{ width: x + KNOB + 8 }} />
+      <span className="slide-label">{running ? 'Signing…' : done ? 'Approved' : 'Slide to approve'}</span>
+      <button className="slide-knob" style={{ transform: `translateX(${x}px)`, transition: drag ? 'none' : 'transform .3s var(--ease)' }}
+        onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
+        onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && !running && !done) { e.preventDefault(); finish() } }}
+        aria-label="Approve and sign. Drag to the end, or press Enter." disabled={running}>
+        {running ? <span className="spin" /> : <ArrowRight size={22} strokeWidth={2.4} />}
+      </button>
     </div>
   )
 }
-
-const CHAT_CSS = `
-.vchat{ position:fixed; inset:0; width:100%; max-width:430px; margin:0 auto; display:flex; flex-direction:column; background:var(--v-bg); color:var(--v-ink); font-family:'DM Sans',system-ui,sans-serif; }
-.vc-head{ display:flex; align-items:center; gap:12px; padding:calc(env(safe-area-inset-top, 0px) + 14px) 16px 14px; border-bottom:1px solid var(--v-card-bd); }
-.vc-back{ width:36px; height:36px; border-radius:11px; display:flex; align-items:center; justify-content:center; background:none; color:var(--v-ink); flex-shrink:0; }
-.vc-ava{ width:46px; height:46px; border-radius:50%; object-fit:cover; flex-shrink:0; }
-.vc-id{ flex:1; min-width:0; }
-.vc-name{ font-size:21px; font-weight:700; letter-spacing:-0.3px; line-height:1.2; display:flex; align-items:center; gap:5px; }
-.vc-verified{ color:var(--v-accent); flex-shrink:0; }
-.vc-stat{ font-size:13px; color:var(--v-sub); margin-top:1px; font-weight:400; }
-.vc-new{ width:38px; height:38px; border-radius:11px; display:flex; align-items:center; justify-content:center; background:none; color:var(--v-sub); flex-shrink:0; }
-.vc-scroll{ flex:1; overflow-y:auto; padding:16px 16px 8px; scrollbar-width:none; }
-.vc-scroll::-webkit-scrollbar{ display:none; }
-.vc-welcome{ position:relative; overflow:hidden; display:flex; align-items:center; gap:12px; padding:14px; border-radius:22px; margin-bottom:18px; background:linear-gradient(135deg, rgba(255,255,255,0.66), rgba(239,237,247,0.5)); -webkit-backdrop-filter:blur(16px); backdrop-filter:blur(16px); border:1px solid rgba(255,255,255,0.6); }
-.vc-welcome::after{ content:''; position:absolute; inset:0; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); background-size:160px; opacity:.05; pointer-events:none; }
-.vc-welcome img{ width:92px; height:92px; object-fit:contain; flex-shrink:0; position:relative; z-index:1; }
-.vc-welcome > div{ position:relative; z-index:1; }
-.vc-wel-h{ font-size:20px; font-weight:700; letter-spacing:-0.3px; line-height:1.25; }
-.vc-wel-b{ font-size:13px; color:var(--v-sub); margin-top:4px; line-height:1.45; }
-.vc-day{ display:flex; justify-content:center; margin:6px 0 16px; }
-.vc-day span{ font-size:11px; font-weight:500; color:var(--v-sub); background:var(--v-chip); padding:4px 12px; border-radius:999px; }
-.vc-row{ display:flex; gap:8px; margin-bottom:14px; align-items:flex-end; }
-.vc-row.right{ justify-content:flex-end; } .vc-row.left{ justify-content:flex-start; }
-.vc-bubava{ width:30px; height:30px; border-radius:50%; object-fit:cover; flex-shrink:0; }
-.vc-astack{ display:flex; flex-direction:column; gap:8px; max-width:90%; }
-.vc-bubble{ position:relative; overflow:hidden; padding:6px 13px; font-size:13px; line-height:1.35; max-width:100%; width:fit-content; }
-.vc-row.right .vc-bubble.user{ max-width:90%; }
-.vc-bubble > *{ position:relative; z-index:1; }
-.vc-bubble::after{ content:''; position:absolute; inset:0; z-index:0; pointer-events:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); background-size:140px; }
-.vc-bubble.user{ color:#fff; border-radius:22px 22px 7px 22px; background:linear-gradient(135deg, rgba(123,79,255,0.96), rgba(139,107,255,0.82)); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); box-shadow:0 8px 20px -10px rgba(123,79,255,0.5); }
-.vc-bubble.user::after{ opacity:.10; mix-blend-mode:overlay; }
-.vc-bubble.assistant{ color:var(--v-ink); border-radius:22px 22px 22px 7px; background:linear-gradient(135deg, rgba(255,255,255,0.92), rgba(251,250,254,0.82)); border:1px solid var(--v-card-bd); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); }
-.vc-bubble.assistant::after{ opacity:.045; }
-.vc-ln{ display:block; } .vc-li{ display:flex; gap:7px; align-items:flex-start; } .vc-dot{ opacity:.6; } .vc-br{ display:block; height:11px; }
-.vc-utext{ white-space:pre-wrap; }
-.vc-time{ display:inline-block; font-size:10px; opacity:.6; margin-left:10px; }
-.vc-row.left .vc-time{ display:block; text-align:right; margin-left:0; margin-top:1px; }
-.vc-typing{ display:flex; gap:4px; align-items:center; border-radius:22px 22px 22px 7px; }
-.vc-typing span{ width:6px; height:6px; border-radius:50%; background:var(--v-sub); animation:vcb 1s infinite; }
-.vc-typing span:nth-child(2){ animation-delay:.15s } .vc-typing span:nth-child(3){ animation-delay:.3s }
-@keyframes vcb{ 0%,100%{ opacity:.3; transform:translateY(0) } 50%{ opacity:1; transform:translateY(-3px) } }
-.vc-prop{ background:var(--v-card-solid); border:1px solid var(--v-card-bd); border-radius:18px; padding:14px; box-shadow:0 10px 24px -16px rgba(42,26,58,0.25); }
-.vc-prop-rows{ display:flex; flex-direction:column; gap:8px; }
-.vc-prop-row{ display:flex; justify-content:space-between; align-items:center; }
-.vc-prop-to{ font-size:14px; font-weight:600; } .vc-prop-amt{ font-size:14px; font-weight:700; }
-.vc-prop-meta{ display:flex; justify-content:space-between; font-size:12px; color:var(--v-sub); margin:12px 0; padding-top:10px; border-top:1px solid var(--v-card-bd); }
-.vc-confirm{ width:100%; padding:12px; border-radius:14px; background:var(--v-accent); color:#fff; font-size:15px; font-weight:700; }
-.vc-bubble.assistant{ background:none !important; border:none !important; -webkit-backdrop-filter:none; backdrop-filter:none; border-radius:0; padding:2px 2px; }
-.vc-bubble.assistant::after{ display:none !important; }
-[data-theme="dark"] .vc-bubble.assistant{ background:none !important; border:none !important; }
-.vc-reason{ display:flex; flex-direction:column; gap:5px; margin-bottom:12px; padding-bottom:12px; border-bottom:1px solid var(--v-card-bd); }
-.vc-reason-step{ display:flex; align-items:center; gap:6px; font-size:12px; color:var(--v-sub); opacity:0; animation:vcreason .3s ease-out forwards; }
-.vc-reason-step svg{ color:var(--v-accent); flex-shrink:0; }
-@keyframes vcreason{ from{ opacity:0; transform:translateY(-3px) } to{ opacity:1; transform:translateY(0) } }
-.vc-guard-box{ margin:10px 0 2px; padding:10px 12px; border-radius:12px; display:flex; flex-direction:column; gap:6px; }
-.vc-guard-box.ok{ background:rgba(29,184,102,0.08); }
-.vc-guard-box.warn{ background:rgba(224,152,42,0.12); }
-.vc-guard-row{ display:flex; align-items:flex-start; gap:7px; font-size:12.5px; line-height:1.4; color:var(--v-ink); }
-.vc-guard-row svg{ flex-shrink:0; margin-top:1px; color:#E0982A; }
-.vc-guard-ok{ color:var(--v-sub); }
-.vc-guard-ok svg{ color:var(--v-success); }
-.vc-done{ display:flex; align-items:center; gap:10px; background:var(--v-card-solid); border:1px solid var(--v-card-bd); border-radius:16px; padding:12px 14px; }
-.vc-done-ic{ width:30px; height:30px; border-radius:50%; background:var(--v-success); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-.vc-done-h{ font-size:14px; font-weight:700; }
-.vc-done-link{ font-size:12px; color:var(--v-accent); font-weight:600; display:inline-flex; align-items:center; gap:3px; margin-top:2px; }
-.vc-bottom{ padding:8px 16px calc(14px + env(safe-area-inset-bottom)); border-top:1px solid var(--v-card-bd); background:var(--v-bg); }
-.vc-chips{ display:flex; gap:8px; overflow-x:auto; margin-bottom:10px; scrollbar-width:none; } .vc-chips::-webkit-scrollbar{ display:none; }
-.vc-chip{ flex-shrink:0; padding:11px 15px; border-radius:999px; font-size:13px; font-weight:400; color:var(--v-ink); background:linear-gradient(135deg, rgba(255,255,255,0.7), rgba(239,237,247,0.5)); border:1px solid rgba(255,255,255,0.6); -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px); }
-.vc-input{ position:relative; overflow:hidden; display:flex; align-items:center; gap:8px; padding:7px 7px 7px 12px; border-radius:24px; background:linear-gradient(135deg, rgba(245,243,252,0.9), rgba(255,255,255,0.62)); -webkit-backdrop-filter:blur(22px) saturate(150%); backdrop-filter:blur(22px) saturate(150%); border:1px solid rgba(255,255,255,0.6); box-shadow:0 8px 26px -14px rgba(42,26,58,0.18), inset 0 1px 0 rgba(255,255,255,0.5); }
-.vc-input::after{ content:''; position:absolute; inset:0; z-index:0; pointer-events:none; opacity:.05; background-size:140px; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
-.vc-input > *{ position:relative; z-index:1; }
-.vc-plus{ width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--v-sub); background:none; flex-shrink:0; }
-.vc-input input{ flex:1; min-width:0; background:none; border:none; outline:none; font-size:15px; color:var(--v-ink); font-family:'DM Sans',sans-serif; }
-.vc-input input::placeholder{ color:var(--v-sub); }
-.vc-send{ width:42px; height:42px; border-radius:50%; flex-shrink:0; background:var(--v-accent); display:flex; align-items:center; justify-content:center; box-shadow:0 6px 16px -4px rgba(123,79,255,0.5); }
-.vc-send:disabled{ opacity:.5; }
-.vc-sheet-wrap{ position:fixed; inset:0; z-index:200; background:rgba(20,12,30,0.45); -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); display:flex; align-items:flex-end; justify-content:center; animation:vcfade .2s; }
-@keyframes vcfade{ from{ opacity:0 } to{ opacity:1 } }
-.vc-sheet{ width:100%; max-width:430px; background:var(--v-card-solid); border-radius:28px 28px 0 0; padding:10px 20px calc(24px + env(safe-area-inset-bottom)); animation:vcup .28s cubic-bezier(.2,.9,.3,1); box-shadow:0 -20px 60px -20px rgba(20,12,30,0.4); }
-@keyframes vcup{ from{ transform:translateY(100%) } to{ transform:translateY(0) } }
-.vc-grab{ width:40px; height:4px; border-radius:2px; background:var(--v-card-bd); margin:0 auto 18px; }
-.vc-sheet-head{ display:flex; align-items:center; gap:12px; margin-bottom:16px; }
-.vc-sheet-ic{ width:42px; height:42px; border-radius:13px; background:var(--v-chip); display:flex; align-items:center; justify-content:center; }
-.vc-sheet-h{ font-size:20px; font-weight:700; } .vc-sheet-sub{ font-size:13px; color:var(--v-sub); }
-.vc-sheet-list{ background:var(--v-bg); border-radius:16px; padding:2px 14px; margin-bottom:12px; }
-.vc-sheet-row{ display:flex; justify-content:space-between; align-items:center; padding:13px 0; border-bottom:1px solid var(--v-card-bd); }
-.vc-sheet-row:last-child{ border-bottom:none; }
-.vc-sheet-to{ font-size:14px; font-weight:600; display:inline-flex; align-items:center; gap:6px; } .vc-sheet-amt{ font-size:14px; font-weight:700; }
-.vc-using{ display:flex; align-items:center; gap:6px; font-size:14px; background:var(--v-bg); border-radius:14px; padding:12px 14px; margin-bottom:12px; }
-.vc-using-tot{ margin-left:auto; color:var(--v-accent); font-weight:700; }
-.vc-guard{ display:flex; align-items:center; gap:6px; justify-content:center; font-size:12px; color:var(--v-sub); margin-bottom:16px; }
-.vc-slide{ position:relative; height:58px; border-radius:999px; background:var(--v-chip); display:flex; align-items:center; justify-content:center; overflow:hidden; user-select:none; touch-action:none; }
-.vc-slide-label{ font-size:14px; font-weight:600; color:var(--v-accent); }
-.vc-slide-knob{ position:absolute; left:2px; top:2px; width:54px; height:54px; border-radius:50%; background:var(--v-accent); display:flex; align-items:center; justify-content:center; cursor:grab; box-shadow:0 6px 16px -4px rgba(123,79,255,0.6); }
-.vc-spin{ width:18px; height:18px; border-radius:50%; border:2px solid rgba(255,255,255,0.4); border-top-color:#fff; animation:spin .7s linear infinite; }
-.vc-success-top{ display:flex; align-items:center; justify-content:center; gap:8px; margin:6px 0 14px; }
-.vc-success-otter{ width:96px; height:96px; object-fit:contain; }
-.vc-success-check{ width:64px; height:64px; border-radius:50%; background:var(--v-success); display:flex; align-items:center; justify-content:center; box-shadow:0 0 30px -4px rgba(29,184,102,0.6); }
-.vc-success-h{ text-align:center; font-size:26px; font-weight:800; }
-.vc-success-sub{ text-align:center; font-size:13px; color:var(--v-sub); margin:2px 0 16px; }
-.vc-tx{ display:flex; align-items:center; justify-content:space-between; background:var(--v-bg); border-radius:14px; padding:13px 14px; font-size:13px; color:var(--v-sub); margin-bottom:14px; }
-.vc-tx-link{ color:var(--v-accent); font-weight:600; display:inline-flex; align-items:center; gap:4px; }
-.vc-done-btn{ width:100%; padding:15px; border-radius:16px; background:var(--v-accent); color:#fff; font-size:16px; font-weight:700; }
-
-/* ---- dark mode: aubergine + grain (white glass reads badly on black) ---- */
-[data-theme="dark"] .vc-welcome{ background:linear-gradient(135deg, rgba(58,42,77,0.92), rgba(42,26,58,0.82)); border:1px solid rgba(255,255,255,0.08); }
-[data-theme="dark"] .vc-welcome::after{ opacity:.10; mix-blend-mode:soft-light; }
-[data-theme="dark"] .vc-bubble.assistant{ color:#F4F2FA; border:1px solid rgba(255,255,255,0.08); background:linear-gradient(135deg, rgba(58,42,77,0.96), rgba(42,26,58,0.92)); }
-[data-theme="dark"] .vc-bubble.assistant::after{ opacity:.10; mix-blend-mode:soft-light; }
-[data-theme="dark"] .vc-chip{ color:#F4F2FA; border:1px solid rgba(255,255,255,0.08); background:linear-gradient(135deg, rgba(58,42,77,0.88), rgba(42,26,58,0.72)); }
-[data-theme="dark"] .vc-input{ border:1px solid rgba(255,255,255,0.08); background:linear-gradient(135deg, rgba(58,42,77,0.92), rgba(42,26,58,0.78)); box-shadow:0 8px 26px -14px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06); }
-[data-theme="dark"] .vc-input::after{ opacity:.09; mix-blend-mode:soft-light; }
-[data-theme="dark"] .vc-head{ border-bottom-color:rgba(255,255,255,0.07); }
-[data-theme="dark"] .vc-bottom{ border-top-color:rgba(255,255,255,0.07); }
-[data-theme="dark"] .vc-sheet{ background:#1a1226; }
-[data-theme="dark"] .vc-sheet-list, [data-theme="dark"] .vc-using, [data-theme="dark"] .vc-tx{ background:rgba(255,255,255,0.05); }
-.vc-prop-note{ font-size:12px; color:var(--v-sub); margin-top:9px; line-height:1.45; }
-.vc-prop-sub{ display:flex; align-items:center; justify-content:center; gap:12px; margin-top:9px; }
-.vc-prop-sub button{ background:none; color:var(--v-sub); font-size:13px; font-weight:600; font-family:'DM Sans',sans-serif; }
-.vc-prop-sub > span{ color:var(--v-card-bd); }
-.vc-tokpick{ display:flex; gap:8px; margin-top:4px; max-width:280px; }
-.vc-tokbtn{ flex:1; padding:11px; border-radius:13px; border:1px solid var(--v-card-bd); background:var(--v-card-solid); color:var(--v-ink); font-weight:700; font-size:14px; font-family:\'DM Sans\',sans-serif; }
-.vc-tokbtn:active{ background:var(--v-chip); }
-`
