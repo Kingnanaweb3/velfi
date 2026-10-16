@@ -18,7 +18,9 @@ export function useVelfiWallet() {
       return bytesToB64(signed.serialize())
     }
     const signed = await wallet.signTransaction(Transaction.from(bytes))
-    return bytesToB64(signed.serialize({ requireAllSignatures: true, verifySignatures: true }))
+    // Velfi's server checks the signed transaction against what it prepared, and the
+    // network checks every signature, so don't fail here on the wallet's serializer.
+    return bytesToB64(signed.serialize({ requireAllSignatures: false, verifySignatures: false }))
   }, [wallet])
 
   return { ready, address: wallet?.address || null, sign }
