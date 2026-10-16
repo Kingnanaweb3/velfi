@@ -402,7 +402,12 @@ button.tile:active { transform: scale(.97); }
 /* ── Sign in ────────────────────────────────────────────────────────────── */
 .auth { min-height: 100dvh; display: grid; grid-template-rows: auto 1fr auto; padding: calc(env(safe-area-inset-top, 0px) + 18px) 20px calc(20px + env(safe-area-inset-bottom)); width: min(100%, 520px); margin: 0 auto; gap: 12px; }
 .auth-art { display: grid; align-content: center; justify-items: center; gap: 14px; text-align: center; }
-.auth-art img { width: min(100%, 420px); height: auto; border-radius: 28px; }
+/* The otter art always sits on the dark card, in light and dark mode alike. */
+.auth-visual { position: relative; width: min(100%, 440px); border-radius: 30px; overflow: hidden; padding-top: 28px; isolation: isolate;
+  background: radial-gradient(120% 90% at 30% 0%, #43306b 0%, #241a3d 48%, #120e1c 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12), inset 0 0 0 1px rgba(255, 255, 255, .06), 0 24px 60px rgba(21, 17, 31, .22); }
+.auth-visual::before { content: ""; position: absolute; inset: 0; z-index: -1; background: radial-gradient(360px circle at 70% 20%, rgba(165, 140, 255, .28), transparent 60%); }
+.auth-visual img { width: 100%; height: auto; display: block; margin-bottom: -1px; }
 .auth h1 { font-size: clamp(38px, 11vw, 52px); font-weight: 500; letter-spacing: -.045em; line-height: 1; }
 .auth h1 span { color: var(--t3); }
 .auth .lede { color: var(--t2); font-size: 16px; max-width: 34ch; }
@@ -418,7 +423,7 @@ button.tile:active { transform: scale(.97); }
   .auth { width: min(100%, 1080px); grid-template-columns: 1.1fr 1fr; grid-template-rows: auto 1fr; column-gap: 56px; align-items: center; padding: 32px 40px; }
   .auth > .brand { grid-column: 1 / -1; }
   .auth-art { justify-items: start; text-align: left; }
-  .auth-art img { order: 3; }
+  .auth-visual { order: 3; }
   .auth-steps { justify-content: flex-start; }
   .auth-foot { background: var(--card); border-radius: 30px; padding: 28px; box-shadow: var(--shadow-card); align-self: center; }
 }
@@ -433,3 +438,25 @@ button.tile:active { transform: scale(.97); }
 .steps-dots { display: flex; gap: 6px; }
 .steps-dots i { width: 22px; height: 6px; border-radius: 999px; background: color-mix(in srgb, var(--ink) 12%, transparent); transition: background .3s; }
 .steps-dots i.on { background: var(--accent); }
+
+/* ── Sign-in is always aubergine dark: calm on the eyes, in either theme ── */
+.auth-dark {
+  --bg: #1A1222; --ink: #F3EEF8; --t2: rgba(243, 238, 248, .64); --t3: rgba(243, 238, 248, .4);
+  --card: #251a31; --card-2: #2e2140; --line: rgba(255, 255, 255, .08); --pale: #3b2b52;
+  --accent: #9B7BFF; --accent-soft: rgba(155, 123, 255, .18);
+  --good: #5BD394; --warn: #F2B35C; --bad: #FF8A80; --bad-bg: rgba(255, 138, 128, .14);
+  --shadow-card: 0 24px 60px rgba(0, 0, 0, .35);
+  --vault: linear-gradient(160deg, #4a3570 0%, #2a1d40 50%, #160f22 100%);
+  color-scheme: dark;
+  min-height: 100dvh; color: var(--ink);
+  background: radial-gradient(110% 80% at 15% 0%, #3d2655 0%, #24162f 45%, #150d1c 100%);
+}
+.auth-dark .auth-visual { background: none; box-shadow: none; padding-top: 0; border-radius: 0; overflow: visible; }
+.auth-dark .auth-visual::before { background: radial-gradient(320px circle at 55% 30%, rgba(165, 140, 255, .22), transparent 65%); }
+.auth-dark .gbtn { background: #F3EEF8; color: #1A1222; }
+.auth-dark .btn.primary { background: #F3EEF8; color: #1A1222; }
+.auth-dark .pill.soft { background: rgba(255, 255, 255, .07); color: var(--t2); }
+.auth-dark .claim-box { background: var(--card); }
+@media (min-width: 900px) {
+  .auth-dark .auth-foot { background: rgba(37, 26, 49, .72); backdrop-filter: blur(18px); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .07), 0 24px 60px rgba(0, 0, 0, .35); }
+}

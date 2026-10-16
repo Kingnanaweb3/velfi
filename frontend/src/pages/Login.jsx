@@ -26,6 +26,7 @@ export default function Login() {
   useEffect(() => { if (ready && authenticated) navigate('/auth/callback', { replace: true }) }, [ready, authenticated])
 
   return (
+    <div className="auth-dark">
     <main className="auth screen">
       <div className="brand"><Logo size={26} /> Velfi</div>
 
@@ -35,7 +36,7 @@ export default function Login() {
         <div className="auth-steps">
           <Pill tone="soft">1 · Google</Pill><Pill tone="soft">2 · Claim a .vel name</Pill><Pill tone="soft">3 · Just say it</Pill>
         </div>
-        <img src={otterScene} alt="" />
+        <div className="auth-visual"><img src={otterScene} alt="" /></div>
       </div>
 
       <div className="auth-foot">
@@ -46,5 +47,6 @@ export default function Login() {
         <p className="auth-note">New or returning, it’s the same button. Your Solana wallet is created for you, with no seed phrase.</p>
       </div>
     </main>
+    </div>
   )
 }

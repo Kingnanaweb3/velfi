@@ -88,12 +88,16 @@ export default function AuthCallback() {
 
   const ok = status === 'available' && username.length >= 3
   return (
+    <div className="auth-dark">
     <main className="auth screen" style={{ gridTemplateRows: '1fr', gridTemplateColumns: '1fr', maxWidth: 520 }}>
       {phase === 'error' ? (
         <div className="auth-art">
           <h1 style={{ fontSize: 34 }}>That didn’t work</h1>
           <p className="auth-err" role="alert">{error}</p>
-          <button className="btn primary" onClick={() => navigate('/login')}>Back to sign in</button>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
+            <button className="btn primary" onClick={() => window.location.reload()}>Try again</button>
+            <button className="btn ghost" onClick={() => navigate('/login')}>Back to sign in</button>
+          </div>
         </div>
       ) : phase === 'loading' ? (
         <div className="auth-art" aria-live="polite">
@@ -139,5 +143,6 @@ export default function AuthCallback() {
         </div>
       )}
     </main>
+    </div>
   )
 }
