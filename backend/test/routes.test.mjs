@@ -6,6 +6,8 @@ import assert from 'node:assert/strict'
 
 process.env.SOLANA_CLUSTER = 'devnet'
 process.env.JWT_SECRET = 'test'
+// Prices come from a fixed fake, never the network: SOL = $100, USDC = $1.
+globalThis.fetch = async () => ({ ok: true, json: async () => ({ solana: { usd: 100 }, 'usd-coin': { usd: 1 } }) })
 
 const { tables } = await import('./harness/stubs/db.mjs')
 const { calls } = await import('./harness/stubs/solana.mjs')
@@ -283,4 +285,34 @@ test('not found: names from before Solana get a "sign in once" hint, unknown nam
   assert.equal(await missingText(['ghost.vel']), "I couldn't find ghost.vel on Velfi")
   const both = await missingText(['ghost.vel', 'NanaIsMyBoy.vel'])
   assert.match(both, /^I couldn't find ghost\.vel on Velfi\. NanaIsMyBoy\.vel hasn't signed in/)
+})
+
+test('chat: "$1 of SOL" sends one dollar worth of SOL, not 1 SOL; splits convert per person', async () => {
+  const { scripted } = await import('./harness/stubs/openrouter.mjs')
+  {
+    tables.users = [{ id: 'U2', username: 'maya', wallet_address: MAYA }, { id: 'U3', username: 'leo', wallet_address: ME.replace('7', '8') }]
+    scripted.push('payment', JSON.stringify({ intent: 'send', confidence: 0.95, needs_clarification: false, needs_token_choice: false,
+      payment: { amount: 1, currency: 'SOL', amount_in_usd: true, recipients: [{ name: 'maya.vel', amount: null, share: null }] }, summary: 'Send $1 of SOL' }))
+    const r = await call(agent, 'post', '/message', { body: { message: 'send 1$ sol to maya.vel' } })
+    assert.equal(r.body.mode, 'propose', JSON.stringify(r.body))
+    let pay = tables.agent_conversations.find(c => c.user_address === ME).pending_tx.payment
+    assert.equal(pay.currency, 'SOL')
+    assert.ok(Math.abs(pay.token_amount - 0.01) < 1e-12, `token_amount ${pay.token_amount}`)
+
+    // split $4 of SOL between two people: each gets $2 = 0.02 SOL, never 2 SOL
+    scripted.push('payment', JSON.stringify({ intent: 'split', confidence: 0.95, needs_clarification: false, needs_token_choice: false,
+      payment: { amount: 4, currency: 'SOL', amount_in_usd: true, recipients: [{ name: 'maya.vel', amount: 2 }, { name: 'leo.vel', amount: 2 }] }, summary: 'Split $4 of SOL' }))
+    const r2 = await call(agent, 'post', '/message', { body: { message: 'split $4 of sol between maya and leo' } })
+    assert.equal(r2.body.mode, 'propose', JSON.stringify(r2.body))
+    pay = tables.agent_conversations.find(c => c.user_address === ME).pending_tx.payment
+    assert.deepEqual(pay.recipients.map(x => Math.round(x.amount * 1e6) / 1e6), [0.02, 0.02])
+
+    // a token Velfi can't move is explained, not treated as an empty balance
+    scripted.push('payment', JSON.stringify({ intent: 'send', confidence: 0.95, needs_clarification: false, needs_token_choice: false,
+      payment: { amount: 1, currency: 'SUI', amount_in_usd: true, recipients: [{ name: 'maya.vel' }] }, summary: 'Send $1 of SUI' }))
+    const r3 = await call(agent, 'post', '/message', { body: { message: 'send 1$ sui to maya.vel' } })
+    assert.equal(r3.body.mode, 'clarify')
+    assert.match(r3.body.reply, /moved from Sui to Solana/)
+    assert.match(r3.body.reply, /\$1 of SOL or USDC/)
+  }
 })

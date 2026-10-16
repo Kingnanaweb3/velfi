@@ -22,6 +22,7 @@ Schema:
   "payment": {
     "amount": null,
     "currency": "USD",
+    "amount_in_usd": false,
     "recipients": [ { "name": null, "email": null, "address": null, "share": null, "amount": null } ],
     "actions": [ { "token": null, "amount": null, "recipient": { "name": null, "email": null, "address": null } } ],
     "schedule": { "frequency": null, "day": null, "duration_secs": null, "occurrences": null },
@@ -62,10 +63,13 @@ USE THE CONVERSATION (slot-filling):
 - The user often gives one piece at a time. If an earlier turn gave the recipient and this turn gives the amount (or vice versa), MERGE them into one complete instruction.
 - If Velfi just asked something ("which token?", "who's it going to?") and the user replies with only that piece ("USDC", "mike.vel", "20"), treat it as the answer and COMPLETE the pending action - do not start over or return unknown.
 - Only set needs_clarification if a required field is STILL missing after using everything in the conversation.
+- Pronouns ("him", "her", "them", "same person") mean the person from the user's MOST RECENT message that named one. If a name was retyped or corrected, always use the newest spelling, never an older one that failed.
 
 TOKEN vs VALUE (single-token only):
 - Named token ("5 JUP", "100 USDC", "10 SOL") -> currency = that symbol, needs_token_choice = false.
 - Fiat value ("$50", "fifty bucks") or a bare number ("send 20 to mike.vel") -> currency = "USD", amount = the number, needs_token_choice = true. Never assume SOL.
+- Dollar value IN a named token ("$1 of SOL", "1$ sol", "$5 worth of SOL", "10 dollars in sol", "send 1$ usdc") -> currency = that token, amount = the DOLLAR number, amount_in_usd = true, needs_token_choice = false. The system converts dollars to the token at the live price. A "$" before OR after the number means dollars. Only a bare number next to a token ("1 SOL", "0.5 sol") is a token amount (amount_in_usd = false).
+- Any token the user names goes in currency exactly as they wrote it (e.g. "SUI", "ETH"), even if Velfi can't move it - the system will explain. Never swap it for another token.
 - Naira or any other non-dollar currency ("5000 naira", "₦2,000", "N5k", "£20", "€10") -> NEVER convert it and never guess a rate. Set amount = null, needs_clarification = true, clarifying_question = "Velfi works in dollars and tokens only. How much is that in USD, USDC or SOL?"
 - needs_token_choice only ever applies to the single-token "recipients" shape. For "actions", tokens are always explicit, so needs_token_choice = false.
 

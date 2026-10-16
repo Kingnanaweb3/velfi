@@ -7,7 +7,7 @@ import { callModel, MODELS } from '../lib/openrouter.js'
 import { CLASSIFIER_SYS, PARSER_SYS, ASSISTANT_SYS } from '../lib/agentPrompts.js'
 import { getAllBalances, balanceOf, formatBalances } from '../lib/balances.js'
 import { usdToToken, getUsdPrice } from '../lib/pricing.js'
-import { getToken } from '../lib/tokens.js'
+import { getToken, TOKEN_LIST } from '../lib/tokens.js'
 import {
   validateSchema, validateAmount, validateSplit,
   isSelfSend, needsClarification, parsesAgree, hasEnough, CONFIDENCE_FLOOR,
@@ -94,6 +94,16 @@ export async function missingText(names) {
   return parts.join('. ')
 }
 
+// A token Velfi can't move on Solana (e.g. SUI from the old app, or ETH).
+export function unsupportedToken(sym, pay = {}) {
+  const list = TOKEN_LIST.map(t => t.symbol)
+  const usable = list.length > 1 ? `${list.slice(0, -1).join(', ')} or ${list.at(-1)}` : list[0]
+  const s = String(sym || '').toUpperCase()
+  const why = s === 'SUI' ? ' Velfi moved from Sui to Solana, so SUI isn\'t something I can send anymore.' : ''
+  const amt = pay.amount != null ? (pay.amount_in_usd ? `$${pay.amount} of SOL or USDC` : `${pay.amount} SOL or USDC`) : 'SOL or USDC'
+  return `I can't send ${s} \u2014 on Velfi I can move ${usable} on Solana.${why} Want to send ${amt} instead?`
+}
+
 // Try to read a token symbol the user picked, restricted to what they actually hold.
 function pickTokenFromMessage(message, balances) {
   const text = String(message).toUpperCase()
@@ -171,6 +181,8 @@ async function propose(user, parsed, extra = {}) {
   }
 }
 
+const fmtTok = (n) => (n >= 1 ? n.toFixed(4) : Number(n.toPrecision(3)).toString())
+
 // Given a parse that has an amount + chosen token, check balance and either
 // propose or report a shortfall. usdMode = the amount is a USD value to convert.
 async function settleWithToken(user, parsed, symbol) {
@@ -180,15 +192,22 @@ async function settleWithToken(user, parsed, symbol) {
 
   let tokenAmount = pay.amount
   let note = ''
-  if (parsed.needs_token_choice || pay.currency === 'USD') {
+  if (parsed.needs_token_choice || pay.currency === 'USD' || pay.amount_in_usd) {
     // amount is a USD value -> convert to the chosen token
-    const converted = await usdToToken(pay.amount, symbol)
-    if (converted == null) {
-      return { mode: 'clarify', reply: `I can't price ${symbol} right now, so I can't convert $${pay.amount} into it. Try USDC or SOL.` }
-    }
-    tokenAmount = converted
     const price = await getUsdPrice(symbol)
-    note = `$${pay.amount} ≈ ${tokenAmount.toFixed(4)} ${symbol} (at $${price?.toFixed(4)}/${symbol})`
+    if (!(price > 0)) {
+      return { mode: 'clarify', reply: `I can't get a live ${symbol} price right now, so I can't turn $${pay.amount} into ${symbol}. Try again in a minute, or give the amount in ${symbol}.` }
+    }
+    const rate = 1 / price
+    tokenAmount = Number(pay.amount) * rate
+    // Per-person amounts in a split are dollars too: convert each one the same way,
+    // so nobody is sent "5 SOL" when they were meant to get $5.
+    for (const r of (pay.recipients || [])) {
+      if (r.amount != null && r.usd_amount == null) { r.usd_amount = Number(r.amount); r.amount = Number(r.amount) * rate }
+    }
+    pay.usd_amount = Number(pay.amount)
+    pay.amount_in_usd = false
+    note = `$${pay.amount} ≈ ${fmtTok(tokenAmount)} ${symbol} (at $${price.toFixed(2)}/${symbol})`
   }
 
   const enough = hasEnough(held, tokenAmount)
@@ -196,7 +215,7 @@ async function settleWithToken(user, parsed, symbol) {
     const bals = await getAllBalances(user.address)
     return {
       mode: 'insufficient',
-      reply: `You don't have enough ${symbol}. This needs ${tokenAmount.toFixed(4)} ${symbol}, but you hold ${held.toFixed(4)} ${symbol}.\n\nYour balances: ${formatBalances(bals)}\n\nWant to use a different token, or change the amount?`,
+      reply: `You don't have enough ${symbol}. This needs ${fmtTok(tokenAmount)} ${symbol}${pay.usd_amount != null ? ` ($${pay.usd_amount})` : ''}, but you hold ${fmtTok(held)} ${symbol}.\n\nYour balances: ${formatBalances(bals)}\n\nWant to use a different token, or change the amount?`,
     }
   }
 
@@ -561,7 +580,10 @@ async function routePayment(res, user, parsed, ctxBlock = '') {
     // SCHEDULE: dedicated path — recurring payments via the schedule engine
     if (parsed.intent === 'schedule') {
       const pay = parsed.payment || {}
-      const sym = String(pay.currency || 'USDC').toUpperCase()
+      let sym = String(pay.currency || 'USDC').toUpperCase()
+      if (sym === 'USD') sym = 'USDC'   // "$5 weekly" = 5 USDC weekly (1 USDC = $1)
+      if (pay.amount_in_usd && sym === 'USDC') pay.amount_in_usd = false
+      if (sym !== 'USDC' && !getToken(sym)) return res.json({ mode: 'clarify', reply: unsupportedToken(sym, pay) })
       const amount = Number(pay.amount)
       const rc = (pay.recipients || [])[0] || {}
       const sch = pay.schedule || {}
@@ -672,6 +694,7 @@ async function routePayment(res, user, parsed, ctxBlock = '') {
 
     // --- token named explicitly: check balance, then propose ---
     if (['send','split','stream','schedule'].includes(parsed.intent) && parsed.payment.currency !== 'USD') {
+      if (!getToken(parsed.payment.currency)) return res.json({ mode: 'clarify', reply: unsupportedToken(parsed.payment.currency, parsed.payment) })
       const result = await settleWithToken(user, parsed, parsed.payment.currency)
       return res.json(result)
     }

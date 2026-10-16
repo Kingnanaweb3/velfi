@@ -56,7 +56,9 @@ export async function getPrices() {
 export async function getUsdPrice(symbol) {
   const token = getToken(symbol)
   if (!token || !token.priceId) return null
-  const prices = await getPrices()
+  let prices = await getPrices()
+  // Right after a restart the cache may not have this price yet: wait for one fetch.
+  if (prices[token.priceId] == null && FALLBACK[token.priceId] == null) prices = await refreshInBackground()
   return prices[token.priceId] ?? FALLBACK[token.priceId] ?? null
 }
 
