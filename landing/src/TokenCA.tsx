@@ -34,7 +34,7 @@ export default function TokenCA() {
           : cfg.status === 'unverified'
           ? 'The address set here did not check out on-chain as $VELFI, so it is hidden. Do not buy anything until it shows here and on '
           : 'Only trust the address posted here and on '}
-        <a href="https://x.com/velfi_xyz" target="_blank" rel="noreferrer">@velfi_xyz</a>{cfg.status === 'live' && cfg.test ? ' for the real launch.' : '.'}{cfg.status === 'live' ? '' : ' Any $VELFI before then is fake.'}
+        <a href="https://x.com/velfixyz" target="_blank" rel="noreferrer">@velfixyz</a>{cfg.status === 'live' && cfg.test ? ' for the real launch.' : '.'}{cfg.status === 'live' ? '' : ' Any $VELFI before then is fake.'}
       </p>
     </div>
   )

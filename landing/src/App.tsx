@@ -409,7 +409,7 @@ function App() {
               <span className={`faq-icon${openFaq === 6 ? ' open' : ''}`}>+</span>
             </button>
             <div className={`faq-a${openFaq === 6 ? ' open' : ''}`}>
-              <p>Yes. $VELFI is launching on Solana with a total supply of 1,000,000,000 and a fair launch. The contract address isn't live yet, so only trust the one posted on velfi.xyz and @velfi_xyz. See the <a href="/docs/token/velfi" target="_blank" rel="noreferrer">token docs</a> for details.</p>
+              <p>Yes. $VELFI is launching on Solana with a total supply of 1,000,000,000 and a fair launch. The contract address isn't live yet, so only trust the one posted on velfi.xyz and @velfixyz. See the <a href="/docs/token/velfi" target="_blank" rel="noreferrer">token docs</a> for details.</p>
             </div>
           </div>
         </div>

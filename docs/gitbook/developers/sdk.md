@@ -19,4 +19,4 @@ Developers building payment experiences, fintech products, or apps that need pro
 
 ### Stay updated
 
-The SDK will be announced when it's ready. Follow [@velfi_xyz](https://x.com/velfi_xyz) for updates.
+The SDK will be announced when it's ready. Follow [@velfixyz](https://x.com/velfixyz) for updates.

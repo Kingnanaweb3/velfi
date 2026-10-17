@@ -42,6 +42,6 @@ Open [app.velfi.xyz](https://app.velfi.xyz), sign in with Google and claim your 
 
 ### Does Velfi have a token?
 
-Yes. $VELFI is launching on Solana with a total supply of 1,000,000,000 and a fair launch. The contract address isn't live yet, so only trust the one posted in the docs and on [@velfi\_xyz](https://x.com/velfi_xyz). See [$VELFI token](/velfi/token/velfi.md).
+Yes. $VELFI is launching on Solana with a total supply of 1,000,000,000 and a fair launch. The contract address isn't live yet, so only trust the one posted in the docs and on [@velfixyz](https://x.com/velfixyz). See [$VELFI token](/velfi/token/velfi.md). Velfi's only official X account is [@velfixyz](https://x.com/velfixyz); look-alike accounts are not us.
 
 

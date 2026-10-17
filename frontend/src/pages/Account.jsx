@@ -64,7 +64,7 @@ export default function Account() {
           <ul className="feed">
             <li><Row icon={<BookOpen size={18} />} title="Docs and guides" href="https://velfi.xyz/docs" chevron={<ExternalLink size={17} />} /></li>
             <li><Row icon={<FileText size={18} />} title="Litepaper" href="https://velfi.xyz/litepaper" chevron={<ExternalLink size={17} />} /></li>
-            <li><Row icon={<MessageCircle size={18} />} title="Message us on X" sub="@velfi_xyz" href="https://x.com/velfi_xyz" chevron={<ExternalLink size={17} />} /></li>
+            <li><Row icon={<MessageCircle size={18} />} title="Message us on X" sub="@velfixyz" href="https://x.com/velfixyz" chevron={<ExternalLink size={17} />} /></li>
           </ul>
         </Panel>
 

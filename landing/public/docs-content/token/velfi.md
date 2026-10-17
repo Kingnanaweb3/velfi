@@ -3,7 +3,9 @@
 $VELFI is Velfi's community token. It's launching on Solana with a fair launch and a total supply of 1,000,000,000.
 
 {% hint style="warning" %}
-**The contract address is not live yet.** Until it's posted on this page and on [@velfi\_xyz](https://x.com/velfi_xyz), any token calling itself $VELFI is fake. Never buy from a link someone sends you in a DM.
+**The contract address is not live yet.** Until it's posted on this page and on [@velfixyz](https://x.com/velfixyz), any token calling itself $VELFI is fake. Never buy from a link someone sends you in a DM.
+
+**Velfi's only official X account is [@velfixyz](https://x.com/velfixyz).** Look-alike accounts, including @velfi_xyz, are not Velfi.
 {% endhint %}
 
 ### Token details
@@ -35,7 +37,7 @@ Everyday use of Velfi stays free. You never need $VELFI to send, split, stream o
 ### How to verify the real token
 
 1. Check the contract address on this page. It will be posted here at launch.
-2. Check that it matches the address pinned on [@velfi\_xyz](https://x.com/velfi_xyz).
+2. Check that it matches the address pinned on [@velfixyz](https://x.com/velfixyz).
 3. Look it up on [Solscan](https://solscan.io) before you buy, and make sure the total supply is 1,000,000,000.
 
 If anything doesn't match, don't buy.
