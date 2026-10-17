@@ -2,6 +2,7 @@
 # Publish, swap or clear the $VELFI address on the live site. No redeploy.
 #   ./scripts/swap-ca.sh <mint address>     set it (the site checks it on-chain)
 #   ./scripts/swap-ca.sh clear              back to "Coming soon"
+#   ./scripts/swap-ca.sh test               rehearse the live box with USDC (TEST badge)
 #   ./scripts/swap-ca.sh                    just show what the site says now
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -12,9 +13,10 @@ EP="$SITE/api/token-config"
 
 if [ $# -gt 0 ]; then
   if [ "$1" = clear ]; then BODY='{"address":null}'
+  elif [ "$1" = test ]; then BODY='{"test":true}'
   elif [[ "$1" =~ ^[1-9A-HJ-NP-Za-km-z]{32,44}$ ]]; then BODY="{\"address\":\"$1\"}"
   else echo "✗ \"$1\" isn't a Solana address"; exit 1; fi
-  echo "→ $( [ "$1" = clear ] && echo clearing || echo "setting $1" )"
+  echo "→ $( [ "$1" = clear ] && echo clearing || { [ "$1" = test ] && echo 'test mode (USDC, TEST badge)' || echo "setting $1"; } )"
   curl -sS -X POST "$EP" -H "x-admin-key: $ADMIN" -H 'content-type: application/json' -d "$BODY"; echo
 fi
 

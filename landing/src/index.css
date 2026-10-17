@@ -1688,6 +1688,8 @@ html, body {
 .tk-ca-copy:active { transform: scale(0.96); }
 .tk-ca-copy:focus-visible { outline: 2px solid #e1dcfa; outline-offset: 2px; }
 .tk-ca-bad { background: #f3c27a; color: #3a2410; }
+.tk-ca-test { display: inline-block; margin-left: 10px; vertical-align: 1px; font-size: 10.5px; letter-spacing: 0.08em; color: #3a2410; background: #f3c27a; border-radius: 20px; padding: 3px 9px; }
+.tk-ca-box-test { border-style: dashed; border-color: rgba(243,194,122,0.7); }
 .tk-ca-links { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 12px; }
 .tk-ca-links a { font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; color: #e1dcfa; text-decoration: underline; text-underline-offset: 3px; }
 .tk-uses { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }

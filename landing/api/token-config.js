@@ -15,6 +15,11 @@ const RPC = process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com'
 const EXPECT = process.env.EXPECTED_SYMBOL || 'VELFI'
 const FALLBACK = process.env.VELFI_CA || null
 const KEY = 'velfi:ca'
+// Test mode: rehearse the live path with a real, existing token (mainnet USDC),
+// shown with a TEST badge. Only this one mint is accepted as a test, so a leaked
+// key can't use test mode to show anything else.
+const TEST_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
+const TEST_SYMBOL = 'USDC'
 
 const NO_STORE = {
   'content-type': 'application/json',
@@ -38,17 +43,18 @@ async function redis(cmd) {
 // One on-chain check per address per warm instance per 30s, so polling visitors
 // don't hammer the RPC. A swap to a new address is checked at once.
 const checked = new Map()
-async function verify(address) {
-  const hit = checked.get(address)
+async function verify(address, expect = EXPECT) {
+  const ck = `${expect}:${address}`
+  const hit = checked.get(ck)
   if (hit && Date.now() - hit.at < 30_000) return hit.result
   let result
   try {
     const m = await inspectMint(RPC, address)
-    result = { ...judge(m, EXPECT), symbol: m.symbol || null }
+    result = { ...judge(m, expect), symbol: m.symbol || null }
   } catch (e) {
     result = { verified: false, reason: `Couldn't reach Solana to check it (${e.message}).`, transient: true }
   }
-  if (!result.transient) checked.set(address, { at: Date.now(), result })
+  if (!result.transient) checked.set(ck, { at: Date.now(), result })
   return result
 }
 
@@ -64,13 +70,15 @@ function sameKey(a, b) {
 
 export default async function handler(req, res) {
   if (req.method === 'GET' || req.method === 'HEAD') {
-    let address = null
-    try { address = await redis(['GET', KEY]) } catch { /* fall back below */ }
+    let stored = null
+    try { stored = await redis(['GET', KEY]) } catch { /* fall back below */ }
+    const test = stored === `test:${TEST_MINT}`
+    let address = test ? TEST_MINT : stored
     if (!isSolanaAddress(address)) address = isSolanaAddress(FALLBACK) ? FALLBACK : null
     if (!address) return send(res, 200, { status: 'pending', ts: Date.now() })
-    const v = await verify(address)
-    if (!v.verified) return send(res, 200, { status: 'unverified', reason: v.reason, ts: Date.now() })
-    return send(res, 200, { status: 'live', address, symbol: v.symbol, ts: Date.now() })
+    const v = await verify(address, test ? TEST_SYMBOL : EXPECT)
+    if (!v.verified) return send(res, 200, { status: 'unverified', reason: v.reason, test, ts: Date.now() })
+    return send(res, 200, { status: 'live', address, symbol: v.symbol, test, ts: Date.now() })
   }
 
   if (req.method === 'POST') {
@@ -80,6 +88,11 @@ export default async function handler(req, res) {
     const address = body?.address
     try {
       if (address === null) { await redis(['DEL', KEY]); checked.clear(); return send(res, 200, { cleared: true }) }
+      if (body?.test === true) {
+        await redis(['SET', KEY, `test:${TEST_MINT}`])
+        const v = await verify(TEST_MINT, TEST_SYMBOL)
+        return send(res, 200, { address: TEST_MINT, ok: true, test: true, status: v.verified ? 'live' : 'unverified', reason: v.reason || null, symbol: v.symbol || null })
+      }
       if (!isSolanaAddress(address)) return send(res, 400, { error: 'not a Solana address' })
       await redis(['SET', KEY, address])
       checked.delete(address)
