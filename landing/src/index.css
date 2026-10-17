@@ -1681,6 +1681,15 @@ html, body {
 .tk-ca-soon { font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #2a1a3a; background: #b4a8d0; border-radius: 20px; padding: 4px 10px; white-space: nowrap; }
 .tk-ca-note { font-family: 'DM Sans', sans-serif; font-size: 13px; line-height: 1.55; color: rgba(255,255,255,0.6); margin: 12px 0 0; }
 .tk-ca-note a { color: #e1dcfa; }
+.tk-ca-box-live { border-style: solid; border-color: rgba(225,220,250,0.5); background: rgba(255,255,255,0.09); }
+.tk-ca-addr { font-size: 13.5px; word-break: break-all; line-height: 1.45; min-width: 0; }
+.tk-ca-copy { flex-shrink: 0; font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; color: #2a1a3a; background: #e1dcfa; border: 0; border-radius: 20px; padding: 7px 14px; cursor: pointer; transition: transform .15s ease, background .15s ease; }
+.tk-ca-copy:hover { background: #ffffff; }
+.tk-ca-copy:active { transform: scale(0.96); }
+.tk-ca-copy:focus-visible { outline: 2px solid #e1dcfa; outline-offset: 2px; }
+.tk-ca-bad { background: #f3c27a; color: #3a2410; }
+.tk-ca-links { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 12px; }
+.tk-ca-links a { font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; color: #e1dcfa; text-decoration: underline; text-underline-offset: 3px; }
 .tk-uses { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 .tk-use {
   background: linear-gradient(180deg, #FBFAFE 0%, rgba(251,250,254,0.4) 100%); border: 1px solid rgba(255,255,255,0.7);

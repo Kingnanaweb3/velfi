@@ -4,6 +4,7 @@ import cardImg from './assets/what-card.webp'
 import waitlistBg from './assets/waitlist-bg.webp'
 import otter from './assets/otter.webp'
 import { useState, useEffect, useRef } from 'react'
+import TokenCA from './TokenCA'
 
 // The Velfi web app (sign in with Google, claim a .vel name).
 const APP_URL = 'https://app.velfi.xyz'
@@ -312,14 +313,7 @@ function App() {
               <div className="tk-row"><span>Launch</span><b>Fair launch</b></div>
               <div className="tk-row"><span>Network</span><b>Solana</b></div>
             </div>
-            <div className="tk-ca">
-              <span className="tk-ca-label">Contract address</span>
-              <div className="tk-ca-box">
-                <span className="tk-ca-value">Coming soon</span>
-                <span className="tk-ca-soon">Not live yet</span>
-              </div>
-              <p className="tk-ca-note">Only trust the address posted here and on <a href="https://x.com/velfi_xyz" target="_blank" rel="noreferrer">@velfi_xyz</a>. Any $VELFI before then is fake.</p>
-            </div>
+            <TokenCA />
           </div>
           <div className="tk-uses">
             <div className="tk-use reveal">
