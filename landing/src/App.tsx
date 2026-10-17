@@ -5,6 +5,7 @@ import waitlistBg from './assets/waitlist-bg.webp'
 import otter from './assets/otter.webp'
 import { useState, useEffect, useRef } from 'react'
 import TokenCA from './TokenCA'
+import HeroToken from './HeroToken'
 
 // The Velfi web app (sign in with Google, claim a .vel name).
 const APP_URL = 'https://app.velfi.xyz'
@@ -99,7 +100,7 @@ function App() {
 
       <section className="hero">
         <div className="hero-content">
-          <a href="#token" className="hero-token"><span className="hero-token-dot"></span>$VELFI token coming soon on Solana <span className="hero-token-arrow">→</span></a>
+          <HeroToken />
           <h1 className="hero-headline">Tell Your Money<br />What To Do.</h1>
           <p className="hero-body">The AI money agent that lets you perform sophisticated and complex transactions by just texting them into on-chain financial workflows.</p>
           <a href={APP_URL} className="hero-cta">Open the app</a>

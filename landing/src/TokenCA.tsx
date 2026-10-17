@@ -1,45 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useTokenConfig, useCopy } from './tokenConfig'
 
-// The live $VELFI contract address. It is data the page fetches, not code it is
-// built with, so it appears within 5 seconds of `./swap-ca.sh <address>`, even in
-// tabs that are already open. The server only hands out an address after checking
-// on-chain that it is a real token called VELFI; anything else shows UNVERIFIED.
-type Config =
-  | { status: 'pending' }
-  | { status: 'unverified'; reason?: string }
-  | { status: 'live'; address: string; symbol?: string; test?: boolean }
-
-const B58 = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/
-
+// The live $VELFI contract address in the token section. The server only hands
+// out an address after checking on-chain that it is a real token called VELFI;
+// anything else shows UNVERIFIED. Shares one poller with the hero pill.
 export default function TokenCA() {
-  const [cfg, setCfg] = useState<Config>({ status: 'pending' })
-  const [copied, setCopied] = useState(false)
-
-  useEffect(() => {
-    let alive = true
-    const load = async () => {
-      try {
-        const r = await fetch(`/api/token-config?t=${Date.now()}`, { cache: 'no-store' })
-        if (!r.ok) return
-        const d = await r.json()
-        if (!alive) return
-        if (d.status === 'live' && B58.test(d.address || '')) setCfg({ status: 'live', address: d.address, symbol: d.symbol, test: !!d.test })
-        else if (d.status === 'unverified') setCfg({ status: 'unverified', reason: d.reason })
-        else setCfg({ status: 'pending' })
-      } catch { /* keep what we have; try again in 5s */ }
-    }
-    load()
-    // Keep polling after it goes live, so a correction still reaches open tabs.
-    const id = setInterval(load, 5000)
-    const onVisible = () => { if (document.visibilityState === 'visible') load() }
-    document.addEventListener('visibilitychange', onVisible)
-    return () => { alive = false; clearInterval(id); document.removeEventListener('visibilitychange', onVisible) }
-  }, [])
-
-  const copy = async () => {
-    if (cfg.status !== 'live') return
-    try { await navigator.clipboard.writeText(cfg.address); setCopied(true); setTimeout(() => setCopied(false), 1600) } catch { /* ignore */ }
-  }
+  const cfg = useTokenConfig()
+  const { copied, copy: copyText } = useCopy()
+  const copy = () => { if (cfg.status === 'live') copyText(cfg.address) }
 
   return (
     <div className="tk-ca">

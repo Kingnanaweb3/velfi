@@ -1661,6 +1661,27 @@ html, body {
 .hero-token:hover { opacity: 0.8; }
 .hero-token-dot { width: 8px; height: 8px; border-radius: 50%; background: linear-gradient(135deg, #9945ff, #14f195); flex: none; }
 .hero-token-arrow { color: #6a5a8a; }
+.hero-token-live { gap: 10px; padding: 6px 6px 6px 16px; cursor: default; max-width: 100%; position: relative; }
+.hero-token-live:hover { opacity: 1; }
+.hero-token-label { color: #2a1a3a; text-decoration: none; white-space: nowrap; }
+.hero-token-label:hover { text-decoration: underline; text-underline-offset: 3px; }
+.hero-token-sep { width: 1px; height: 16px; background: rgba(42,26,58,0.18); flex: none; }
+/* The address is shown exactly as written on Solana: no case changes, ever. */
+.hero-token-addr { font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: 12.5px; font-weight: 500; letter-spacing: 0; text-transform: none; font-variant: normal; color: #2a1a3a; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hero-token-short { display: none; }
+.hero-token-copy { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; border: 0; background: #2a1a3a; color: #fff; cursor: pointer; transition: transform .15s ease, background .15s ease; }
+.hero-token-copy:hover { background: #3d2a52; }
+.hero-token-copy:active { transform: scale(0.92); }
+.hero-token-copy:focus-visible { outline: 2px solid #9945ff; outline-offset: 2px; }
+.hero-token-toast { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.hero-token-pulse { animation: heroTokenPulse 2s ease-in-out infinite; }
+@keyframes heroTokenPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(20,241,149,0.55); } 50% { box-shadow: 0 0 0 5px rgba(20,241,149,0); } }
+@media (prefers-reduced-motion: reduce) { .hero-token-pulse { animation: none; } }
+.hero-token-test { background: rgba(255,240,214,0.85); border-color: rgba(243,194,122,0.9); }
+@media (max-width: 640px) {
+  .hero-token-full { display: none; }
+  .hero-token-short { display: inline; }
+}
 
 .tk-section { width: 100%; background: var(--bg); padding: 100px 6%; border-top: 1px solid rgba(0,0,0,0.06); }
 .tk-headline {
