@@ -18,8 +18,8 @@ export default function TokenCA() {
             <button type="button" className="tk-ca-copy" onClick={copy} aria-label="Copy contract address">{copied ? 'Copied' : 'Copy'}</button>
           </div>
           <div className="tk-ca-links">
-            <a href={`https://solscan.io/token/${cfg.address}`} target="_blank" rel="noreferrer">View on Solscan</a>
-            {!cfg.test && <a href={`https://jup.ag/swap/SOL-${cfg.address}`} target="_blank" rel="noreferrer">Buy on Jupiter</a>}
+            <a href={`https://bscscan.com/token/${cfg.address}`} target="_blank" rel="noreferrer">View on BscScan</a>
+            {!cfg.test && <a href={`https://pancakeswap.finance/swap?chain=bsc&outputCurrency=${cfg.address}`} target="_blank" rel="noreferrer">Buy on PancakeSwap</a>}
           </div>
         </>
       ) : (
@@ -30,7 +30,7 @@ export default function TokenCA() {
       )}
       <p className="tk-ca-note">
         {cfg.status === 'live' && cfg.test
-          ? 'This is a test of the address box using USDC. It is not $VELFI and $VELFI is not live yet. Watch '
+          ? 'This is a test of the address box using USDT. It is not $VELFI and $VELFI is not live yet. Watch '
           : cfg.status === 'unverified'
           ? 'The address set here did not check out on-chain as $VELFI, so it is hidden. Do not buy anything until it shows here and on '
           : 'Only trust the address posted here and on '}

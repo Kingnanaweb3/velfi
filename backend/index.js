@@ -12,7 +12,8 @@ import agentRouter from './routes/agent.js'
 import txRouter from './routes/tx.js'
 import { startScheduleRunner } from './lib/schedule.js'
 import { startInviteRunner } from './lib/invites.js'
-import { CLUSTER, MODE, feePayer, feePayerLamports } from './lib/solana.js'
+import { CLUSTER, MODE, CHAIN_ID, feePayer, feePayerWei, checkTokens } from './lib/bnb.js'
+import { TOKEN_LIST } from './lib/tokens.js'
 import { startupProblems } from './lib/config.js'
 
 const app = express()
@@ -30,20 +31,22 @@ app.get('/', (req, res) => {
     status: 'ok', 
     app: 'Vel.fi Backend', 
     version: '1.0.0',
-    chain: CLUSTER,
+    chain: 'bnb',
+    network: CLUSTER,
+    chainId: CHAIN_ID,
     mode: MODE,
     routes: ['/auth', '/users', '/account', '/streams', '/schedule', '/agent', '/tx']
   })
 })
 
-// For uptime monitors: fails (503) when the fee payer is running low.
+// For uptime monitors: fails (503) when the gas wallet is running low.
 app.get('/health', async (req, res) => {
   try {
-    const sol = (await feePayerLamports()) / 1e9
-    const min = Number(process.env.MIN_FEE_PAYER_SOL || 0.05)
-    res.status(sol >= min ? 200 : 503).json({ ok: sol >= min, cluster: CLUSTER, mode: MODE, feePayer: feePayer().publicKey.toBase58(), feePayerSol: sol, minSol: min })
+    const bnb = Number(await feePayerWei()) / 1e18
+    const min = Number(process.env.MIN_GAS_WALLET_BNB || 0.02)
+    res.status(bnb >= min ? 200 : 503).json({ ok: bnb >= min, chain: 'bnb', network: CLUSTER, mode: MODE, gasWallet: feePayer().address, gasWalletBnb: bnb, minBnb: min })
   } catch (e) {
-    res.status(503).json({ ok: false, cluster: CLUSTER, mode: MODE, error: 'cannot reach Solana RPC' })
+    res.status(503).json({ ok: false, chain: 'bnb', network: CLUSTER, mode: MODE, error: 'cannot reach the BNB Chain RPC' })
   }
 })
 
@@ -62,7 +65,17 @@ if (problems.fatal.length) {
 }
 for (const w of problems.warn) console.warn('⚠️ ', w)
 
+// A wrong token address is a wrong token: check decimals on the chain first.
+const tokenProblems = await checkTokens(TOKEN_LIST).catch(e => [`could not check tokens: ${e.message}`])
+if (tokenProblems.length) {
+  if (process.env.BNB_NETWORK === 'mainnet') { console.error('Velfi will not start:\n - ' + tokenProblems.join('\n - ')); process.exit(1) }
+  for (const w of tokenProblems) console.warn('⚠️ ', w)
+}
+
 app.listen(PORT, () => {
+  let gas = 'not set'
+  try { gas = feePayer().address } catch {}
+  console.log(`Chain: BNB ${CLUSTER} (chain id ${CHAIN_ID}), gas wallet ${gas}`)
   startScheduleRunner()
   startInviteRunner()
   console.log(`Vel.fi backend running on port ${PORT}`)

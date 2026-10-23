@@ -10,11 +10,11 @@ Your `.vel` name is free to claim during early access. It replaces wallet addres
 
 ### Which blockchain does Velfi use?
 
-Velfi is launching on **Solana**, chosen for its near-instant settlement, fees of a fraction of a cent, and deep stablecoin liquidity. More networks may be supported over time, but Solana is our home.
+Velfi is launching on **BNB Chain**, chosen for its near-instant settlement, fees of a fraction of a cent, and deep stablecoin liquidity. More networks may be supported over time, but BNB Chain is our home.
 
 ### Is my money safe?
 
-Velfi is designed so nothing moves without your approval. Your funds stay in your own wallet, you sign in without a seed phrase, payments run on Solana, and every transaction is recorded on-chain and verifiable. See [Security](/velfi/security/non-custodial.md).
+Velfi is designed so nothing moves without your approval. Your funds stay in your own wallet, you sign in without a seed phrase, payments run on BNB Chain, and every transaction is recorded on-chain and verifiable. See [Security](/velfi/security/non-custodial.md).
 
 ### Do I need crypto experience?
 
@@ -42,6 +42,6 @@ Open [app.velfi.xyz](https://app.velfi.xyz), sign in with Google and claim your 
 
 ### Does Velfi have a token?
 
-Yes. $VELFI is launching on Solana with a total supply of 1,000,000,000 and a fair launch. The contract address isn't live yet, so only trust the one posted in the docs and on [@velfixyz](https://x.com/velfixyz). See [$VELFI token](/velfi/token/velfi.md). Velfi's only official X account is [@velfixyz](https://x.com/velfixyz); look-alike accounts are not us.
+Yes. $VELFI is launching on BNB Chain with a total supply of 1,000,000,000 and a fair launch. The contract address isn't live yet, so only trust the one posted in the docs and on [@velfixyz](https://x.com/velfixyz). See [$VELFI token](/velfi/token/velfi.md). Velfi's only official X account is [@velfixyz](https://x.com/velfixyz); look-alike accounts are not us.
 
 

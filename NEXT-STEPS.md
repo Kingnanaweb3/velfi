@@ -1,4 +1,4 @@
-> **Update:** Velfi is moving to Solana. The Sui notes below are history. Start with [SOLANA.md](SOLANA.md).
+> **Update:** Velfi now runs on BNB Chain. Start with [BNB.md](BNB.md). The Solana version is the git tag `solana-v1` (notes in docs/solana). The Sui notes below are history.
 
 # Velfi — Status & Next Steps
 

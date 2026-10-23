@@ -1,17 +1,20 @@
 // Recurring payments.
 //  - Lite mode ("delegate"): the user approved Velfi's agent to spend up to the
-//    schedule's total budget from their wallet. Solana caps the total; this
+//    schedule's total budget from their wallet (an ERC-20 allowance on BNB Chain).
+//    The token contract caps the total; this
 //    runner enforces the recipient, the amount per payment and the timing, and
 //    claims each payment in the database BEFORE sending so it can never pay twice.
 //  - Program mode ("mandate"): the on-chain mandate enforces all of the above.
 import supabaseAdmin from './supabaseAdmin.js'
 import { buildExecuteMandate, buildDelegatedPayment } from './txBuilder.js'
-import { sendAsServer, agent, explorerTx } from './solana.js'
+import { sendAsServer, agent, explorerTx } from './bnb.js'
 import { getTokenByMint } from './tokens.js'
 import { checkScheduledPayment } from './chain/lite.js'
 
 const TICK_MS = 30_000
-// Optional: speed schedules up for demos on devnet (e.g. 60 = one payment a minute).
+// Optional: speed schedules up for demos on testnet (e.g. 60 = one payment a minute).
+// Rows from the Solana version share the table; this runner only touches BNB rows.
+export const CHAIN = 'bnb'
 const DEMO_SECS = Number(process.env.SCHEDULE_DEMO_SECS || 0)
 
 export async function recordSchedule({ userAddress, recipient, recipientName, token, mint, amount, amountUnits, frequency, plan, mandate = null, mode = 'mandate', signature }) {
@@ -21,7 +24,7 @@ export async function recordSchedule({ userAddress, recipient, recipientName, to
     schedule_type: 'recurring', frequency, interval_secs: plan.intervalSecs,
     occurrences: plan.count, occurrences_done: 0,
     next_run_at: new Date().toISOString(),
-    status: 'active', mandate_address: mandate, mode, tx_hash: signature,
+    status: 'active', mandate_address: mandate, mode, tx_hash: signature, chain: CHAIN,
   }).select().single()
   if (error) throw new Error(`schedule insert failed: ${error.message}`)
   return data
@@ -35,8 +38,9 @@ async function fail(sc, reason) {
 }
 
 async function runOne(sc) {
+  if (sc.chain !== CHAIN) return null // Solana (or older Sui) rows are not ours
   const mode = sc.mode || (sc.mandate_address ? 'mandate' : null)
-  if (!mode) return null // legacy Sui rows are skipped
+  if (!mode) return null
   if (mode === 'delegate') {
     const why = checkScheduledPayment(sc)
     if (why) return null
@@ -61,7 +65,7 @@ async function runOne(sc) {
     const ixs = mode === 'delegate'
       ? (await buildDelegatedPayment({ owner: sc.user_address, recipient: sc.recipient, token: getTokenByMint(sc.mint), amountUnits: BigInt(sc.amount_units) })).ixs
       : await buildExecuteMandate({ mandate: sc.mandate_address, recipient: sc.recipient, mint: sc.mint, amountUnits: BigInt(sc.amount_units) })
-    signature = await sendAsServer(ixs, [agent()])
+    signature = await sendAsServer(ixs, agent())
   } catch (e) {
     // Not enough balance, permission removed, mandate expired: stop and tell the user.
     await supabaseAdmin.from('scheduled_payments').update({ occurrences_done: before }).eq('id', sc.id)
@@ -84,7 +88,7 @@ export async function tickSchedules() {
   _ticking = true
   try {
     const { data } = await supabaseAdmin.from('scheduled_payments').select('*')
-      .eq('status', 'active').lte('next_run_at', new Date().toISOString())
+      .eq('status', 'active').eq('chain', CHAIN).lte('next_run_at', new Date().toISOString())
     for (const sc of data || []) { try { await runOne(sc) } catch (e) { console.error('schedule tick', sc.id, e.message) } }
   } finally { _ticking = false }
 }

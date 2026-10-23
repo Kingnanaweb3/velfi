@@ -1,75 +1,76 @@
-// The user's own Solana wallet (Privy embedded wallet created at Google sign-in).
+// The user's own BNB Chain wallet (Privy embedded EVM wallet created at Google sign-in).
 // Everything Privy-specific lives here, so a Privy upgrade only touches this file.
 import { useCallback } from 'react'
-import { useSolanaWallets } from '@privy-io/react-auth/solana'
-import { PublicKey, Transaction, VersionedTransaction } from '@solana/web3.js'
-import { b64ToBytes, bytesToB64 } from '../lib/chain.js'
-
-// Privy versions return a signature as bytes, base64, or { signature }.
-function sigBytes(out) {
-  const s = out && typeof out === 'object' && !(out instanceof Uint8Array) && 'signature' in out ? out.signature : out
-  if (s instanceof Uint8Array) return s
-  if (Array.isArray(s)) return Uint8Array.from(s)
-  if (typeof s === 'string') return b64ToBytes(s)
-  throw new Error('The wallet returned no signature.')
-}
+import { useWallets, useSignTransaction } from '@privy-io/react-auth'
+import { parseTransaction, recoverTransactionAddress } from 'viem'
+import { CHAIN_ID } from '../lib/chain.js'
 
 function limit(promise, ms, message) {
   let t
   return Promise.race([promise, new Promise((_, rej) => { t = setTimeout(() => rej(new Error(message)), ms) })]).finally(() => clearTimeout(t))
 }
 
+const sameAddr = (a, b) => String(a || '').toLowerCase() === String(b || '').toLowerCase()
+
+// Privy versions return a signed transaction as a hex string or { signature }.
+function signedHex(out) {
+  const s = out && typeof out === 'object' && 'signature' in out ? out.signature : out
+  if (typeof s === 'string' && /^0x[0-9a-fA-F]+$/.test(s)) return s
+  throw new Error('The wallet returned no signed transaction.')
+}
+
 export function useVelfiWallet() {
-  const { wallets, ready } = useSolanaWallets()
+  const { wallets, ready } = useWallets()
+  const { signTransaction } = useSignTransaction()
   // Only ever the Velfi (Privy embedded) wallet. Never fall back to a browser
-  // extension like Phantom: it is a different address, and its pop-up can sit
+  // extension like MetaMask: it is a different address, and its pop-up can sit
   // hidden behind the window so the approval looks stuck.
   const wallet = wallets.find(w => w.walletClientType === 'privy') || null
 
-  // Sign a transaction Velfi prepared (base64). Velfi already signed as fee payer.
-  // This is Privy's recommended way for a transaction someone else pays for: the
-  // wallet signs the exact message bytes, and that signature is added next to
-  // Velfi's. Velfi's server then checks the result matches what it prepared.
-  const sign = useCallback(async (b64, { versioned = false } = {}) => {
+  // Sign the transactions Velfi prepared (a list; one slide approves them all).
+  // Velfi's server checks every signed one matches what it prepared, covers any
+  // missing network fee, and only then sends them.
+  const sign = useCallback(async (txs) => {
     if (!wallet || !ready) throw new Error('Your wallet is still loading. Try again in a second.')
-    const bytes = b64ToBytes(b64)
-    const me = new PublicKey(wallet.address)
-    const tx = versioned ? VersionedTransaction.deserialize(bytes) : Transaction.from(bytes)
-    const message = versioned ? tx.message.serialize() : tx.serializeMessage()
-
-    // 1) Privy's documented route: the embedded wallet provider signs the message
-    //    (base64 in, { signature: base64 } out). 2) The wallet's own signMessage.
-    //    Each try has its own time limit, and the first real error is kept, so a
-    //    second try that hangs can't hide why the first one failed.
-    const tries = []
-    if (typeof wallet.getProvider === 'function') tries.push(['provider', async () => {
-      const provider = await wallet.getProvider()
-      return provider.request({ method: 'signMessage', params: { message: bytesToB64(message) } })
-    }])
-    if (typeof wallet.signMessage === 'function') tries.push(['signMessage', () => wallet.signMessage(message)])
-
-    let firstError = null
-    for (const [name, run] of tries) {
-      try {
-        const sig = sigBytes(await limit(run(), 20_000, `${name} timed out`))
-        if (sig.length !== 64) throw new Error(`${name} returned a ${sig.length}-byte signature`)
-        tx.addSignature(me, sig)
-        if (!versioned && !tx.verifySignatures(false)) throw new Error(`${name} signature did not check out`)
-        return bytesToB64(tx.serialize(versioned ? undefined : { requireAllSignatures: false, verifySignatures: false }))
-      } catch (e) {
-        console.error(`Velfi sign (${name}) failed:`, e)
-        if (/reject|denied|cancel|closed/i.test(String(e?.message))) throw e
-        firstError ||= e
-      }
+    const list = Array.isArray(txs) ? txs : [txs]
+    if (wallet.chainId !== `eip155:${CHAIN_ID}`) {
+      try { await wallet.switchChain(CHAIN_ID) } catch (e) { console.warn('Velfi: switchChain', e) }
     }
-    if (typeof wallet.signTransaction !== 'function') throw firstError || new Error('This wallet cannot sign.')
+    const out = []
+    for (const t of list) {
+      const req = { from: wallet.address, to: t.to, data: t.data, value: t.value, nonce: t.nonce, gasPrice: t.gasPrice, chainId: Number(t.chainId), type: 0 }
 
-    // Last resort: let the wallet sign the whole transaction.
-    let signed
-    try { signed = await limit(wallet.signTransaction(tx), 20_000, 'signTransaction timed out') }
-    catch (e) { console.error('Velfi sign (signTransaction) failed:', e); throw firstError || e }
-    return bytesToB64(versioned ? signed.serialize() : signed.serialize({ requireAllSignatures: false, verifySignatures: false }))
-  }, [wallet, ready])
+      // 1) Privy's hook (no pop-up: Velfi's own slide is the confirmation).
+      // 2) The wallet's EIP-1193 provider. Each has its own time limit, and the
+      //    first real error is kept, so a second try that hangs can't hide it.
+      const tries = [
+        ['signTransaction', () => signTransaction({ ...req, gasLimit: t.gas }, { address: wallet.address, uiOptions: { showWalletUIs: false } })],
+        ['provider', async () => {
+          const provider = await wallet.getEthereumProvider()
+          return provider.request({ method: 'eth_signTransaction', params: [{ ...req, gas: t.gas, gasLimit: t.gas, chainId: `0x${Number(t.chainId).toString(16)}`, type: '0x0' }] })
+        }],
+      ]
+      let signed = null, firstError = null
+      for (const [name, run] of tries) {
+        try {
+          const hex = signedHex(await limit(run(), 25_000, `${name} timed out`))
+          // Check it here too, so a wallet quirk shows up as a clear error.
+          const p = parseTransaction(hex)
+          if (!sameAddr(p.to, t.to) || Number(p.nonce) !== Number(t.nonce)) throw new Error(`${name} signed a different transaction`)
+          if (!sameAddr(await recoverTransactionAddress({ serializedTransaction: hex }), wallet.address)) throw new Error(`${name} signed with a different wallet`)
+          signed = hex
+          break
+        } catch (e) {
+          console.error(`Velfi sign (${name}) failed:`, e)
+          if (/reject|denied|cancel|closed/i.test(String(e?.message))) throw e
+          firstError ||= e
+        }
+      }
+      if (!signed) throw firstError || new Error('This wallet cannot sign.')
+      out.push(signed)
+    }
+    return out
+  }, [wallet, ready, signTransaction])
 
   return { ready, address: wallet?.address || null, sign }
 }

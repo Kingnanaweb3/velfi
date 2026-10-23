@@ -2,14 +2,14 @@ import { useTokenConfig, useCopy } from './tokenConfig'
 
 // The pill above the hero headline. Before launch: "coming soon". Once the
 // address is live (and checked on-chain): "$VELFI is live" + the address exactly
-// as it is written on Solana (upper and lower case kept) + a copy button.
+// exactly as written (upper and lower case kept) + a copy button.
 export default function HeroToken() {
   const cfg = useTokenConfig()
   const { copied, copy } = useCopy()
 
   if (cfg.status !== 'live') {
     return (
-      <a href="#token" className="hero-token"><span className="hero-token-dot"></span>$VELFI token coming soon on Solana <span className="hero-token-arrow">→</span></a>
+      <a href="#token" className="hero-token"><span className="hero-token-dot"></span>$VELFI token coming soon on BNB Chain <span className="hero-token-arrow">→</span></a>
     )
   }
 

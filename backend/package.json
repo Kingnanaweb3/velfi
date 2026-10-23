@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "node --test test/*.test.js && node --import ./test/harness/register.mjs --test test/routes.test.mjs test/lite-routes.test.mjs"
+    "test": "node --test test/*.test.js",
+    "test:chain": "node --import ./test/harness/register-bnb.mjs --test --test-concurrency=1 test/chain/bnb.chain.test.mjs",
+    "new-wallet": "node scripts/new-wallet.mjs"
   },
   "keywords": [],
   "author": "",
@@ -13,15 +15,14 @@
   "type": "module",
   "dependencies": {
     "@privy-io/server-auth": "^1.18.0",
-    "@solana/spl-token": "^0.4.13",
-    "@solana/web3.js": "^1.98.0",
     "@supabase/supabase-js": "^2.108.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "resend": "^6.12.4",
-    "uuid": "^14.0.0"
+    "uuid": "^14.0.0",
+    "viem": "^2.57.7"
   },
   "engines": {
     "node": "22.x"

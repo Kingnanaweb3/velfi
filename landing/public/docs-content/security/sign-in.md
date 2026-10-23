@@ -1,6 +1,6 @@
 # Sign-in & your wallet
 
-Velfi lets you sign in with Google and skip seed phrases entirely. Behind that sign-in is your own **wallet on Solana**.
+Velfi lets you sign in with Google and skip seed phrases entirely. Behind that sign-in is your own **wallet on BNB Chain**.
 
 ### The problem with seed phrases
 
@@ -13,11 +13,11 @@ For most people, this is the scariest and most error-prone part of using crypto.
 
 ### How Velfi fixes it
 
-When you sign in with Google, Velfi sets up a Solana wallet for you that you unlock with the Google account you already have. There's no seed phrase to generate, store or lose.
+When you sign in with Google, Velfi sets up a BNB Chain wallet for you that you unlock with the Google account you already have. There's no seed phrase to generate, store or lose.
 
-Solana also makes the rest of Velfi possible:
+BNB Chain also makes the rest of Velfi possible:
 
-* **No gas token.** Velfi pays the network fee for you, so you never need to hold SOL just to send money.
+* **No gas token.** Velfi pays the network fee for you, so you never need to hold BNB just to send money.
 * **One approval for many actions.** Several payments can go out together in a single transaction that succeeds or fails as a whole.
 * **Limits you set.** Autopilot can only act inside rules you approve, enforced on-chain: a budget, a cap per payment, and a list of allowed recipients.
 

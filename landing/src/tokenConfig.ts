@@ -9,7 +9,7 @@ export type TokenConfig =
   | { status: 'unverified'; reason?: string }
   | { status: 'live'; address: string; symbol?: string; test?: boolean }
 
-const B58 = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/
+const EVM = /^0x[0-9a-fA-F]{40}$/
 let current: TokenConfig = { status: 'pending' }
 let currentKey = JSON.stringify(current)
 const listeners = new Set<(c: TokenConfig) => void>()
@@ -21,7 +21,7 @@ async function load() {
     if (!r.ok) return
     const d = await r.json()
     const next: TokenConfig =
-      d.status === 'live' && B58.test(d.address || '') ? { status: 'live', address: d.address, symbol: d.symbol, test: !!d.test }
+      d.status === 'live' && EVM.test(d.address || '') ? { status: 'live', address: d.address, symbol: d.symbol, test: !!d.test }
       : d.status === 'unverified' ? { status: 'unverified', reason: d.reason }
       : { status: 'pending' }
     const key = JSON.stringify(next)

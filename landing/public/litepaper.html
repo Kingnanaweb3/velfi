@@ -393,7 +393,7 @@
 
     <div class="doc-kicker">Litepaper · v1.1</div>
     <h1 class="doc-title">Tell your money <em>what to do.</em></h1>
-    <p class="doc-sub">An AI money agent that turns a single text instruction into on-chain financial workflows — launching on Solana.</p>
+    <p class="doc-sub">An AI money agent that turns a single text instruction into on-chain financial workflows — launching on BNB Chain.</p>
 
     <dl class="doc-meta">
       <div>
@@ -410,7 +410,7 @@
       </div>
       <div>
         <dt>Network</dt>
-        <dd>Solana</dd>
+        <dd>BNB Chain</dd>
       </div>
     </dl>
   </div>
@@ -423,8 +423,8 @@
     <section id="abstract">
       <h2>Abstract</h2>
       <p>Velfi is an AI money agent. A user signs in with Google, claims a handle of the form <span class="handle">alice.vel</span>, and instructs their money in plain language. "Split rent three ways." "Pay my designer every Friday." "Hold this in escrow until the work ships." Velfi reads the instruction, builds the on-chain workflow, and executes it — with a single confirmation.</p>
-      <p>The user holds no gas token, writes down no seed phrase, and never sees a wallet address, a swap screen, or the word "blockchain." Underneath, Velfi is a non-custodial <strong>Solana</strong> wallet, unlocked with a Google sign-in. The handle is a name you own. Payments settle through on-chain programs almost instantly, for a fraction of a cent, with fees covered by Velfi. The intelligence that turns words into workflows is a language model that proposes the transaction — but never holds the keys.</p>
-      <p>This document describes the problem Velfi solves, how the system is built, why it is launching on Solana, how it stays secure and non-custodial, how it sustains itself, and what comes next.</p>
+      <p>The user holds no gas token, writes down no seed phrase, and never sees a wallet address, a swap screen, or the word "blockchain." Underneath, Velfi is a non-custodial <strong>BNB Chain</strong> wallet, unlocked with a Google sign-in. The handle is a name you own. Payments settle through on-chain programs almost instantly, for a fraction of a cent, with fees covered by Velfi. The intelligence that turns words into workflows is a language model that proposes the transaction — but never holds the keys.</p>
+      <p>This document describes the problem Velfi solves, how the system is built, why it is launching on BNB Chain, how it stays secure and non-custodial, how it sustains itself, and what comes next.</p>
     </section>
 
     <section id="overview">
@@ -466,7 +466,7 @@
       <p>Velfi is an agent that sits between human intent and on-chain settlement. The flow is four steps, and only the first time involves any setup at all.</p>
 
       <ol>
-        <li><strong>Sign in with Google.</strong> Velfi creates a self-custodial Solana wallet, unlocked with the Google account. No seed phrase exists to lose or leak. Switch devices, sign in again, and the same wallet returns.</li>
+        <li><strong>Sign in with Google.</strong> Velfi creates a self-custodial BNB Chain wallet, unlocked with the Google account. No seed phrase exists to lose or leak. Switch devices, sign in again, and the same wallet returns.</li>
         <li><strong>Claim a <span class="handle">.vel</span> name.</strong> A human-readable handle replaces wallet addresses — for the user and for anyone paying them.</li>
         <li><strong>Tell Velfi what you want.</strong> The instruction is written in plain English. The agent interprets it and builds the corresponding on-chain workflow.</li>
         <li><strong>Confirm once.</strong> The user approves with a single tap. Velfi executes, and for recurring flows, keeps executing automatically.</li>
@@ -479,24 +479,24 @@
       <p>An email recipient who isn't yet a user receives a claimable transfer. They sign in, claim a handle, and the funds land — turning every payment into an invitation.</p>
     </section>
 
-    <section id="why-solana">
-      <h2>Why Solana</h2>
-      <p>An agent that executes money on a user's behalf needs a settlement layer that is fast, cheap, safe to program, and able to hide its own complexity. Solana fits that brief.</p>
+    <section id="why-bnb-chain">
+      <h2>Why BNB Chain</h2>
+      <p>An agent that executes money on a user's behalf needs a settlement layer that is fast, cheap, safe to program, and able to hide its own complexity. BNB Chain fits that brief.</p>
 
       <h3>Near-instant, near-free</h3>
-      <p>Solana confirms transactions in moments, and a simple transfer costs a fraction of a cent. <a href="#references">[3]</a> For a conversational money agent, instant settlement is the difference between "it's done" and "please wait," and fees have to round to nothing for remittances, payroll and splitting a bill to make sense.</p>
+      <p>BNB Chain produces a block in under a second, and a simple transfer costs a fraction of a cent. <a href="#references">[3]</a> For a conversational money agent, instant settlement is the difference between "it's done" and "please wait," and fees have to round to nothing for remittances, payroll and splitting a bill to make sense.</p>
 
       <h3>Stablecoins first</h3>
-      <p>Most people want to send dollars, not volatile assets. USDC is issued natively on Solana and stablecoin liquidity is deep, so Velfi can be built around stablecoins from day one, with swaps routed through Jupiter when a user wants to convert.</p>
+      <p>Most people want to send dollars, not volatile assets. USDT and USDC are among the most used tokens on BNB Chain and stablecoin liquidity is deep, so Velfi can be built around stablecoins from day one, with swaps routed through PancakeSwap when a user wants to convert.</p>
 
       <h3>Many actions, one approval</h3>
-      <p>A single Solana transaction can carry many instructions that succeed or fail together. <a href="#references">[4]</a> That is exactly what "send to five people, approve once" needs: one signature, one atomic settlement, no partial payments.</p>
+      <p>Velfi prepares every transaction an instruction needs and the user approves them all with one slide. That is exactly what "send to five people, approve once" needs: one approval, sent in order, and if one step fails the rest never run.</p>
 
       <h3>Gasless by design</h3>
-      <p>On Solana, the account that pays a transaction's fee does not have to be the account sending the money. <a href="#references">[4]</a> Velfi pays the network fee on the user's behalf, so the user never holds, sees, or thinks about a fee asset — the chain becomes invisible plumbing.</p>
+      <p>Right before a payment is sent, Velfi covers the network fee on the user's behalf <a href="#references">[4]</a>, so the user never holds, sees, or thinks about a fee asset — the chain becomes invisible plumbing.</p>
 
-      <h3>Rust programs</h3>
-      <p>Velfi's payment logic is being written as Solana programs in Rust, using the Anchor framework <a href="#references">[5]</a>, with mature tooling, testing frameworks, and an established security-audit ecosystem.</p>
+      <h3>Proven contracts</h3>
+      <p>Velfi's payment logic builds on BNB Chain's EVM and its standard token contracts <a href="#references">[5]</a>, with mature tooling, testing frameworks, and an established security-audit ecosystem.</p>
     </section>
 
     <section id="different">
@@ -527,19 +527,19 @@
 
       <h3>Non-custodial by construction</h3>
       <p>Velfi never holds a user's balance. Every one-off payment is signed from the user's own wallet; the agent can assemble a transaction but cannot send it without the owner's signature. There is no admin key that can sweep balances.</p>
-      <p>Two narrow, user-approved exceptions exist at launch. A <strong>scheduled payment</strong> is approved once as a token allowance: Solana caps the total Velfi's Autopilot key can ever spend, and Velfi's server pays only the recipient, amount and timetable the user approved; cancelling removes the permission. Money sent to an <strong>email that is not on Velfi yet</strong> waits in a one-off holding wallet Velfi manages for up to seven days, then goes to the new user or back to the sender.</p>
+      <p>Two narrow, user-approved exceptions exist at launch. A <strong>scheduled payment</strong> is approved once as a token allowance: the token contract caps the total Velfi's Autopilot key can ever spend, and Velfi's server pays only the recipient, amount and timetable the user approved; cancelling removes the permission. Money sent to an <strong>email that is not on Velfi yet</strong> waits in a one-off holding wallet Velfi manages for up to seven days, then goes to the new user or back to the sender.</p>
 
       <h3>No seed phrase to compromise</h3>
       <p>Because the wallet is unlocked with an existing Google login rather than a stored secret phrase, the classic attack surface — phishing a seed phrase, finding a written-down backup, draining via a leaked key — is removed at the design level.</p>
 
       <h3>Safe-by-default building blocks</h3>
-      <p>At launch Velfi uses only Solana's built-in System and Token programs, which are among the most widely used code on the network. Velfi's own payment programs — streams, escrow and on-chain spending limits, each doing a single job with explicit checks on who may call it and how much it may release <a href="#references">[5]</a> — are written and tested, and ship after an independent security audit. Recurring flows run as deterministic code, never as an autonomous model with spending power.</p>
+      <p>At launch Velfi uses only BNB Chain's standard BEP-20 token contracts, which are among the most widely used code on the network. Velfi's own payment contracts — streams, escrow and on-chain spending limits, each doing a single job with explicit checks on who may call it and how much it may release <a href="#references">[5]</a> — are written and tested, and ship after an independent security audit. Recurring flows run as deterministic code, never as an autonomous model with spending power.</p>
 
       <h3>The AI cannot spend</h3>
       <p>The language model's role is strictly interpretation and proposal. It converts words into a structured transaction for human approval. It has no key, no signing authority, and no path to move funds on its own. A compromised or mistaken model cannot drain a user — the worst case is a proposed transaction the user simply rejects.</p>
 
       <h3>On-chain and verifiable</h3>
-      <p>Every executed flow is a public transaction on Solana that anyone can look up on Solscan. Nothing about a user's payment history depends on trusting Velfi's servers — it is independently verifiable on-chain.</p>
+      <p>Every executed flow is a public transaction on BNB Chain that anyone can look up on BscScan. Nothing about a user's payment history depends on trusting Velfi's servers — it is independently verifiable on-chain.</p>
     </section>
 
     <section id="model">
@@ -547,7 +547,7 @@
       <p>Velfi's business is built on usage, so incentives stay aligned with users actually moving money.</p>
 
       <h3>Transaction margin</h3>
-      <p>Sending value between <span class="handle">.vel</span> handles is effectively free. Velfi earns a small, transparent spread only where real-world value conversion happens — when money enters or leaves the system, or crosses currencies — comparable to how modern remittance products price, only thinner because settlement runs on Solana rather than a chain of correspondent banks.</p>
+      <p>Sending value between <span class="handle">.vel</span> handles is effectively free. Velfi earns a small, transparent spread only where real-world value conversion happens — when money enters or leaves the system, or crosses currencies — comparable to how modern remittance products price, only thinner because settlement runs on BNB Chain rather than a chain of correspondent banks.</p>
 
       <h3>Premium automation</h3>
       <p>Advanced and high-volume workflows — business payroll, treasury-style scheduled flows, larger escrow arrangements — are offered under a premium tier for teams and power users, while everyday personal use stays free.</p>
@@ -567,9 +567,9 @@
 
       <h3>Now — Foundation</h3>
       <ul>
-        <li>Google sign-in with self-custodial Solana wallets.</li>
+        <li>Google sign-in with self-custodial BNB Chain wallets.</li>
         <li>The <span class="handle">.vel</span> handle system.</li>
-        <li>Core payments on Solana: send, split, schedule, swap, and send to an email.</li>
+        <li>Core payments on BNB Chain: send, split, schedule, and send to an email, with swaps coming soon.</li>
         <li>The AI agent that turns plain-language instructions into proposed transactions.</li>
         <li>Email-to-claim transfers that onboard new users through payments.</li>
       </ul>
@@ -613,9 +613,9 @@
     <ol class="refs">
       <li>Industry analyses of self-custody adoption barriers, identifying key management as a primary obstacle to mainstream use. <em>(Reference to be finalized.)</em></li>
       <li>User-experience research on transaction complexity in self-custodial wallets. <em>(Reference to be finalized.)</em></li>
-      <li>Solana, "Fees on Solana." Solana Documentation. <a href="https://solana.com/docs/core/fees">solana.com/docs/core/fees</a></li>
-      <li>Solana, "Transactions." Solana Documentation. <a href="https://solana.com/docs/core/transactions">solana.com/docs/core/transactions</a></li>
-      <li>Anchor, "Anchor Documentation." <a href="https://www.anchor-lang.com/docs">anchor-lang.com/docs</a></li>
+      <li>BNB Chain, "BNB Chain Announces Maxwell Hardfork: BSC Moves to 0.75 Second Block Times." <a href="https://www.bnbchain.org/en/blog/bnb-chain-announces-maxwell-hardfork-bsc-moves-to-0-75-second-block-times">bnbchain.org</a></li>
+      <li>BNB Chain, "Gas Sponsorship (Paymaster)." BNB Chain Documentation. <a href="https://docs.bnbchain.org/bnb-smart-chain/developers/paymaster/overview/">docs.bnbchain.org</a></li>
+      <li>BNB Chain, "BNB Smart Chain Documentation." <a href="https://docs.bnbchain.org/bnb-smart-chain/">docs.bnbchain.org/bnb-smart-chain</a></li>
     </ol>
     <p style="font-size:13px; color:rgba(255,255,255,0.5); margin-top:32px;">This litepaper describes Velfi as designed and in active development. Features, parameters, and economics are subject to change as the product evolves. This document is informational and is not financial, investment, or legal advice.</p>
   </div>

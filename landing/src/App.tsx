@@ -137,19 +137,19 @@ function App() {
         </div>
 
         <div className="trust-strip">
-          <p className="trust-label">Launching on<br />Solana</p>
+          <p className="trust-label">Launching on<br />BNB Chain</p>
           <div className="marquee">
             <div className="marquee-track">
-              <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">Solana</span></div>
+              <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">BNB Chain</span></div>
               <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">USDC</span></div>
               <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">USDT</span></div>
-              <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">Jupiter swaps</span></div>
+              <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">PancakeSwap swaps</span></div>
               <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">Google sign-in</span></div>
               <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">Gasless payments</span></div>
-              <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">Solana</span></div>
+              <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">BNB Chain</span></div>
               <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">USDC</span></div>
               <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">USDT</span></div>
-              <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">Jupiter swaps</span></div>
+              <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">PancakeSwap swaps</span></div>
               <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">Google sign-in</span></div>
               <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">Gasless payments</span></div>
             </div>
@@ -180,7 +180,7 @@ function App() {
           <div className="how-card reveal">
             <span className="how-num">01</span>
             <h3 className="how-card-title">Sign in with Google</h3>
-            <p className="how-card-body">No seed phrase, no wallet setup. Sign in with Google and Velfi creates your Solana wallet in seconds.</p>
+            <p className="how-card-body">No seed phrase, no wallet setup. Sign in with Google and Velfi creates your BNB Chain wallet in seconds.</p>
           </div>
           <div className="how-card reveal" style={{ transitionDelay: '150ms' }}>
             <span className="how-num">02</span>
@@ -214,7 +214,7 @@ function App() {
           <div className="sec-card reveal">
             <span className="sec-label">GOOGLE SIGN-IN</span>
             <h3 className="sec-card-title">Sign in with Google. No seed phrase.</h3>
-            <p className="sec-card-body">Your Velfi wallet lives on Solana and you unlock it with Google. Nothing to write down, nothing to lose — switch phones and the same wallet comes back.</p>
+            <p className="sec-card-body">Your Velfi wallet lives on BNB Chain and you unlock it with Google. Nothing to write down, nothing to lose — switch phones and the same wallet comes back.</p>
           </div>
           <div className="sec-card reveal" style={{ transitionDelay: '200ms' }}>
             <span className="sec-label">NON-CUSTODIAL</span>
@@ -224,7 +224,7 @@ function App() {
           <div className="sec-card reveal" style={{ transitionDelay: '400ms' }}>
             <span className="sec-label">ON-CHAIN & VERIFIABLE</span>
             <h3 className="sec-card-title">Every payment is provable.</h3>
-            <p className="sec-card-body">Every payment settles as a transaction on Solana, so anyone can check it on Solscan. Your history doesn't depend on trusting our servers.</p>
+            <p className="sec-card-body">Every payment settles as a transaction on BNB Chain, so anyone can check it on BscScan. Your history doesn't depend on trusting our servers.</p>
           </div>
         </div>
       </section>
@@ -251,7 +251,7 @@ function App() {
           <div className="own-card reveal" style={{ transitionDelay: '300ms' }}>
             <span className="own-tag">YOUR RULES</span>
             <h3 className="own-col-title">The agent obeys your limits.</h3>
-            <p className="own-col-body">Approve a schedule once and Autopilot pays only that person, that amount, on that timetable. Solana caps the total it can ever spend, and you can cancel anytime.</p>
+            <p className="own-col-body">Approve a schedule once and Autopilot pays only that person, that amount, on that timetable. BNB Chain caps the total it can ever spend, and you can cancel anytime.</p>
           </div>
         </div>
         <div className="own-swipe-hint">
@@ -308,11 +308,11 @@ function App() {
         <h2 className="tk-headline">Meet $VELFI. <span className="who-accent">The token behind your money agent.</span></h2>
         <div className="tk-grid">
           <div className="tk-facts reveal">
-            <p className="tk-intro">$VELFI is Velfi's community token, launching on Solana with a fair launch. Hold it to unlock more of what your agent can do.</p>
+            <p className="tk-intro">$VELFI is Velfi's community token, launching on BNB Chain with a fair launch. Hold it to unlock more of what your agent can do.</p>
             <div className="tk-rows">
               <div className="tk-row"><span>Total supply</span><b>1,000,000,000</b></div>
               <div className="tk-row"><span>Launch</span><b>Fair launch</b></div>
-              <div className="tk-row"><span>Network</span><b>Solana</b></div>
+              <div className="tk-row"><span>Network</span><b>BNB Chain</b></div>
             </div>
             <TokenCA />
           </div>
@@ -373,7 +373,7 @@ function App() {
               <span className={`faq-icon${openFaq === 2 ? ' open' : ''}`}>+</span>
             </button>
             <div className={`faq-a${openFaq === 2 ? ' open' : ''}`}>
-              <p>Velfi is launching on Solana, with near-instant settlement, fees of a fraction of a cent, and stablecoins like USDC built in. More chains may come later, but Solana is our home.</p>
+              <p>Velfi is launching on BNB Chain, with near-instant settlement, fees of a fraction of a cent, and stablecoins like USDC built in. More chains may come later, but BNB Chain is our home.</p>
             </div>
           </div>
           <div className="faq-item">
@@ -382,7 +382,7 @@ function App() {
               <span className={`faq-icon${openFaq === 3 ? ' open' : ''}`}>+</span>
             </button>
             <div className={`faq-a${openFaq === 3 ? ' open' : ''}`}>
-              <p>Velfi is designed so nothing moves without your approval. You sign in with Google (no seed phrase), payments run as programs on Solana, and every transaction is on-chain and verifiable.</p>
+              <p>Velfi is designed so nothing moves without your approval. You sign in with Google (no seed phrase), payments run on BNB Chain, and every transaction is on-chain and verifiable.</p>
             </div>
           </div>
           <div className="faq-item">
@@ -409,7 +409,7 @@ function App() {
               <span className={`faq-icon${openFaq === 6 ? ' open' : ''}`}>+</span>
             </button>
             <div className={`faq-a${openFaq === 6 ? ' open' : ''}`}>
-              <p>Yes. $VELFI is launching on Solana with a total supply of 1,000,000,000 and a fair launch. The contract address isn't live yet, so only trust the one posted on velfi.xyz and @velfixyz. See the <a href="/docs/token/velfi" target="_blank" rel="noreferrer">token docs</a> for details.</p>
+              <p>Yes. $VELFI is launching on BNB Chain with a total supply of 1,000,000,000 and a fair launch. The contract address isn't live yet, so only trust the one posted on velfi.xyz and @velfixyz. See the <a href="/docs/token/velfi" target="_blank" rel="noreferrer">token docs</a> for details.</p>
             </div>
           </div>
         </div>
@@ -451,7 +451,7 @@ function App() {
           </div>
           <div className="footer-col">
             <span className="footer-col-title">Launching on</span>
-            <a href="https://solana.com" target="_blank" rel="noreferrer">Solana <span className="fa">↗</span></a>
+            <a href="https://www.bnbchain.org" target="_blank" rel="noreferrer">BNB Chain <span className="fa">↗</span></a>
           </div>
           <div className="footer-col">
             <span className="footer-col-title">Company</span>

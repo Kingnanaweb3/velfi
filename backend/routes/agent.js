@@ -16,15 +16,14 @@ import {
 import { buildSummary } from '../lib/summarize.js'
 import { applyDollarFigure } from '../lib/dollars.js'
 import { buildPayment, buildStartStream, buildCreateScheduleMandate, buildSetAllowance } from '../lib/txBuilder.js'
-import { prepareForUser, submitUserSigned, submitVersioned, versionedHash, explorerTx, PROGRAM_ENABLED, feePayerLamports } from '../lib/solana.js'
-import { quoteSwap, buildSwapTx } from '../lib/jupiter.js'
+import { prepareForUser, submitUserSigned, explorerTx, PROGRAM_ENABLED, feePayerWei } from '../lib/bnb.js'
 import { recordStream, streamProgress } from '../lib/streams.js'
 import { recordSchedule, tickSchedules } from '../lib/schedule.js'
 import { saveInvites } from '../lib/invites.js'
-import { remember, take, allowSubmission, canOpenAccounts, recordOpenedAccounts } from '../lib/prepared.js'
+import { remember, take, allowSubmission, canOpenAccounts, recordOpenedAccounts, gasDropFor } from '../lib/prepared.js'
 import { allowanceFor } from '../lib/chain/lite.js'
 import { scheduleToMandate } from '../lib/chain/plan.js'
-import { isSolanaAddress } from '../lib/chain/base58.js'
+import { isEvmAddress, norm } from '../lib/chain/evm.js'
 import { toBaseUnits } from '../lib/chain/amounts.js'
 
 const router = express.Router()
@@ -32,26 +31,27 @@ const router = express.Router()
 // Non-custodial: every payment is signed by the user's own wallet. Balance
 // checks read the user's wallet, because that is where the money comes from.
 
+const SWAPS_SOON = 'Swaps are coming soon on BNB Chain. For now I can send, split and schedule USDC, USDT or BNB. Want to do one of those?'
 const STREAMS_SOON = 'Streaming payments are coming soon. For now I can send it all now, or set it up as a scheduled payment (for example weekly). Want one of those?'
 const AUTOPILOT_KB = PROGRAM_ENABLED
   ? 'Autopilot (scheduled payments run from an on-chain mandate you fund and sign once: it can only pay the recipient you chose, at most the amount you set, until it expires, and you can cancel it anytime)'
-  : 'Autopilot (for a schedule you approve once, letting Velfi spend up to that schedule\'s total from your wallet. The money stays in your wallet until each payment. Solana itself caps the total; Velfi\'s server sticks to the recipient, amount and timing you chose. Cancel anytime in Flows and the permission is removed)'
+  : 'Autopilot (for a schedule you approve once, letting Velfi spend up to that schedule\'s total from your wallet. The money stays in your wallet until each payment. The token contract itself caps the total; Velfi\'s server sticks to the recipient, amount and timing you chose. Cancel anytime in Flows and the permission is removed)'
 const VELFI_KB = `
-Velfi is a non-custodial AI money agent launching on Solana. Tagline: tell your money what to do.
-- Sign in with Google. Velfi creates your Solana wallet for you: no seed phrase, no extension. Switch devices and the same wallet comes back.
+Velfi is a non-custodial AI money agent on BNB Chain. Tagline: tell your money what to do.
+- Sign in with Google. Velfi creates your BNB Chain wallet for you: no seed phrase, no extension. Switch devices and the same wallet comes back.
 - Claim a .vel name (like alice.vel) so people pay you by name instead of a long wallet address.
 - Just say what you want in plain language. Velfi reads it, proposes the exact action, and only moves money after you approve and sign.
-- Money actions: send, split (one amount across people), ${PROGRAM_ENABLED ? 'stream (pays out second by second, the recipient claims anytime), ' : ''}schedule (recurring payments), send to an email (held until they sign up), and swaps on mainnet through Jupiter.${PROGRAM_ENABLED ? '' : ' Streaming payments are coming soon.'}
-- Gasless: Velfi pays the Solana network fee for your payments, so you don't need SOL to move USDC.
-- Pay a .vel name, a Solana address, or an email. If they're not on Velfi yet, the money waits ${PROGRAM_ENABLED ? 'in an on-chain escrow' : 'in a one-off holding wallet Velfi manages'} for up to 7 days and lands in their wallet when they sign up; otherwise it comes back to you.
-- Right now Velfi moves SOL and USDC (plus USDT on mainnet). Schedules and email payments use USDC or other tokens, not SOL.
-- Every payment is a Solana transaction anyone can check on Solscan.
+- Money actions: send, split (one amount across people), ${PROGRAM_ENABLED ? 'stream (pays out second by second, the recipient claims anytime), ' : ''}schedule (recurring payments), and send to an email (held until they sign up). Swaps and streaming payments are coming soon.
+- Gasless: Velfi covers the BNB network fee for your payments, so you don't need BNB to move USDC or USDT.
+- Pay a .vel name, a BNB Chain address (0x...), or an email. If they're not on Velfi yet, the money waits ${PROGRAM_ENABLED ? 'in an on-chain escrow' : 'in a one-off holding wallet Velfi manages'} for up to 7 days and lands in their wallet when they sign up; otherwise it comes back to you.
+- Right now Velfi moves BNB, USDC and USDT. Schedules and email payments use USDC or USDT, not BNB.
+- Every payment is a BNB Chain transaction anyone can check on BscScan.
 - Self-custody: your wallet is yours and every one-off payment needs your approval and signature. The agent never moves money on its own.
 - Two modes: Assisted (you approve and sign each action) and ${AUTOPILOT_KB}.
 What Velfi can't do yet (be honest, never promise these):
 - No fiat on/off-ramp - you can't buy crypto with a card or cash out to a bank inside Velfi.
 - No loans, credit, yield, or investment products. Velfi never gives financial, tax, or legal advice.
-- It only works on Solana; it can't reach other chains.
+- It only works on BNB Chain; it can't reach other chains.
 - .vel names are free during early access. A mobile app is coming soon.
 `.trim()
 
@@ -62,18 +62,17 @@ async function resolveRecipient(input) {
   const clean = String(input).toLowerCase().trim()
   if (clean.endsWith('.vel')) {
     const username = clean.replace('.vel', '')
-    const { data } = await supabaseAdmin.from('users').select('wallet_address, username').eq('username', username).maybeSingle()
-    return data?.wallet_address ? { address: data.wallet_address, label: input } : null
+    const { data } = await supabaseAdmin.from('users').select('evm_address, username').eq('username', username).maybeSingle()
+    return data?.evm_address ? { address: data.evm_address, label: input } : null
   }
-  // Solana addresses are case-sensitive, so check the original input, not the lowercased one.
-  if (isSolanaAddress(String(input).trim())) return { address: String(input).trim(), label: String(input).trim() }
+  if (isEvmAddress(String(input).trim())) return { address: norm(input), label: String(input).trim() }
   if (clean.includes('@')) return { address: null, email: clean, label: clean, needsInvite: true }
-  const { data } = await supabaseAdmin.from('users').select('wallet_address, username').eq('username', clean).maybeSingle()
-  return data?.wallet_address ? { address: data.wallet_address, label: clean } : null
+  const { data } = await supabaseAdmin.from('users').select('evm_address, username').eq('username', clean).maybeSingle()
+  return data?.evm_address ? { address: data.evm_address, label: clean } : null
 }
 
-// Explain why recipients weren't found. A name from before the move to Solana still
-// exists, but has no Solana wallet until that person signs in once more.
+// Explain why recipients weren't found. A name from before the move to BNB Chain
+// still exists, but has no BNB Chain wallet until that person signs in once more.
 export async function missingText(names) {
   const waiting = []
   const unknown = []
@@ -81,8 +80,8 @@ export async function missingText(names) {
     const u = String(n).toLowerCase().trim().replace(/\.vel$/, '')
     let old = null
     if (/^[a-z0-9_]{3,20}$/.test(u)) {
-      const { data } = await supabaseAdmin.from('users').select('username, wallet_address').eq('username', u).maybeSingle()
-      old = data && !data.wallet_address ? data : null
+      const { data } = await supabaseAdmin.from('users').select('username, evm_address').eq('username', u).maybeSingle()
+      old = data && !data.evm_address ? data : null
     }
     ;(old ? waiting : unknown).push(n)
   }
@@ -90,19 +89,19 @@ export async function missingText(names) {
   if (unknown.length) parts.push(`I couldn't find ${unknown.join(', ')} on Velfi`)
   if (waiting.length) {
     const one = waiting.length === 1
-    parts.push(`${waiting.join(', ')} ${one ? "hasn't" : "haven't"} signed in since Velfi moved to Solana, so ${one ? 'there is no wallet to pay yet' : 'there are no wallets to pay yet'}. Ask ${one ? 'them' : 'each of them'} to sign in once at app.velfi.xyz, or send to a Solana address instead`)
+    parts.push(`${waiting.join(', ')} ${one ? "hasn't" : "haven't"} signed in since Velfi moved to BNB Chain, so ${one ? 'there is no wallet to pay yet' : 'there are no wallets to pay yet'}. Ask ${one ? 'them' : 'each of them'} to sign in once at app.velfi.xyz, or send to a BNB Chain address (0x...) instead`)
   }
   return parts.join('. ')
 }
 
-// A token Velfi can't move on Solana (e.g. SUI from the old app, or ETH).
+// A token Velfi can't move on BNB Chain (e.g. SOL or SUI from the old app, or ETH).
 export function unsupportedToken(sym, pay = {}) {
   const list = TOKEN_LIST.map(t => t.symbol)
   const usable = list.length > 1 ? `${list.slice(0, -1).join(', ')} or ${list.at(-1)}` : list[0]
   const s = String(sym || '').toUpperCase()
-  const why = s === 'SUI' ? ' Velfi moved from Sui to Solana, so SUI isn\'t something I can send anymore.' : ''
-  const amt = pay.amount != null ? (pay.amount_in_usd ? `$${pay.amount} of SOL or USDC` : `${pay.amount} SOL or USDC`) : 'SOL or USDC'
-  return `I can't send ${s} \u2014 on Velfi I can move ${usable} on Solana.${why} Want to send ${amt} instead?`
+  const why = ['SUI', 'SOL'].includes(s) ? ` Velfi moved to BNB Chain, so ${s} isn\'t something I can send anymore.` : ''
+  const amt = pay.amount != null ? (pay.amount_in_usd ? `$${pay.amount} of USDC or BNB` : `${pay.amount} USDC or BNB`) : 'USDC or BNB'
+  return `I can't send ${s} \u2014 on Velfi I can move ${usable} on BNB Chain.${why} Want to send ${amt} instead?`
 }
 
 // Try to read a token symbol the user picked, restricted to what they actually hold.
@@ -331,13 +330,13 @@ router.post('/message', requireAuth, async (req, res) => {
       return res.json({ mode: 'assistant', reply: `Here are your most recent transactions:\n${lines}\n\nThe full history lives in the Activity tab.` })
     }
     if (klass === 'lookup') {
-      const m = String(message).match(/([a-z0-9_]+\.vel|[1-9A-HJ-NP-Za-km-z]{32,44})/i)
+      const m = String(message).match(/([a-z0-9_]+\.vel|0x[0-9a-fA-F]{40})/i)
       if (!m) return res.json({ mode: 'assistant', reply: 'Tell me the .vel name or address to check \u2014 like "is jordan.vel on Velfi?"' })
       const target = m[1]
       const resolved = await resolveRecipient(target)
       return res.json({ mode: 'assistant', reply: (resolved && resolved.address)
         ? `Yes \u2014 ${target} is on Velfi. Tell me an amount and I'll set up the payment (e.g. \"send 5 USDC to ${target}\").`
-        : `${await missingText([target])}. Double-check the name, or send to a Solana address instead.` })
+        : `${await missingText([target])}. Double-check the name, or send to a BNB Chain address (0x...) instead.` })
     }
 
     // --- STEP 2a: assistant ---
@@ -360,7 +359,7 @@ router.post('/message', requireAuth, async (req, res) => {
       } catch { parsed = null }
     }
     if (!parsed) {
-      return res.json({ mode: 'assistant', reply: "Hmm, I couldn't quite find who you're paying. Try their name in .vel format, like jordan.vel — or a Solana address or their email works too. Then just tell me the amount, e.g. send 20 USDC to jordan.vel." })
+      return res.json({ mode: 'assistant', reply: "Hmm, I couldn't quite find who you're paying. Try their name in .vel format, like jordan.vel — or a BNB Chain address (0x...) or their email works too. Then just tell me the amount, e.g. send 20 USDC to jordan.vel." })
     }
 
     if (!validateSchema(parsed).ok)
@@ -377,12 +376,12 @@ router.post('/message', requireAuth, async (req, res) => {
   }
 })
 
-// Keep a float in Velfi's fee payer. Below this, pause new payments rather than fail mid-way.
-const MIN_FEE_PAYER_LAMPORTS = Number(process.env.MIN_FEE_PAYER_SOL || 0.05) * 1e9
+// Keep a float in Velfi's gas wallet. Below this, pause new payments rather than fail mid-way.
+const MIN_GAS_WEI = BigInt(Math.round(Number(process.env.MIN_GAS_WALLET_BNB || 0.02) * 1e9)) * 1_000_000_000n
 async function feePayerLow() {
   try {
-    const l = await feePayerLamports()
-    if (l < MIN_FEE_PAYER_LAMPORTS) { console.error(`FEE PAYER LOW: ${l / 1e9} SOL. Top it up now.`); return true }
+    const w = await feePayerWei()
+    if (w < MIN_GAS_WEI) { console.error(`GAS WALLET LOW: ${Number(w) / 1e18} BNB. Top it up now.`); return true }
     return false
   } catch { return false }
 }
@@ -484,12 +483,12 @@ async function routePayment(res, user, parsed, ctxBlock = '') {
       const rawActions = parsed.payment?.actions
       if (Array.isArray(rawActions) && rawActions.length) {
         const va = validateActions(rawActions)
-        if (!va.ok) return res.json({ mode: 'clarify', reply: `I couldn't work that out — ${va.error}. Try e.g. send 0.01 SOL to joshhhy.vel and 2 USDC to lazarus.vel.` })
+        if (!va.ok) return res.json({ mode: 'clarify', reply: `I couldn't work that out — ${va.error}. Try e.g. send 0.01 BNB to joshhhy.vel and 2 USDC to lazarus.vel.` })
         const legs = [], notFound = [], selfHit = []
         for (const a of rawActions) {
           const sym = String(a.token || '').toUpperCase()
           const tk = getToken(sym)
-          if (!tk) return res.json({ mode: 'clarify', reply: `I can only move SOL or USDC right now, not ${a.token}.` })
+          if (!tk) return res.json({ mode: 'clarify', reply: unsupportedToken(a.token) })
           const key = normalizeVel(a.recipient?.name) || a.recipient?.address || a.recipient?.email
           const resolved = await resolveRecipient(key)
           if (!resolved) { notFound.push(key); continue }
@@ -525,25 +524,8 @@ async function routePayment(res, user, parsed, ctxBlock = '') {
       }
     }
 
-    // SWAP: dedicated path (no recipient resolution) — Jupiter on mainnet
-    if (parsed.intent === 'swap') {
-      const sw = parsed.payment?.swap || {}
-      const from = String(sw.from_token || '').toUpperCase()
-      const to = String(sw.to_token || '').toUpperCase()
-      const amt = Number(sw.amount)
-      if (!from || !to)
-        return res.json({ mode: 'clarify', reply: "What are you swapping \u2014 from which token to which? (e.g. swap 0.5 SOL to USDC)" })
-      if (!amt || amt <= 0)
-        return res.json({ mode: 'clarify', reply: `How much ${from} would you like to swap?` })
-      let summary = `Swapping ${amt} ${from} for ${to}.`
-      try {
-        const { expectedOut } = await quoteSwap({ fromToken: from, toToken: to, amount: amt })
-        summary = `Swapping ${amt} ${from} for about ${expectedOut.toFixed(3)} ${to} \u2014 ready when you are.`
-      } catch (e) { return res.json({ mode: 'clarify', reply: e.message }) }
-      parsed.payment.swap = { from_token: from, to_token: to, amount: amt }
-      parsed.summary = summary
-      return res.json(await propose(user, parsed))
-    }
+    // SWAP: not on BNB Chain yet
+    if (parsed.intent === 'swap') return res.json({ mode: 'assistant', reply: SWAPS_SOON })
 
     // STREAM: dedicated path — resolve recipient, persist + auto-run via the stream engine
     if (parsed.intent === 'stream') {
@@ -568,7 +550,7 @@ async function routePayment(res, user, parsed, ctxBlock = '') {
         return res.json({ mode: 'clarify', reply: 'Who should the stream pay? A .vel name, address, or email.' })
       const resolved = await resolveRecipient(who)
       if (!resolved?.address)
-        return res.json({ mode: 'clarify', reply: `${await missingText([who])}. Try a .vel name or a Solana address.` })
+        return res.json({ mode: 'clarify', reply: `${await missingText([who])}. Try a .vel name or a BNB Chain address (0x...).` })
       const held = await balanceOf(user.address, sym)
       if (held < total)
         return res.json({ mode: 'insufficient', reply: `This stream needs ${total} ${sym}, but your wallet holds ${held.toFixed(4)} ${sym}.` })
@@ -605,7 +587,7 @@ async function routePayment(res, user, parsed, ctxBlock = '') {
         return res.json({ mode: 'clarify', reply: 'Who should the scheduled payments go to? A .vel name, address, or email.' })
       const resolved = await resolveRecipient(who)
       if (!resolved?.address)
-        return res.json({ mode: 'clarify', reply: `${await missingText([who])}. Try a .vel name or a Solana address.` })
+        return res.json({ mode: 'clarify', reply: `${await missingText([who])}. Try a .vel name or a BNB Chain address (0x...).` })
       const held = await balanceOf(user.address, sym)
       if (held < amount)
         return res.json({ mode: 'insufficient', reply: `Each payment is ${amount} ${sym}, but your wallet only holds ${held.toFixed(4)} ${sym}.` })
@@ -787,11 +769,12 @@ router.post('/revise/:id', requireAuth, async (req, res) => {
 })
 
 // ===== Signing flow =====
-// 1. POST /agent/prepare/:id  -> Velfi builds the transaction for the pending
-//    proposal, co-signs it as fee payer, and returns it for the user's wallet.
+// 1. POST /agent/prepare/:id  -> Velfi builds the transactions for the pending
+//    proposal and returns them for the user's wallet.
 // 2. The app signs it with the user's Google wallet (Privy).
-// 3. POST /agent/approve/:id { prepId, signedTx } -> Velfi checks it is exactly
-//    what was prepared, sends it, and records the result.
+// 3. POST /agent/approve/:id { prepId, signedTx: [...] } -> Velfi checks they are
+//    exactly what was prepared, covers any missing network fee (gas drop), sends
+//    them in order, and records the result.
 async function loadPending(userAddress, id) {
   const { data: convo } = await supabaseAdmin.from('agent_conversations').select('*').eq('user_address', userAddress).single()
   const pending = convo?.pending_tx
@@ -805,24 +788,18 @@ router.post('/prepare/:id', requireAuth, async (req, res) => {
     if (!pending) return res.status(404).json({ error: 'That proposal has expired. Ask me again and I\'ll set it up.' })
     if (process.env.PAUSE_PAYMENTS === 'on')
       return res.status(503).json({ error: 'Velfi payments are paused for a few minutes of maintenance. Nothing was sent. Try again soon.' })
-    if (pending.intent !== 'swap' && await feePayerLow())
+    if (await feePayerLow())
       return res.status(503).json({ error: 'Velfi is topping up its network-fee wallet. Try again in a few minutes. Nothing was sent.' })
 
-    if (pending.intent === 'swap') {
-      const sw = pending.payment?.swap || {}
-      const { quote, expectedOut } = await quoteSwap({ fromToken: sw.from_token, toToken: sw.to_token, amount: sw.amount })
-      const tx = await buildSwapTx({ quote, userAddress: user.address })
-      const prepId = remember({ userAddress: user.address, messageHash: versionedHash(tx), after: { type: 'swap', pending, expectedOut } })
-      return res.json({ prepId, tx, versioned: true, note: `You'll get about ${expectedOut.toFixed(4)} ${sw.to_token}. Swaps pay a small SOL network fee.` })
-    }
+    if (pending.intent === 'swap') return res.status(400).json({ error: SWAPS_SOON })
 
     if (pending.intent === 'stream') {
       if (!PROGRAM_ENABLED) return res.status(400).json({ error: STREAMS_SOON })
       const st = pending.payment?.stream || {}
       const token = getToken(st.token)
-      const amountUnits = toBaseUnits(Number(st.total_amount).toFixed(token.decimals), token.decimals)
+      const amountUnits = toBaseUnits(Number(st.total_amount).toFixed(Math.min(token.decimals, 12)), token.decimals)
       const built = await buildStartStream({ userAddress: user.address, recipient: st.recipient, token, amountUnits, durationSecs: Number(st.duration_secs) })
-      const prep = await prepareForUser(built.instructions)
+      const prep = await prepareForUser(built.instructions, user.address)
       const prepId = remember({ userAddress: user.address, messageHash: prep.messageHash,
         after: { type: 'stream', pending, flow: built.flow.toString(), token: token.symbol, mint: token.mint, decimals: token.decimals, totalUnits: amountUnits.toString() } })
       return res.json({ prepId, tx: prep.tx })
@@ -831,7 +808,7 @@ router.post('/prepare/:id', requireAuth, async (req, res) => {
     if (pending.intent === 'schedule') {
       const sd = pending.payment?.sched || {}
       const token = getToken(sd.token)
-      const amountUnits = toBaseUnits(Number(sd.amount).toFixed(token.decimals), token.decimals)
+      const amountUnits = toBaseUnits(Number(sd.amount).toFixed(Math.min(token.decimals, 12)), token.decimals)
       if (!PROGRAM_ENABLED) {
         // Lite: one approval covering this schedule plus the user's other active ones in this token.
         const plan = scheduleToMandate({ amountUnits, frequency: sd.frequency, occurrences: sd.occurrences })
@@ -841,7 +818,7 @@ router.post('/prepare/:id', requireAuth, async (req, res) => {
           return res.status(400).json({ error: `For now a schedule can cover up to ${cap} ${token.symbol} in total. Try fewer payments or a smaller amount.` })
         const { data: mine } = await supabaseAdmin.from('scheduled_payments').select('*').eq('user_address', user.address)
         const allowanceUnits = allowanceFor(mine, token.mint, { plus: plan.totalBudget })
-        const prep = await prepareForUser(await buildSetAllowance({ userAddress: user.address, token, allowanceUnits }))
+        const prep = await prepareForUser(await buildSetAllowance({ userAddress: user.address, token, allowanceUnits }), user.address)
         const prepId = remember({ userAddress: user.address, messageHash: prep.messageHash,
           after: { type: 'schedule', mode: 'delegate', pending, token: token.symbol, mint: token.mint, amountUnits: amountUnits.toString(),
             plan: { intervalSecs: plan.intervalSecs, count: plan.count } } })
@@ -849,7 +826,7 @@ router.post('/prepare/:id', requireAuth, async (req, res) => {
         return res.json({ prepId, tx: prep.tx, note: `This lets Velfi pay ${sd.recipientName} ${sd.amount} ${token.symbol} ${sd.frequency}, ${plan.count} times (${total} ${token.symbol} in total). The money stays in your wallet until each payment. Cancel anytime in Flows.` })
       }
       const built = await buildCreateScheduleMandate({ userAddress: user.address, recipient: sd.recipient, token, amountUnits, frequency: sd.frequency, occurrences: sd.occurrences })
-      const prep = await prepareForUser(built.instructions)
+      const prep = await prepareForUser(built.instructions, user.address)
       const prepId = remember({ userAddress: user.address, messageHash: prep.messageHash,
         after: { type: 'schedule', pending, mandate: built.mandate, token: token.symbol, mint: token.mint, amountUnits: amountUnits.toString(),
           plan: { intervalSecs: built.plan.intervalSecs, count: built.plan.count } } })
@@ -863,7 +840,7 @@ router.post('/prepare/:id', requireAuth, async (req, res) => {
     if (!room.ok) return res.status(429).json({ error: room.reason === 'user'
       ? 'You\'ve sent to a lot of new wallets today. Velfi covers their setup cost, so there is a daily limit. Try again tomorrow, or send to people who already hold this token.'
       : 'Velfi is busy setting up new wallets right now. Try again in a little while. Nothing was sent.' })
-    const prep = await prepareForUser(built.instructions)
+    const prep = await prepareForUser(built.instructions, user.address)
     const prepId = remember({ userAddress: user.address, messageHash: prep.messageHash,
       after: { type: 'payment', pending, newAccounts: built.newAccounts, invites: built.invites.map(i => ({ ...i })) } })
     return res.json({ prepId, tx: prep.tx })
@@ -887,15 +864,15 @@ router.post('/approve/:id', requireAuth, async (req, res) => {
     if (after.newAccounts && !canOpenAccounts(user.address, after.newAccounts).ok)
       return res.status(429).json({ error: 'Too many new wallets today. Try again tomorrow. Nothing was sent.' })
 
-    const signature = after.type === 'swap'
-      ? await submitVersioned(signedTx, prep.messageHash)
-      : await submitUserSigned(signedTx, prep.messageHash)
+    if (after.type === 'swap') return res.status(400).json({ error: SWAPS_SOON })
+    const sent = await submitUserSigned(signedTx, prep.messageHash, { allowDrop: gasDropFor(user.address) })
+    const signature = sent.hash
     recordOpenedAccounts(user.address, after.newAccounts || 0)
     await supabaseAdmin.from('agent_conversations').update({ pending_tx: null }).eq('user_address', user.address)
 
     let message = 'Done.'
     if (after.type === 'payment') {
-      await logLegs(user.address, signature, pending)
+      await logLegs(user.address, sent.hashes, pending)
       await saveInvites({ fromAddress: user.address, invites: after.invites, signature })
       if (after.invites.length) message = `Sent. ${after.invites.map(i => i.email).join(', ')} will get it as soon as they sign up (or it comes back to you in 7 days).`
       else message = 'Sent.'
@@ -918,7 +895,7 @@ router.post('/approve/:id', requireAuth, async (req, res) => {
       message = 'Swap complete.'
     }
     await supabaseAdmin.from('notifications').insert({
-      user_address: user.address, type: `${after.type}_done`, title: message.split('.')[0], body: 'Confirmed on Solana', action_url: explorerTx(signature),
+      user_address: user.address, type: `${after.type}_done`, title: message.split('.')[0], body: 'Confirmed on BNB Chain', action_url: explorerTx(signature),
     })
     res.json({ success: true, digest: signature, explorer: explorerTx(signature), message })
   } catch (err) {
@@ -931,15 +908,16 @@ router.post('/approve/:id', requireAuth, async (req, res) => {
 router.post('/run/:id', requireAuth, (req, res) =>
   res.status(410).json({ error: 'Velfi now asks your wallet to sign. Update the app and slide to approve again.' }))
 
-async function logLegs(userAddress, signature, pending) {
+// On BNB each leg is its own transaction, so each logged leg gets its own hash.
+async function logLegs(userAddress, hashes, pending) {
   const pay = pending.payment || {}
   const legs = Array.isArray(pending.actions) && pending.actions.length
     ? pending.actions.map(a => ({ token: String(a.token || a.currency || '').toUpperCase(), amount: a.amount,
         who: a.recipient?.name || a.recipient?.resolved?.label || a.recipient?.resolved?.address || null }))
     : (pay.recipients?.length ? pay.recipients : [{}]).map(r => ({ token: String(pay.currency || '').toUpperCase(),
         amount: r.amount ?? pay.token_amount ?? pay.amount, who: r.name || r.resolved?.label || r.resolved?.address || r.resolved?.email || null }))
-  const { error } = await supabaseAdmin.from('transactions').insert(legs.map(l => ({
-    user_address: userAddress, digest: signature, type: pending.intent || 'send',
+  const { error } = await supabaseAdmin.from('transactions').insert(legs.map((l, i) => ({
+    user_address: userAddress, digest: hashes.length === legs.length ? hashes[i] : hashes[hashes.length - 1], type: pending.intent || 'send',
     label: l.who ? `Sent to ${l.who}` : 'Sent', sub_label: l.token || null,
     amount: l.amount, token: l.token || null, direction: 'out', counterparty: l.who || null })))
   if (error) console.error('tx log failed (non-fatal):', error.message)

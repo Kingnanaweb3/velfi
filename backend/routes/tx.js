@@ -3,8 +3,8 @@
 import express from 'express'
 import supabase from '../lib/supabaseAdmin.js'
 import { requireAuth } from '../middleware/auth.js'
-import { submitUserSigned, explorerTx } from '../lib/solana.js'
-import { take, allowSubmission } from '../lib/prepared.js'
+import { submitUserSigned, explorerTx } from '../lib/bnb.js'
+import { take, allowSubmission, gasDropFor } from '../lib/prepared.js'
 import { markStream } from '../lib/streams.js'
 
 const router = express.Router()
@@ -36,7 +36,7 @@ router.post('/submit', requireAuth, async (req, res) => {
     if (!allowSubmission(req.user.address)) return res.status(429).json({ error: 'Too many requests. Try again in a bit.' })
     const prep = take(prepId, req.user.address)
     if (!prep || !AFTER[prep.after?.type]) return res.status(410).json({ error: 'That expired. Try again and I\'ll prepare a fresh one.' })
-    const signature = await submitUserSigned(signedTx, prep.messageHash)
+    const { hash: signature } = await submitUserSigned(signedTx, prep.messageHash, { allowDrop: gasDropFor(req.user.address) })
     const message = await AFTER[prep.after.type](req.user, prep.after, signature)
     res.json({ success: true, digest: signature, explorer: explorerTx(signature), message })
   } catch (err) {

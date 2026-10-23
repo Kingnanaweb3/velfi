@@ -1,20 +1,14 @@
-// Solana settings for the app, from Vite env (see .env.example).
-export const CLUSTER = import.meta.env.VITE_SOLANA_CLUSTER || 'devnet'
-export const RPC_URL = import.meta.env.VITE_SOLANA_RPC_URL || (CLUSTER === 'mainnet-beta' ? 'https://api.mainnet-beta.solana.com' : `https://api.${CLUSTER}.solana.com`)
-const q = CLUSTER === 'mainnet-beta' ? '' : `?cluster=${CLUSTER}`
-export const explorerTx = (sig) => `https://solscan.io/tx/${sig}${q}`
-export const explorerAddress = (a) => `https://solscan.io/account/${a}${q}`
-export const EXPLORER_NAME = 'Solscan'
+// BNB Chain settings for the app, from Vite env (see .env.example).
+// testnet while testing, mainnet for launch (must match the backend's BNB_NETWORK).
+import { bsc, bscTestnet } from 'viem/chains'
 
-export function b64ToBytes(b64) {
-  const bin = atob(b64)
-  const out = new Uint8Array(bin.length)
-  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i)
-  return out
-}
-export function bytesToB64(bytes) {
-  let bin = ''
-  const b = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes)
-  for (let i = 0; i < b.length; i += 0x8000) bin += String.fromCharCode(...b.subarray(i, i + 0x8000))
-  return btoa(bin)
-}
+export const NETWORK = import.meta.env.VITE_BNB_NETWORK || 'testnet'
+export const IS_MAINNET = NETWORK === 'mainnet'
+export const CHAIN = IS_MAINNET ? bsc : bscTestnet
+export const CHAIN_ID = CHAIN.id
+// Kept for older code: the network name.
+export const CLUSTER = NETWORK
+const SCAN = IS_MAINNET ? 'https://bscscan.com' : 'https://testnet.bscscan.com'
+export const explorerTx = (hash) => `${SCAN}/tx/${hash}`
+export const explorerAddress = (a) => `${SCAN}/address/${a}`
+export const EXPLORER_NAME = 'BscScan'

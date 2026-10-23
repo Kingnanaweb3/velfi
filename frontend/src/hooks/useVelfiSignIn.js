@@ -1,7 +1,6 @@
 // Google sign-in through Privy, then a Velfi session from the backend.
 import { useState, useCallback, useRef } from 'react'
-import { useLoginWithOAuth, usePrivy } from '@privy-io/react-auth'
-import { useSolanaWallets } from '@privy-io/react-auth/solana'
+import { useLoginWithOAuth, usePrivy, useCreateWallet } from '@privy-io/react-auth'
 import { useAuth } from '../context/AuthContext.jsx'
 
 const API = '/api'
@@ -10,17 +9,17 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms))
 export function useVelfiSignIn({ onSignedIn } = {}) {
   const { login } = useAuth()
   const { getAccessToken, user: privyUser } = usePrivy()
-  const { createWallet } = useSolanaWallets()
+  const { createWallet } = useCreateWallet()
   const userRef = useRef(privyUser)
   userRef.current = privyUser
 
-  // Make sure this person has a Privy Solana wallet. Privy usually creates it at
+  // Make sure this person has a Privy EVM (BNB Chain) wallet. Privy usually creates it at
   // sign-in, but if that didn't happen (or hasn't yet), create it here.
   const ensureWallet = useCallback(async () => {
-    const has = (userRef.current?.linkedAccounts || []).some(a => a.type === 'wallet' && a.chainType === 'solana' && a.walletClientType === 'privy')
+    const has = (userRef.current?.linkedAccounts || []).some(a => a.type === 'wallet' && a.chainType === 'ethereum' && a.walletClientType === 'privy')
     if (has) return
     try { await createWallet() }
-    catch (e) { if (!/already/i.test(String(e?.message || e))) console.warn('Solana wallet creation:', e?.message || e) }
+    catch (e) { if (!/already/i.test(String(e?.message || e))) console.warn('Wallet creation:', e?.message || e) }
   }, [createWallet])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)

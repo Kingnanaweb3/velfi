@@ -1,6 +1,6 @@
 # $VELFI token
 
-$VELFI is Velfi's community token. It's launching on Solana with a fair launch and a total supply of 1,000,000,000.
+$VELFI is Velfi's community token. It's launching on BNB Chain with a fair launch and a total supply of 1,000,000,000.
 
 {% hint style="warning" %}
 **The contract address is not live yet.** Until it's posted on this page and on [@velfixyz](https://x.com/velfixyz), any token calling itself $VELFI is fake. Never buy from a link someone sends you in a DM.
@@ -14,7 +14,7 @@ $VELFI is Velfi's community token. It's launching on Solana with a fair launch a
 | --- | --- |
 | **Name** | Velfi |
 | **Ticker** | $VELFI |
-| **Network** | Solana |
+| **Network** | BNB Chain |
 | **Total supply** | 1,000,000,000 |
 | **Launch** | Fair launch |
 | **Contract address** | Coming soon |
@@ -38,7 +38,7 @@ Everyday use of Velfi stays free. You never need $VELFI to send, split, stream o
 
 1. Check the contract address on this page. It will be posted here at launch.
 2. Check that it matches the address pinned on [@velfixyz](https://x.com/velfixyz).
-3. Look it up on [Solscan](https://solscan.io) before you buy, and make sure the total supply is 1,000,000,000.
+3. Look it up on [BscScan](https://bscscan.com) before you buy, and make sure the total supply is 1,000,000,000.
 
 If anything doesn't match, don't buy.
 

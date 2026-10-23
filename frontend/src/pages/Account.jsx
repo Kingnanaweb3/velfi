@@ -32,7 +32,7 @@ export default function Account() {
           </div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 14 }}>
             <Pill tone="lime">Your own wallet</Pill>
-            <Pill tone={isMainnet ? 'soft' : 'amber'}>{isMainnet ? 'Solana' : 'Solana test network'}</Pill>
+            <Pill tone={isMainnet ? 'soft' : 'amber'}>{isMainnet ? 'BNB Chain' : 'BNB Chain test network'}</Pill>
           </div>
         </Panel>
 
@@ -55,7 +55,7 @@ export default function Account() {
           <div className="facts">
             <p><span aria-hidden="true"><ShieldCheck size={16} /></span><span>Your wallet is yours. Every payment needs your approval and signature.</span></p>
             <p><span aria-hidden="true"><ShieldCheck size={16} /></span><span>Schedules only pay who you chose, how much you chose. Cancel any of them in Flows.</span></p>
-            <p><span aria-hidden="true"><ShieldCheck size={16} /></span><span>Velfi pays the network fee on payments, so you don’t need SOL to move USDC.</span></p>
+            <p><span aria-hidden="true"><ShieldCheck size={16} /></span><span>Velfi pays the network fee on payments, so you don’t need BNB to move USDC.</span></p>
           </div>
         </Panel>
 

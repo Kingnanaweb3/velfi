@@ -32,7 +32,7 @@ export default function Login() {
 
       <div className="auth-art">
         <h1>Tell your money<br /><span>what to do.</span></h1>
-        <p className="lede">Send, split and schedule payments on Solana by just saying it. You approve every one.</p>
+        <p className="lede">Send, split and schedule payments on BNB Chain by just saying it. You approve every one.</p>
         <div className="auth-steps">
           <Pill tone="soft">1 · Google</Pill><Pill tone="soft">2 · Claim a .vel name</Pill><Pill tone="soft">3 · Just say it</Pill>
         </div>
@@ -44,7 +44,7 @@ export default function Login() {
           {loading ? <span className="spin" /> : <><GoogleG /> Continue with Google</>}
         </button>
         {error && <p className="auth-err" role="alert">{error}</p>}
-        <p className="auth-note">New or returning, it’s the same button. Your Solana wallet is created for you, with no seed phrase.</p>
+        <p className="auth-note">New or returning, it’s the same button. Your BNB Chain wallet is created for you, with no seed phrase.</p>
       </div>
     </main>
     </div>

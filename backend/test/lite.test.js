@@ -67,22 +67,23 @@ test('fee payer: new-account caps per user and overall', () => {
 
 test('mainnet refuses to start with unsafe settings', () => {
   const good = {
-    SOLANA_CLUSTER: 'mainnet-beta', SOLANA_RPC_URL: 'https://mainnet.helius-rpc.com/?api-key=x',
-    VELFI_FEE_PAYER_KEY: '[1]', VELFI_AGENT_KEY: '[2]', JWT_SECRET: 'x'.repeat(48), ESCROW_SECRET: 'y'.repeat(64),
+    BNB_NETWORK: 'mainnet', BNB_RPC_URL: 'https://bsc-mainnet.nodereal.io/v1/x',
+    VELFI_GAS_KEY: '0x1', VELFI_AGENT_KEY: '0x2', JWT_SECRET: 'x'.repeat(48), ESCROW_SECRET: 'y'.repeat(64),
     PRIVY_APP_ID: 'a', PRIVY_APP_SECRET: 'b', SUPABASE_URL: 'u', SUPABASE_SERVICE_ROLE_KEY: 'k', APP_ORIGINS: 'https://app.velfi.xyz',
   }
   assert.deepEqual(startupProblems(good), { fatal: [], warn: [] })
   const f = (o) => startupProblems({ ...good, ...o }).fatal.join(' | ')
-  assert.match(f({ SOLANA_RPC_URL: '' }), /paid RPC/)
-  assert.match(f({ SOLANA_RPC_URL: 'https://api.mainnet-beta.solana.com' }), /paid RPC/)
+  assert.match(startupProblems({ ...good, BNB_RPC_URL: '' }).warn.join(), /BNB_RPC_URL/)
+  assert.match(f({ BNB_CHAIN_ID: '97' }), /BNB_CHAIN_ID/)
+  assert.match(f({ BNB_NETWORK: 'mainnet-beta' }) + startupProblems({ ...good, BNB_NETWORK: 'devnet' }).fatal.join(), /mainnet or testnet/)
   assert.match(f({ JWT_SECRET: 'short' }), /JWT_SECRET/)
   assert.match(f({ ESCROW_SECRET: '' }), /ESCROW_SECRET/)
-  assert.match(f({ USDC_MINT: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU' }), /USDC_MINT/)
+  assert.match(f({ USDC_TOKEN: '0x0000000000000000000000000000000000000001' }), /USDC_TOKEN/)
   assert.match(f({ SCHEDULE_DEMO_SECS: '60' }), /SCHEDULE_DEMO_SECS/)
   assert.match(f({ APP_ORIGINS: '' }), /APP_ORIGINS/)
-  assert.match(f({ VELFI_FEE_PAYER_KEY: '' }), /VELFI_FEE_PAYER_KEY/)
+  assert.match(f({ VELFI_GAS_KEY: '' }), /VELFI_GAS_KEY/)
   assert.match(startupProblems({ ...good, VELFI_AGENT_KEY: '' }).warn.join(), /VELFI_AGENT_KEY/)
-  assert.match(startupProblems({ ...good, VELFI_AGENT_KEY: '[1]' }).warn.join(), /same as the fee payer/)
-  // devnet only warns
-  assert.equal(startupProblems({ SOLANA_CLUSTER: 'devnet' }).fatal.length, 0)
+  assert.match(startupProblems({ ...good, VELFI_AGENT_KEY: '0x1' }).warn.join(), /same as the gas wallet/)
+  // testnet only warns
+  assert.equal(startupProblems({ BNB_NETWORK: 'testnet' }).fatal.length, 0)
 })

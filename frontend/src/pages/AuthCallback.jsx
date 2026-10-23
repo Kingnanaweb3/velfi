@@ -36,7 +36,7 @@ export default function AuthCallback() {
         setStep(0)
         await new Promise(r => setTimeout(r, 400))
         setStep(1)
-        const { isNew, address } = await exchange() // verifies Google + reads your new Solana wallet
+        const { isNew, address } = await exchange() // verifies Google + reads your new BNB Chain wallet
         addrRef.current = address
         if (!isNew) setReturning(true)
         setStep(2)

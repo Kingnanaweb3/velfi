@@ -2,25 +2,24 @@ import { useNavigate } from 'react-router-dom'
 import { ArrowRight, Coins, Landmark, PiggyBank, ShieldCheck } from 'lucide-react'
 import { draft } from '../lib/api.js'
 import { Top, NextCard, Panel, SectionTitle, Row, Pill } from '../ui/kit.jsx'
-import { isMainnet } from '../components/sheets.jsx'
 import otterPeek from '../assets/otter-peek.webp'
 
 // Honest by design: only swaps exist today. No made-up yields, no fake numbers.
 const SOON = [
-  { Icon: Coins, title: 'Stake SOL', sub: 'Earn network rewards on SOL you hold' },
-  { Icon: Landmark, title: 'Earn on USDC', sub: 'Lend idle dollars to established Solana markets' },
+  { Icon: Coins, title: 'Stake BNB', sub: 'Earn network rewards on BNB you hold' },
+  { Icon: Landmark, title: 'Earn on USDC', sub: 'Lend idle dollars to established BNB Chain markets' },
   { Icon: PiggyBank, title: 'Save automatically', sub: 'Put aside a share of every payment you receive' },
 ]
 
 export default function Invest() {
   const navigate = useNavigate()
-  const swap = () => { draft('Swap 10 USDC to SOL'); navigate('/chat') }
+  const swap = () => { draft('Swap 10 USDC to BNB'); navigate('/chat') }
   return (
     <main className="page screen">
       <Top eyebrow="Grow your money" title="Invest" />
       <div className="stack">
-        <NextCard tone="sky" eyebrow={isMainnet ? 'Live now' : 'Live on mainnet'} title="Swap tokens just by asking"
-          chips={['Routed by Jupiter', 'You see the price first']}
+        <NextCard tone="sky" eyebrow="Coming soon" title="Swap tokens just by asking"
+          chips={['On BNB Chain', 'You see the price first']}
           action={{ label: 'Swap tokens', onClick: swap, icon: <ArrowRight size={22} /> }}
           art={<img src={otterPeek} alt="" />} />
 

@@ -35,7 +35,7 @@ export default function Home() {
   const usd = bal.data ? bal.data.total_usd || 0 : null
   const address = bal.data?.address || user?.address || user?.wallet_address
   const usdc = tokens.find(t => t.symbol === 'USDC')
-  const sol = tokens.find(t => t.symbol === 'SOL')
+  const bnb = tokens.find(t => t.symbol === 'BNB')
   const schedules = (flows.data?.schedules || []).filter(s => s.status === 'active')
   const activeCount = schedules.length + (flows.data?.streams || []).filter(s => s.status === 'active').length
   const nextPay = useMemo(() => [...schedules].sort((a, b) => new Date(a.next_run_at) - new Date(b.next_run_at))[0], [flows.data])
@@ -50,7 +50,7 @@ export default function Home() {
   if (!bal.data) next = <Skeleton h={210} r={28} />
   else if (empty) next = (
     <NextCard tone="sky" eyebrow="To get started" title="Add money to your wallet"
-      chips={['USDC or SOL', 'On Solana']}
+      chips={['USDC or BNB', 'On BNB Chain']}
       action={{ label: 'Receive money', onClick: () => setSheet('receive'), icon: <ArrowDownLeft size={22} /> }}
       art={<img src={otterPeek} alt="" />} />
   )
@@ -81,7 +81,7 @@ export default function Home() {
         <Vault label="Your money"
           labelExtra={<button onClick={toggleHidden} aria-label={hidden ? 'Show balance' : 'Hide balance'}>{hidden ? <EyeOff size={16} /> : <Eye size={16} />}</button>}
           amount={usd} hidden={hidden}
-          sub={usd === null ? ' ' : hidden ? 'Hidden' : usd > 0 ? 'USDC and SOL on Solana' : 'Add USDC or SOL to start'}
+          sub={usd === null ? ' ' : hidden ? 'Hidden' : usd > 0 ? 'USDC and BNB on BNB Chain' : 'Add USDC or BNB to start'}
           actions={<>
             <button className="vbtn" onClick={() => ask('Send ')}><Send size={16} /> Send</button>
             <button className="vbtn glass" onClick={() => setSheet('receive')}><ArrowDownLeft size={17} /> Receive</button>
@@ -95,7 +95,7 @@ export default function Home() {
 
         <div className="tiles">
           <Tile tone="lav" icon={<img src={coinFor('USDC')} alt="" />} value={bal.data ? fmtAmt(usdc?.human || 0) : '—'} label="USDC" onClick={() => setSheet('tokens')} />
-          <Tile tone="sage" icon={<img src={coinFor('SOL')} alt="" />} value={bal.data ? fmtAmt(sol?.human || 0) : '—'} label="SOL" onClick={() => setSheet('tokens')} />
+          <Tile tone="sage" icon={<img src={coinFor('BNB')} alt="" />} value={bal.data ? fmtAmt(bnb?.human || 0) : '—'} label="BNB" onClick={() => setSheet('tokens')} />
           <Tile tone="butter" icon={<Repeat size={16} />} value={flows.data ? activeCount : '—'} label={activeCount === 1 ? 'Active flow' : 'Active flows'} onClick={() => navigate('/flows')} />
         </div>
 

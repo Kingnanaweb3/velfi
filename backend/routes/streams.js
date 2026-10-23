@@ -2,7 +2,7 @@ import express from 'express'
 import supabase from '../lib/supabaseAdmin.js'
 import { requireAuth } from '../middleware/auth.js'
 import { buildClaimStream, buildStopStream } from '../lib/txBuilder.js'
-import { prepareForUser } from '../lib/solana.js'
+import { prepareForUser } from '../lib/bnb.js'
 import { remember } from '../lib/prepared.js'
 import { streamProgress } from '../lib/streams.js'
 
@@ -46,7 +46,7 @@ router.post('/:id/claim', requireAuth, async (req, res) => {
     const s = await load(req.params.id)
     const recipient = s.recipients?.[0]?.address
     if (recipient !== req.user.address) return res.status(403).json({ error: 'Only the recipient can claim this stream.' })
-    const prep = await prepareForUser(await buildClaimStream({ recipient, stream: s.flow_address, mint: s.mint }))
+    const prep = await prepareForUser(await buildClaimStream({ recipient, stream: s.flow_address, mint: s.mint }), req.user.address)
     const prepId = remember({ userAddress: req.user.address, messageHash: prep.messageHash, after: { type: 'stream_claim', streamId: s.id, token: s.token } })
     res.json({ prepId, tx: prep.tx })
   } catch (err) {
@@ -59,7 +59,7 @@ router.post('/:id/stop', requireAuth, async (req, res) => {
   try {
     const s = await load(req.params.id)
     if (s.user_address !== req.user.address) return res.status(403).json({ error: 'Only the sender can stop this stream.' })
-    const prep = await prepareForUser(await buildStopStream({ sender: req.user.address, recipient: s.recipients?.[0]?.address, stream: s.flow_address, mint: s.mint }))
+    const prep = await prepareForUser(await buildStopStream({ sender: req.user.address, recipient: s.recipients?.[0]?.address, stream: s.flow_address, mint: s.mint }), req.user.address)
     const prepId = remember({ userAddress: req.user.address, messageHash: prep.messageHash, after: { type: 'stream_stop', streamId: s.id } })
     res.json({ prepId, tx: prep.tx })
   } catch (err) {

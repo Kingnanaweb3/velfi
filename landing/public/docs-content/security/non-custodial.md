@@ -16,7 +16,7 @@ Velfi is **non-custodial**. Your money stays in your own wallet. Velfi can build
 
 ### Two things you approve once
 
-* **Scheduled payments.** When you set one up, you sign once to let Velfi's Autopilot spend up to that schedule's total from your wallet. Solana itself enforces that total. Velfi's server pays only the person, amount and timetable you approved, and cancelling in Flows stops it and removes the permission. The money stays in your wallet until each payment.
+* **Scheduled payments.** When you set one up, you sign once to let Velfi's Autopilot spend up to that schedule's total from your wallet. The token contract on BNB Chain enforces that total. Velfi's server pays only the person, amount and timetable you approved, and cancelling in Flows stops it and removes the permission. The money stays in your wallet until each payment.
 * **Sending to an email.** If the person isn't on Velfi yet, the money waits in a one-off holding wallet Velfi manages, for up to 7 days. It moves to their wallet when they sign up, or comes back to you automatically.
 
 ### The AI can't spend your money
@@ -29,6 +29,6 @@ Velfi's AI agent reads your instructions and proposes payments — but it has no
 
 ### Every payment is verifiable
 
-Because payments settle on Solana, every transaction is recorded publicly and can be independently verified on Solscan. Your payment history doesn't depend on trusting Velfi's servers.
+Because payments settle on BNB Chain, every transaction is recorded publicly and can be independently verified on BscScan. Your payment history doesn't depend on trusting Velfi's servers.
 
 

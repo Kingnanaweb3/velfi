@@ -1,4 +1,4 @@
-import { isSolanaAddress } from './chain/base58.js'
+import { isEvmAddress, sameAddress } from './chain/evm.js'
 // Deterministic validators. NEVER an LLM. These gate every parsed payment
 // before it can become a pending transaction.
 
@@ -71,7 +71,7 @@ export function validateSplit(recipients) {
 
 export function isSelfSend(resolved, user) {
   if (!resolved) return false
-  if (resolved.address && user.address && resolved.address === user.address) return true
+  if (resolved.address && user.address && sameAddress(resolved.address, user.address)) return true
   if (resolved.label && user.username && resolved.label.replace('.vel','') === user.username) return true
   return false
 }
@@ -106,9 +106,9 @@ export function normalizeVel(name) {
   if (name == null) return null
   let s = String(name).trim().toLowerCase()
   if (!s) return null
-  // Solana addresses and emails pass through untouched (addresses are case-sensitive)
+  // Emails and BNB Chain (0x) addresses pass through untouched
   if (s.includes('@')) return s
-  if (isSolanaAddress(String(name).trim())) return String(name).trim()
+  if (isEvmAddress(String(name).trim())) return String(name).trim()
   if (!s.endsWith('.vel')) s = s + '.vel'
   return s
 }

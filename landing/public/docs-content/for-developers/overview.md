@@ -8,13 +8,13 @@ A full developer SDK is coming. This overview describes the stack conceptually �
 
 ### The stack
 
-Velfi is launching on **Solana** and uses a small set of well-established building blocks:
+Velfi is launching on **BNB Chain** and uses a small set of well-established building blocks:
 
-* **Solana** — the network Velfi settles on. Chosen for near-instant settlement, fees of a fraction of a cent, and deep stablecoin liquidity, including natively issued USDC.
-* **Solana programs** — Velfi's payment logic (streams, escrow, spending limits) runs as on-chain programs written in Rust with the Anchor framework, so recurring and conditional payments execute deterministically.
-* **Google sign-in wallets** — each user gets a Solana wallet unlocked with Google sign-in, with no seed phrase. Velfi acts as the fee payer, so users never need SOL for gas.
-* **Atomic transactions** — a Solana transaction can carry many instructions that all succeed or all fail together, so "do five things, approve once" is native.
-* **Jupiter** — token swaps are routed through Solana's on-chain liquidity.
+* **BNB Chain** — the network Velfi settles on. Chosen for near-instant settlement (blocks in under a second), fees of a fraction of a cent, and deep stablecoin liquidity, including USDT and USDC.
+* **BEP-20 token contracts** — payments use BNB Chain's standard token contracts. A scheduled payment is a token allowance capped at that schedule's total, so recurring payments execute deterministically inside limits the user signed.
+* **Google sign-in wallets** — each user gets a BNB Chain wallet unlocked with Google sign-in, with no seed phrase. Velfi covers the network fee, so users never need BNB for gas.
+* **One approval** — Velfi prepares every transaction an instruction needs, and the user approves them all with one slide, so "do five things, approve once" just works.
+* **PancakeSwap** — token swaps (coming soon) route through BNB Chain's on-chain liquidity.
 
 ### The AI layer
 

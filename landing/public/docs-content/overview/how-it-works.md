@@ -25,7 +25,7 @@ Some instructions are one-time ("send $50 now"). Others are ongoing ("pay my des
 
 ### Where it all happens
 
-Every payment settles on Solana. That means it's fast (near-instant), cheap (a fraction of a cent, and Velfi covers it for you), and verifiable (recorded on-chain and visible on Solscan). But you never have to interact with any of that directly — Velfi handles it invisibly.
+Every payment settles on BNB Chain. That means it's fast (near-instant), cheap (a fraction of a cent, and Velfi covers it for you), and verifiable (recorded on-chain and visible on BscScan). But you never have to interact with any of that directly — Velfi handles it invisibly.
 
 Next: [Payment types →](/velfi/overview/payment-types.md)
 

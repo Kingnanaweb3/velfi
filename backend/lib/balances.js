@@ -1,14 +1,14 @@
-// Reads a user's Solana balances, labels them against the token registry, and
-// values them in USD. Deterministic, no AI. Same API as the Sui version.
-import { rawBalances } from './solana.js'
-import { getTokenByMint } from './tokens.js'
+// Reads a user's BNB Chain balances, labels them against the token registry, and
+// values them in USD. Deterministic, no AI. Same API as the Solana version.
+import { rawBalances } from './bnb.js'
+import { getTokenByMint, TOKEN_LIST } from './tokens.js'
 import { getPrices } from './pricing.js'
 
 // Returns: [{ symbol, name, mint, coinType, decimals, human, usd, recognized }]
 export async function getAllBalances(address) {
   let raw = []
   try {
-    raw = await rawBalances(address)
+    raw = await rawBalances(address, TOKEN_LIST)
   } catch (e) {
     throw new Error(`balance read failed: ${e.message}`)
   }

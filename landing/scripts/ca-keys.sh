@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # One-time setup for the live $VELFI address on velfi.xyz.
-# Asks for your Upstash keys and a Helius URL, tests them, saves them to
+# Asks for your Upstash keys and a BNB Chain RPC URL, tests them, saves them to
 # landing/.env.swap (gitignored) and adds them to the Vercel "velfi" project
 # without quotes. Run from anywhere:  bash ~/velfi/landing/scripts/ca-keys.sh
 set -euo pipefail
@@ -16,10 +16,11 @@ PING="$(curl -sS -X POST "$URL" -H "Authorization: Bearer $TOKEN" -d '["PING"]' 
 [[ "$PING" == *PONG* ]] || { echo "✗ Upstash didn't answer PONG. Check the URL and token. ($PING)"; exit 1; }
 echo "✓ Upstash works"
 
-echo "Solana RPC for the on-chain check. Use a Helius mainnet URL (it can read token symbols)."
-RPC="$(ask 'SOLANA_RPC_URL')"
-OK="$(curl -sS -X POST "$RPC" -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"getHealth"}' || true)"
-[[ "$OK" == *'"ok"'* ]] || { echo "✗ That RPC didn't answer ok. ($OK)"; exit 1; }
+echo "BNB Chain RPC for the on-chain check. Press Enter for the public one (https://bsc-dataseed.bnbchain.org)."
+RPC="$(ask 'BNB_RPC_URL')"
+[ -n "$RPC" ] || RPC="https://bsc-dataseed.bnbchain.org"
+OK="$(curl -sS -X POST "$RPC" -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}' || true)"
+[[ "$OK" == *'"0x38"'* ]] || { echo "✗ That RPC isn't BNB Chain mainnet (chain id 56). ($OK)"; exit 1; }
 echo "✓ RPC works"
 
 if [ -f .env.swap ] && grep -q '^ADMIN_KEY=' .env.swap; then ADMIN="$(grep '^ADMIN_KEY=' .env.swap | cut -d= -f2-)"
@@ -31,7 +32,7 @@ SITE=https://velfi.xyz
 ADMIN_KEY=$ADMIN
 UPSTASH_REDIS_REST_URL=$URL
 UPSTASH_REDIS_REST_TOKEN=$TOKEN
-SOLANA_RPC_URL=$RPC
+BNB_RPC_URL=$RPC
 EXPECTED_SYMBOL=VELFI
 ENV
 echo "✓ Saved landing/.env.swap (keep it private; it's gitignored)"
@@ -42,6 +43,6 @@ echo "Adding to Vercel (project velfi, Production):"
 put UPSTASH_REDIS_REST_URL "$URL"
 put UPSTASH_REDIS_REST_TOKEN "$TOKEN"
 put ADMIN_KEY "$ADMIN"
-put SOLANA_RPC_URL "$RPC"
+put BNB_RPC_URL "$RPC"
 put EXPECTED_SYMBOL "VELFI"
 echo "✓ Done. Next: cd ~/velfi/landing && vercel --prod"

@@ -2,9 +2,9 @@
 // Every amount becomes exact base units here, every address is checked here,
 // so nothing loosely typed ever reaches a transaction.
 import { toBaseUnits } from './amounts.js'
-import { isSolanaAddress } from './base58.js'
+import { isEvmAddress, norm } from './evm.js'
 
-export const MAX_LEGS = 5 // keeps one transaction under Solana's size limit
+export const MAX_LEGS = 5 // each leg is its own BNB transaction, all approved with one slide
 
 // getToken(symbol) -> { symbol, mint, decimals } | null
 export function legsFromProposal(pending, getToken) {
@@ -39,8 +39,8 @@ export function legsFromProposal(pending, getToken) {
     const address = l.resolved?.address || null
     const email = l.resolved?.email || null
     if (address) {
-      if (!isSolanaAddress(address)) throw new Error(`${l.label || address} is not a valid Solana address.`)
-      return { kind: 'transfer', to: address, token, amountUnits, label: l.label || address }
+      if (!isEvmAddress(address)) throw new Error(`${l.label || address} is not a valid BNB Chain address.`)
+      return { kind: 'transfer', to: norm(address), token, amountUnits, label: l.label || address }
     }
     if (email) return { kind: 'invite', email: String(email).toLowerCase(), token, amountUnits, label: l.label || email }
     throw new Error('One of the recipients is missing an address.')
@@ -56,7 +56,9 @@ function roundTo(amount, decimals) {
     return f.length > decimals ? `${w}.${f.slice(0, decimals)}` : amount
   }
   if (!Number.isFinite(n) || n <= 0) throw new Error(`"${amount}" is not a valid amount`)
-  return n.toFixed(decimals)
+  // A float has ~15 significant digits; past 12 decimals (BNB tokens use 18) toFixed
+  // only adds noise, so stop there. Solana tokens (6 or 9 decimals) are unaffected.
+  return n.toFixed(Math.min(decimals, 12))
 }
 
 // Totals per token symbol, for balance checks.
@@ -66,7 +68,7 @@ export function totalsBySymbol(legs) {
   return t
 }
 
-// Unique-enough u64 id for a user's flow PDA (ms timestamp + random suffix).
+// Unique-enough u64 id for a flow (ms timestamp + random suffix).
 export function newFlowId(now = Date.now(), rand = Math.floor(Math.random() * 1000)) {
   return BigInt(now) * 1000n + BigInt(rand)
 }

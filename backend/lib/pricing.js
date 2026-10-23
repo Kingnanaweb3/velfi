@@ -10,7 +10,7 @@ import { TOKENS, TOKEN_LIST, getToken } from './tokens.js'
 const CACHE_MS = 60_000            // consider cache "fresh" for 60s
 // Last-resort values used only when the live price API is down. Stablecoins
 // only: a guessed price for a volatile token could convert "$20" into the wrong
-// amount of SOL, so for those we say we can't price it instead.
+// amount of BNB, so for those we say we can't price it instead.
 const FALLBACK = { 'usd-coin': 1, 'tether': 1 }
 
 let cache = { at: 0, prices: { ...FALLBACK } }   // never empty

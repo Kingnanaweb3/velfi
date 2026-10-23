@@ -6,20 +6,20 @@
 // The site never trusts the stored value blindly: before showing an address it
 // checks on-chain that it is a real token with the expected symbol (VELFI).
 import crypto from 'node:crypto'
-import { isSolanaAddress, inspectMint, judge } from './_lib/mint.js'
+import { isEvmAddress, inspectToken, judge } from './_lib/token.js'
 
 const URL = process.env.UPSTASH_REDIS_REST_URL
 const TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN
 const ADMIN_KEY = process.env.ADMIN_KEY
-const RPC = process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com'
+const RPC = process.env.BNB_RPC_URL || 'https://bsc-dataseed.bnbchain.org'
 const EXPECT = process.env.EXPECTED_SYMBOL || 'VELFI'
 const FALLBACK = process.env.VELFI_CA || null
 const KEY = 'velfi:ca'
-// Test mode: rehearse the live path with a real, existing token (mainnet USDC),
-// shown with a TEST badge. Only this one mint is accepted as a test, so a leaked
-// key can't use test mode to show anything else.
-const TEST_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
-const TEST_SYMBOL = 'USDC'
+// Test mode: rehearse the live path with a real, existing token (USDT on BNB
+// Chain), shown with a TEST badge. Only this one address is accepted as a test,
+// so a leaked key can't use test mode to show anything else.
+const TEST_MINT = '0x55d398326f99059fF775485246999027B3197955'
+const TEST_SYMBOL = 'USDT'
 
 const NO_STORE = {
   'content-type': 'application/json',
@@ -49,10 +49,10 @@ async function verify(address, expect = EXPECT) {
   if (hit && Date.now() - hit.at < 30_000) return hit.result
   let result
   try {
-    const m = await inspectMint(RPC, address)
+    const m = await inspectToken(RPC, address)
     result = { ...judge(m, expect), symbol: m.symbol || null }
   } catch (e) {
-    result = { verified: false, reason: `Couldn't reach Solana to check it (${e.message}).`, transient: true }
+    result = { verified: false, reason: `Couldn't reach BNB Chain to check it (${e.message}).`, transient: true }
   }
   if (!result.transient) checked.set(ck, { at: Date.now(), result })
   return result
@@ -74,7 +74,7 @@ export default async function handler(req, res) {
     try { stored = await redis(['GET', KEY]) } catch { /* fall back below */ }
     const test = stored === `test:${TEST_MINT}`
     let address = test ? TEST_MINT : stored
-    if (!isSolanaAddress(address)) address = isSolanaAddress(FALLBACK) ? FALLBACK : null
+    if (!isEvmAddress(address)) address = isEvmAddress(FALLBACK) ? FALLBACK : null
     if (!address) return send(res, 200, { status: 'pending', ts: Date.now() })
     const v = await verify(address, test ? TEST_SYMBOL : EXPECT)
     if (!v.verified) return send(res, 200, { status: 'unverified', reason: v.reason, test, ts: Date.now() })
@@ -93,7 +93,7 @@ export default async function handler(req, res) {
         const v = await verify(TEST_MINT, TEST_SYMBOL)
         return send(res, 200, { address: TEST_MINT, ok: true, test: true, status: v.verified ? 'live' : 'unverified', reason: v.reason || null, symbol: v.symbol || null })
       }
-      if (!isSolanaAddress(address)) return send(res, 400, { error: 'not a Solana address' })
+      if (!isEvmAddress(address)) return send(res, 400, { error: 'not a BNB Chain address' })
       await redis(['SET', KEY, address])
       checked.delete(address)
       const v = await verify(address)

@@ -1,14 +1,16 @@
 // Money sent to an email waits until that person signs up.
-//  - Lite mode ("wallet"): it sits in a one-off claim wallet whose key Velfi keeps
+//  - Lite mode ("wallet", the only mode on BNB Chain): it sits in a one-off claim wallet whose key Velfi keeps
 //    sealed (AES-GCM, ESCROW_SECRET). On sign-up Velfi moves it to their new wallet.
 //    If nobody claims it within 7 days, Velfi sends it back to the sender.
 //  - Program mode ("program"): it sits in an on-chain escrow; same timing.
 import supabaseAdmin from './supabaseAdmin.js'
-import { Keypair } from '@solana/web3.js'
 import { open } from './chain/secretBox.js'
 import { inviteDue } from './chain/lite.js'
 import { buildClaimEscrow, buildSweepInvite } from './txBuilder.js'
-import { sendAsServer, explorerTx } from './solana.js'
+import { sendAsServer, explorerTx, claimAccount } from './bnb.js'
+
+// Rows from the Solana version share the table; this code only touches BNB rows.
+const CHAIN = 'bnb'
 import { getTokenByMint } from './tokens.js'
 
 export async function saveInvites({ fromAddress, invites, signature }) {
@@ -16,7 +18,7 @@ export async function saveInvites({ fromAddress, invites, signature }) {
   const { error } = await supabaseAdmin.from('escrow_invites').insert(invites.map(i => ({
     from_address: fromAddress, to_email: String(i.email).toLowerCase(), escrow_address: i.escrow, mode: i.mode || 'program',
     token: i.token, mint: i.mint, amount_units: i.amount_units, claim_key_sealed: i.claim_key_sealed,
-    status: 'pending', tx_hash: signature, expires_at: new Date(Date.now() + 7 * 86_400_000).toISOString(),
+    status: 'pending', tx_hash: signature, expires_at: new Date(Date.now() + 7 * 86_400_000).toISOString(), chain: CHAIN,
   })))
   // The money has already moved, so this must not be lost silently.
   if (error) console.error('INVITE SAVE FAILED, recover manually:', error.message, JSON.stringify(invites.map(i => ({ email: i.email, wallet: i.escrow }))))
@@ -30,19 +32,19 @@ async function lock(inv, status) {
 }
 
 async function moveOut(inv, to) {
-  const claimKey = Keypair.fromSecretKey(open(inv.claim_key_sealed))
+  const claimKey = claimAccount(open(inv.claim_key_sealed))
   if (inv.mode === 'wallet') {
     const { ixs } = await buildSweepInvite({ claimWallet: inv.escrow_address, to, token: getTokenByMint(inv.mint) })
-    return sendAsServer(ixs, [claimKey])
+    if (!ixs.length) throw new Error('This invite wallet is empty.')
+    return sendAsServer(ixs, claimKey)
   }
-  const ixs = await buildClaimEscrow({ escrow: inv.escrow_address, mint: inv.mint, claimer: to, claimAuthority: claimKey.publicKey.toBase58() })
-  return sendAsServer(ixs, [claimKey])
+  return buildClaimEscrow() // Solana program escrows can't move on BNB Chain (throws)
 }
 
 export async function claimInvitesFor(email, walletAddress) {
   if (!email || process.env.PAUSE_PAYMENTS === 'on') return []
   const { data } = await supabaseAdmin.from('escrow_invites').select('*')
-    .eq('to_email', String(email).toLowerCase()).eq('status', 'pending')
+    .eq('to_email', String(email).toLowerCase()).eq('status', 'pending').eq('chain', CHAIN)
   const claimed = []
   for (const inv of data || []) {
     if (new Date(inv.expires_at) < new Date()) continue
@@ -66,7 +68,7 @@ export async function claimInvitesFor(email, walletAddress) {
 export async function refundExpiredInvites() {
   if (process.env.PAUSE_PAYMENTS === 'on') return []
   const { data } = await supabaseAdmin.from('escrow_invites').select('*')
-    .eq('status', 'pending').eq('mode', 'wallet').lte('expires_at', new Date().toISOString())
+    .eq('status', 'pending').eq('mode', 'wallet').eq('chain', CHAIN).lte('expires_at', new Date().toISOString())
   const refunded = []
   for (const inv of data || []) {
     if (!inviteDue(inv)) continue

@@ -3,12 +3,12 @@ import { useMemo, useState } from 'react'
 import { ArrowDownLeft, ArrowUpRight, Repeat, Copy, Check, Share2, Bell, ArrowLeftRight } from 'lucide-react'
 import { Sheet, Row, Empty, Seg, Pill, Skeleton, useCopy, fmtAmt, fmtUsd } from '../ui/kit.jsx'
 import { usePoll, ago, dayLabel, counterparty, shortAddr } from '../lib/api.js'
-import { explorerTx, explorerAddress, CLUSTER, EXPLORER_NAME } from '../lib/chain.js'
-import solCoin from '../assets/sol_coin.svg'
+import { explorerTx, explorerAddress, IS_MAINNET, EXPLORER_NAME } from '../lib/chain.js'
+import bnbCoin from '../assets/bnb_coin.svg'
 import usdcCoin from '../assets/usdc_coin.png'
 
-export const coinFor = (sym) => (sym === 'SOL' ? solCoin : sym === 'USDC' ? usdcCoin : null)
-export const isMainnet = CLUSTER === 'mainnet-beta'
+export const coinFor = (sym) => (sym === 'BNB' ? bnbCoin : sym === 'USDC' ? usdcCoin : null)
+export const isMainnet = IS_MAINNET
 
 // ── Receive ──────────────────────────────────────────────────────────────
 export function ReceiveSheet({ open, onClose, username, address }) {
@@ -16,7 +16,7 @@ export function ReceiveSheet({ open, onClose, username, address }) {
   const handle = `${username || 'you'}.vel`
   const qr = address ? `https://api.qrserver.com/v1/create-qr-code/?size=360x360&margin=0&data=${encodeURIComponent(address)}` : null
   async function share() {
-    const text = `Pay me on Velfi: ${handle}${address ? `\nOr send USDC or SOL on Solana to ${address}` : ''}`
+    const text = `Pay me on Velfi: ${handle}${address ? `\nOr send USDC or BNB on BNB Chain to ${address}` : ''}`
     try { if (navigator.share) await navigator.share({ title: 'Pay me on Velfi', text }); else copy(text, 'share') } catch {}
   }
   return (
@@ -32,7 +32,7 @@ export function ReceiveSheet({ open, onClose, username, address }) {
         <Row title="Your .vel name" sub={handle} onClick={() => copy(handle, 'h')} chevron={copied === 'h' ? <Check size={18} /> : <Copy size={17} />} />
         <Row title="Wallet address" sub={address ? shortAddr(address) + ' · for other apps and exchanges' : 'Loading…'} onClick={() => address && copy(address, 'a')} chevron={copied === 'a' ? <Check size={18} /> : <Copy size={17} />} />
       </div>
-      <p className="flow-note warn">Only send USDC or SOL on the Solana network{isMainnet ? '' : ' (this is a test network)'}. Money sent on another network can't be recovered.</p>
+      <p className="flow-note warn">Only send USDC or BNB on the BNB Chain network{isMainnet ? '' : ' (this is a test network)'}. Money sent on another network can't be recovered.</p>
       <button className="btn primary block" onClick={share}><Share2 size={18} /> {copied === 'share' ? 'Copied' : 'Share'}</button>
     </Sheet>
   )
@@ -48,7 +48,7 @@ export function TokensSheet({ open, onClose, tokens = [], total = 0, address }) 
         <p className="eyebrow" style={{ marginTop: 6 }}>{list.length} {list.length === 1 ? 'token' : 'tokens'} in your wallet</p>
       </div>
       <ul className="feed">
-        {list.length === 0 && <li><Empty title="Nothing here yet">Add USDC or SOL from Receive and it shows up here.</Empty></li>}
+        {list.length === 0 && <li><Empty title="Nothing here yet">Add USDC or BNB from Receive and it shows up here.</Empty></li>}
         {list.map(t => (
           <li key={t.mint}>
             <Row icon={coinFor(t.symbol) ? <img src={coinFor(t.symbol)} alt="" /> : (t.symbol || '?')[0]} title={t.name || t.symbol}

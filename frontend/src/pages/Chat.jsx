@@ -29,7 +29,7 @@ function describe(p) {
   const intent = p?.intent, pay = p?.payment || {}
   if (intent === 'swap') {
     const sw = pay.swap || {}
-    return { kind: 'swap', title: 'Swap', done: 'Swapped', rows: [{ label: `${sw.from_token} → ${sw.to_token}`, amount: sw.amount, token: sw.from_token }], note: p.summary || null, fee: 'Small SOL fee' }
+    return { kind: 'swap', title: 'Swap', done: 'Swapped', rows: [{ label: `${sw.from_token} → ${sw.to_token}`, amount: sw.amount, token: sw.from_token }], note: p.summary || null, fee: 'Small BNB fee' }
   }
   if (intent === 'stream') {
     const st = pay.stream || {}
@@ -108,7 +108,7 @@ export default function Chat() {
         if (pending) dropProposal(pending.id)
         setPending(p); push({ role: 'assistant', text: d.summary || 'Here’s what I’ll do:', proposal: p })
       }
-      else if (d.mode === 'choose_token') push({ role: 'assistant', text: d.reply || 'Which token would you like to use?', tokens: ['USDC', 'SOL'] })
+      else if (d.mode === 'choose_token') push({ role: 'assistant', text: d.reply || 'Which token would you like to use?', tokens: ['USDC', 'BNB'] })
       else push({ role: 'assistant', text: d.reply || d.summary || 'Okay.' })
     } catch (e) { push({ role: 'assistant', text: e.status ? e.message : 'I couldn’t reach Velfi just now. Check your connection and try again.' }) }
     finally { setBusy(false) }
@@ -128,7 +128,7 @@ export default function Chat() {
     }
     let signedTx
     setSheet({ type: 'confirm', running: 'Signing…' })
-    try { signedTx = await withTimeout(wallet.sign(prep.tx, { versioned: !!prep.versioned }), 70_000, 'Your wallet didn’t respond in time') }
+    try { signedTx = await withTimeout(wallet.sign(prep.tx), 70_000, 'Your wallet didn’t respond in time') }
     catch (e) {
       console.error('Velfi sign failed:', e)
       setSheet(null)
@@ -325,7 +325,7 @@ function SuccessSheet({ open, data, onClose }) {
   const big = d.done.length > 5
   return (
     <Sheet open={open} onClose={onClose} pale label="Payment complete">
-      <div className="flow-head"><Pill tone="lime">Confirmed on Solana</Pill><span /></div>
+      <div className="flow-head"><Pill tone="lime">Confirmed on BNB Chain</Pill><span /></div>
       <div className={`stamp ${d.kind === 'swap' ? 'blue' : d.kind === 'schedule' ? 'lav' : ''}`}><span style={big ? { fontSize: 'clamp(60px, 19vw, 100px)' } : undefined}>{d.done}</span></div>
       <div className="amount-card">
         <div className="amount-top"><span>{d.title}</span><span>Just now</span></div>

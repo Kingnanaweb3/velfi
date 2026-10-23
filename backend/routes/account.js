@@ -1,6 +1,6 @@
 import express from 'express'
 import supabase from '../lib/supabaseAdmin.js'
-import { getSolBalance, explorerAddress, CLUSTER } from '../lib/solana.js'
+import { getNativeBalance, explorerAddress, CLUSTER } from '../lib/bnb.js'
 import { getAllBalances } from '../lib/balances.js'
 import { requireAuth } from '../middleware/auth.js'
 
@@ -10,7 +10,7 @@ router.get('/stats', requireAuth, async (req, res) => {
   try {
     const address = req.user.address
     const [balance, { data: streams }, { data: scheduled }] = await Promise.all([
-      getSolBalance(address),
+      getNativeBalance(address),
       supabase.from('streams').select('status').eq('user_address', address),
       supabase.from('scheduled_payments').select('status').eq('user_address', address),
     ])
@@ -18,7 +18,8 @@ router.get('/stats', requireAuth, async (req, res) => {
       address,
       cluster: CLUSTER,
       explorer: explorerAddress(address),
-      balance_sol: balance,
+      balance_bnb: balance,
+      balance_sol: balance, // old name, same value (BNB)
       active_streams: streams?.filter(s => s.status === 'active').length || 0,
       active_scheduled: scheduled?.filter(s => s.status === 'active').length || 0,
     })

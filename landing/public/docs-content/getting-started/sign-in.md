@@ -8,7 +8,7 @@ Getting into Velfi takes seconds. There's no wallet to install, no seed phrase t
 2. Tap **Sign in with Google**.
 3. Choose your Google account.
 
-That's it. You now have a secure, self-custodial Solana wallet, created automatically when you sign in with Google.
+That's it. You now have a secure, self-custodial BNB Chain wallet, created automatically when you sign in with Google.
 
 ### Why there's no seed phrase
 

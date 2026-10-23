@@ -15,9 +15,9 @@ No seed phrases. No gas tokens. No wallet addresses to copy. You sign in with Go
 * **Escrow** funds until a condition is met (coming soon).
 * **Automate** rules like saving a percentage of everything you receive (coming soon).
 
-### Launching on Solana
+### Launching on BNB Chain
 
-Velfi is launching on Solana, so payments settle almost instantly for a fraction of a cent, with stablecoins like USDC built in. But you never have to think about any of that — the chain is invisible. Your money just does what you tell it to.
+Velfi is launching on BNB Chain, so payments settle almost instantly for a fraction of a cent, with stablecoins like USDC built in. But you never have to think about any of that — the chain is invisible. Your money just does what you tell it to.
 
 {% hint style="info" %}
 **Your wallet stays yours.** Velfi is non-custodial. It builds and proposes your payments, but only you can approve them.
