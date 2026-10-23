@@ -2,7 +2,8 @@
 # Pulls every Velfi GitBook page into public/docs-content/*.md
 # Run from ~/velfi/landing:  bash pull-docs.sh
 set -e
-BASE="https://kinnahjoshua67s-organization.gitbook.io/velfi"
+# Your GitBook space URL, kept out of the repo:  GITBOOK_URL=https://<space>.gitbook.io/velfi bash pull-docs.sh
+BASE="${GITBOOK_URL:?Set GITBOOK_URL to the GitBook space URL first}"
 OUT="public/docs-content"
 
 PAGES="readme

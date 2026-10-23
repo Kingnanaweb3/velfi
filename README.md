@@ -6,7 +6,7 @@
 
 A **non-custodial AI payments agent on Sui**. Send, split, stream, schedule, and swap — in plain English, with one approval.
 
-**[Live App](https://app.velfi.xyz)** · **[Docs](https://kinnahjoshua67s-organization.gitbook.io/velfi/)** · **[Demo Video](https://youtube.com)**
+**[Live App](https://app.velfi.xyz)** · **[Docs](https://velfi.xyz/docs)** · **[Demo Video](https://youtube.com)**
 
 Built for **Sui Overflow 2026** · DeFi & Payments Track
 
