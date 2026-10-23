@@ -1,6 +1,12 @@
 {
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://backend-production-595a.up.railway.app/:path*" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/api/:path*",
+      "destination": "https://velfi-bnb-production.up.railway.app/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ]
 }
