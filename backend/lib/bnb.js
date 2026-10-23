@@ -190,13 +190,26 @@ export async function verifySigned(signed, expectedJson) {
     let p, signer
     try { p = parseTransaction(raw); signer = await recoverTransactionAddress({ serializedTransaction: raw }) }
     catch { throw new Error('The transaction is missing a signature.') }
+    // What it will actually pay per gas. On BNB Chain the base fee is 0, so for the
+    // newer transaction type that is the smaller of maxFeePerGas and the priority fee.
     const fee = p.gasPrice ?? p.maxFeePerGas ?? 0n
-    const same =
-      sameAddress(signer, expected.from) && sameAddress(p.to, e.to) &&
-      String(p.data || '0x').toLowerCase() === String(e.data).toLowerCase() &&
-      (p.value ?? 0n) === BigInt(e.value) && Number(p.nonce) === Number(e.nonce) && Number(p.chainId) === Number(e.chainId) &&
-      p.gas <= BigInt(e.gas) * 2n && fee <= BigInt(e.gasPrice) * 2n
-    if (!same) throw new Error('This transaction does not match what you approved.')
+    const pays = p.gasPrice ?? (p.maxPriorityFeePerGas < p.maxFeePerGas ? p.maxPriorityFeePerGas : p.maxFeePerGas) ?? 0n
+    // Name exactly what differs (safe to show: no secrets), so a wallet quirk is easy to spot.
+    const diff = []
+    if (!sameAddress(signer, expected.from)) diff.push('signed by another wallet')
+    if (!sameAddress(p.to, e.to)) diff.push('recipient')
+    if (String(p.data || '0x').toLowerCase() !== String(e.data).toLowerCase()) diff.push('payment details')
+    if ((p.value ?? 0n) !== BigInt(e.value)) diff.push('amount')
+    if (Number(p.nonce) !== Number(e.nonce)) diff.push(`nonce ${p.nonce} (want ${e.nonce})`)
+    if (Number(p.chainId) !== Number(e.chainId)) diff.push(`network ${p.chainId ?? 'none'} (want ${e.chainId})`)
+    if (p.gas > BigInt(e.gas) * 2n) diff.push(`gas limit ${p.gas} (max ${BigInt(e.gas) * 2n})`)
+    if (fee > BigInt(e.gasPrice) * 2n) diff.push(`gas price ${fee} wei (max ${BigInt(e.gasPrice) * 2n})`)
+    // Too little gas and the network ignores it (a 0 fee is even routed to a sponsor check).
+    if (pays * 10n < BigInt(e.gasPrice) * 9n) diff.push(`gas price too low: ${pays} wei (need ${BigInt(e.gasPrice)})`)
+    if (diff.length) {
+      console.error('signed tx mismatch:', diff.join(', '), `type ${p.type}`)
+      throw new Error(`This transaction does not match what you approved (${diff.join(', ')}).`)
+    }
     out.push({ raw, value: p.value ?? 0n, cost: p.gas * fee, nonce: Number(p.nonce) })
   }
   return { from: expected.from, txs: out }

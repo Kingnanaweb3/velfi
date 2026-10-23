@@ -132,7 +132,7 @@ export default function Chat() {
     catch (e) {
       console.error('Velfi sign failed:', e)
       setSheet(null)
-      const why = String(e?.message || e || '').slice(0, 140)
+      const why = String(e?.message || e || '').slice(0, 400)
       toast(/reject|denied|cancel|closed/i.test(why) ? 'You didn’t sign it, so nothing was sent.' : `Your wallet couldn’t sign that, so nothing was sent.${why ? ` (${why})` : ''}`)
       return
     }
