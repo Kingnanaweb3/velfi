@@ -5,10 +5,10 @@ anchor_version = "0.31.1"
 resolution = true
 skip-lint = false
 
-[programs.localnet]
-velfi = "HeWZC7G6oYzfZfta67YVYvuySgQqKXJDs4ypghxXAajJ"
-
 [programs.devnet]
+velfi = "ATv2SKuiEG1ER4zLEKC2LyLvvpEAgj9fNK7WJmHQwcff"
+
+[programs.localnet]
 velfi = "HeWZC7G6oYzfZfta67YVYvuySgQqKXJDs4ypghxXAajJ"
 
 [registry]

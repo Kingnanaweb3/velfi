@@ -26,3 +26,4 @@ dist-ssr
 
 # Keys for scripts/swap-ca.sh (never commit)
 .env.swap
+.env*

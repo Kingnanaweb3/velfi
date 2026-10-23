@@ -15,7 +15,7 @@ pub mod util;
 pub use instructions::*;
 
 // Replace with your own: run `anchor keys sync` once after cloning.
-declare_id!("HeWZC7G6oYzfZfta67YVYvuySgQqKXJDs4ypghxXAajJ");
+declare_id!("ATv2SKuiEG1ER4zLEKC2LyLvvpEAgj9fNK7WJmHQwcff");
 
 #[program]
 pub mod velfi {
