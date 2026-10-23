@@ -453,6 +453,15 @@ button.tile:active { transform: scale(.97); }
 }
 .auth-dark .auth-visual { background: none; box-shadow: none; padding-top: 0; border-radius: 0; overflow: visible; }
 .auth-dark .auth-visual::before { background: radial-gradient(320px circle at 55% 30%, rgba(165, 140, 255, .22), transparent 65%); }
+/* Soft edges: the glow box and the meadow fade into the page instead of ending in a straight cut. */
+.auth-dark .auth-visual {
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 9%, #000 84%, transparent 100%), linear-gradient(to bottom, #000 0, #000 80%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(to right, transparent 0, #000 9%, #000 84%, transparent 100%), linear-gradient(to bottom, #000 0, #000 80%, transparent 100%);
+  mask-composite: intersect;
+}
+/* The glow sits lower and fades out before it reaches the top edge, so there is no line above the art. */
+.auth-dark .auth-visual::before { background: radial-gradient(250px circle at 55% 62%, rgba(165, 140, 255, .22), transparent 65%); }
 .auth-dark .gbtn { background: #F3EEF8; color: #1A1222; }
 .auth-dark .btn.primary { background: #F3EEF8; color: #1A1222; }
 .auth-dark .pill.soft { background: rgba(255, 255, 255, .07); color: var(--t2); }
