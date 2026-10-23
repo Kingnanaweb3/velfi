@@ -6,11 +6,52 @@ import otter from './assets/otter.webp'
 import { useState, useEffect, useRef } from 'react'
 import TokenCA from './TokenCA'
 import HeroToken from './HeroToken'
+import { useLang, rich, LANGS } from './i18n'
+import type { Lang } from './i18n'
 
 // The Velfi web app (sign in with Google, claim a .vel name).
 const APP_URL = 'https://app.velfi.xyz'
 
+// EN · 中文 · 한국어 picker in the top bar (desktop) and the mobile menu.
+function LangSwitch({ mobile = false, onPick }: { mobile?: boolean; onPick?: () => void }) {
+  const { lang, setLang, t } = useLang()
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const close = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false) }
+    document.addEventListener('mousedown', close)
+    return () => document.removeEventListener('mousedown', close)
+  }, [])
+  const pick = (l: Lang) => { setLang(l); setOpen(false); onPick?.() }
+  if (mobile) {
+    return (
+      <div className="mobile-langs" role="group" aria-label={t('navLanguage')}>
+        {LANGS.map(l => (
+          <button key={l.code} type="button" lang={l.html} className={l.code === lang ? 'on' : ''} aria-pressed={l.code === lang} onClick={() => pick(l.code)}>{l.label}</button>
+        ))}
+      </div>
+    )
+  }
+  const cur = LANGS.find(l => l.code === lang)!
+  return (
+    <div className="lang-switch" ref={ref}>
+      <button type="button" className="lang-btn" aria-haspopup="true" aria-expanded={open} aria-label={t('navLanguage')} onClick={() => setOpen(o => !o)}>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9s1.3-6.4 3.8-9z" /></svg>
+        <span lang={cur.html}>{cur.label}</span>
+      </button>
+      <div className={`nav-dropdown lang-menu${open ? ' open' : ''}`}>
+        {LANGS.map(l => (
+          <button key={l.code} type="button" lang={l.html} className={l.code === lang ? 'on' : ''} onClick={() => pick(l.code)}>{l.label}</button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function App() {
+  const { t, lang } = useLang()
+  // Chinese runs a headline straight into its accent part; English and Korean keep a space.
+  const sp = lang === 'zh' ? '' : ' '
   const [scrolled, setScrolled] = useState(false)
   const [resourcesOpen, setResourcesOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -64,56 +105,60 @@ function App() {
       <nav className={`nav${scrolled ? ' scrolled' : ''}${menuOpen ? ' menu-open' : ''}`}>
         <div className="nav-logo"><img src={logo} className="nav-logo-img" alt="Velfi" /><span>Velfi</span></div>
         <div className="nav-links">
-          <a href="#how-it-works">How it works</a>
-          <a href="#features">Features</a>
-          <a href="#token">Token</a>
+          <a href="#how-it-works">{t('navHow')}</a>
+          <a href="#features">{t('navFeatures')}</a>
+          <a href="#token">{t('navToken')}</a>
           <div
             className="nav-dropdown-wrap"
             ref={dropdownRef}
             onMouseEnter={openDropdown}
             onMouseLeave={closeDropdown}
           >
-            <button className="nav-dropdown-btn">Resources ▾</button>
+            <button className="nav-dropdown-btn">{t('navResources')} ▾</button>
             <div className={`nav-dropdown${resourcesOpen ? ' open' : ''}`}>
-              <a href="/docs" target="_blank" rel="noreferrer">Docs</a>
-              <a href="/docs/guides/sending-money" target="_blank" rel="noreferrer">Guides</a>
-              <a href="/litepaper" target="_blank" rel="noreferrer">Litepaper</a>
-              <a href="/docs/token/velfi" target="_blank" rel="noreferrer">Token</a>
+              <a href="/docs" target="_blank" rel="noreferrer">{t('navDocs')}</a>
+              <a href="/docs/guides/sending-money" target="_blank" rel="noreferrer">{t('navGuides')}</a>
+              <a href="/litepaper" target="_blank" rel="noreferrer">{t('navLitepaper')}</a>
+              <a href="/docs/token/velfi" target="_blank" rel="noreferrer">{t('navToken')}</a>
             </div>
           </div>
         </div>
-        <a href={APP_URL} className="nav-cta">Open App</a>
-        <button className={`nav-burger${menuOpen ? ' open' : ''}`} onClick={() => setMenuOpen(!menuOpen)} aria-label="Menu">
+        <div className="nav-right">
+          <LangSwitch />
+          <a href={APP_URL} className="nav-cta">{t('navOpenApp')}</a>
+        </div>
+        <button className={`nav-burger${menuOpen ? ' open' : ''}`} onClick={() => setMenuOpen(!menuOpen)} aria-label={t('navMenu')}>
           <span></span><span></span><span></span>
         </button>
       </nav>
 
       <div className={`mobile-menu${menuOpen ? ' open' : ''}`}>
-        <a href="#how-it-works" onClick={() => setMenuOpen(false)}>How it works</a>
-        <a href="#features" onClick={() => setMenuOpen(false)}>Features</a>
-        <a href="#token" onClick={() => setMenuOpen(false)}>Token</a>
-        <a href="/docs" target="_blank" rel="noreferrer" onClick={() => setMenuOpen(false)}>Docs</a>
-        <a href="/docs/guides/sending-money" target="_blank" rel="noreferrer" onClick={() => setMenuOpen(false)}>Guides</a>
-        <a href="/litepaper" target="_blank" rel="noreferrer" onClick={() => setMenuOpen(false)}>Litepaper</a>
-        <a href={APP_URL} className="mobile-menu-cta" onClick={() => setMenuOpen(false)}>Open App</a>
+        <a href="#how-it-works" onClick={() => setMenuOpen(false)}>{t('navHow')}</a>
+        <a href="#features" onClick={() => setMenuOpen(false)}>{t('navFeatures')}</a>
+        <a href="#token" onClick={() => setMenuOpen(false)}>{t('navToken')}</a>
+        <a href="/docs" target="_blank" rel="noreferrer" onClick={() => setMenuOpen(false)}>{t('navDocs')}</a>
+        <a href="/docs/guides/sending-money" target="_blank" rel="noreferrer" onClick={() => setMenuOpen(false)}>{t('navGuides')}</a>
+        <a href="/litepaper" target="_blank" rel="noreferrer" onClick={() => setMenuOpen(false)}>{t('navLitepaper')}</a>
+        <LangSwitch mobile onPick={() => setMenuOpen(false)} />
+        <a href={APP_URL} className="mobile-menu-cta" onClick={() => setMenuOpen(false)}>{t('navOpenApp')}</a>
       </div>
 
       <section className="hero">
         <div className="hero-content">
           <HeroToken />
-          <h1 className="hero-headline">Tell Your Money<br />What To Do.</h1>
-          <p className="hero-body">The AI money agent that lets you perform sophisticated and complex transactions by just texting them into on-chain financial workflows.</p>
-          <a href={APP_URL} className="hero-cta">Open the app</a>
+          <h1 className="hero-headline">{t('heroH1a')}<br />{t('heroH1b')}</h1>
+          <p className="hero-body">{t('heroBody')}</p>
+          <a href={APP_URL} className="hero-cta">{t('heroCta')}</a>
         </div>
       </section>
 
       <section className="what-section" id="how-it-works">
         <div className="what-top">
           <div className="what-left">
-            <h2 className="what-headline">What is Velfi?</h2>
-            <a href={APP_URL} className="what-explore">Explore now</a>
+            <h2 className="what-headline">{t('whatH')}</h2>
+            <a href={APP_URL} className="what-explore">{t('whatExplore')}</a>
           </div>
-          <p className="what-def">Velfi is an AI money agent that turns plain text into on-chain financial actions — send, split, schedule and swap, all from a single instruction. Streaming is next.</p>
+          <p className="what-def">{t('whatDef')}</p>
         </div>
 
         <div className="what-cards">
@@ -121,81 +166,81 @@ function App() {
             <div className="wcard-img-wrap">
               <img src={cardImg} alt="" className="wcard-img" />
               <div className="wcard-overlay">
-                <h3 className="wcard-title-ov">Just say it</h3>
-                <p className="wcard-body-ov">Tell Velfi what you want in plain English. It builds and runs the on-chain workflow for you.</p>
+                <h3 className="wcard-title-ov">{t('card1T')}</h3>
+                <p className="wcard-body-ov">{t('card1B')}</p>
               </div>
             </div>
           </div>
           <div className="wcard wcard-dark reveal" style={{ transitionDelay: '120ms' }}>
-            <h3 className="wcard-title">Runs on its own</h3>
-            <p className="wcard-body">Set it once and Velfi executes forever — recurring pays, splits, and savings without you lifting a finger.</p>
+            <h3 className="wcard-title">{t('card2T')}</h3>
+            <p className="wcard-body">{t('card2B')}</p>
           </div>
           <div className="wcard wcard-dark reveal" style={{ transitionDelay: '240ms' }}>
-            <h3 className="wcard-title">You stay in control</h3>
-            <p className="wcard-body">Non-custodial by design. Velfi acts on your instructions, but only you hold the keys.</p>
+            <h3 className="wcard-title">{t('card3T')}</h3>
+            <p className="wcard-body">{t('card3B')}</p>
           </div>
         </div>
 
         <div className="trust-strip">
-          <p className="trust-label">Launching on<br />BNB Chain</p>
+          <p className="trust-label">{t('trustA')}<br />{t('trustB')}</p>
           <div className="marquee">
             <div className="marquee-track">
               <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">BNB Chain</span></div>
               <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">USDC</span></div>
               <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">USDT</span></div>
-              <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">PancakeSwap swaps</span></div>
-              <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">Google sign-in</span></div>
-              <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">Gasless payments</span></div>
+              <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">{t('mqSwaps')}</span></div>
+              <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">{t('mqGoogle')}</span></div>
+              <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">{t('mqGasless')}</span></div>
               <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">BNB Chain</span></div>
               <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">USDC</span></div>
               <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">USDT</span></div>
-              <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">PancakeSwap swaps</span></div>
-              <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">Google sign-in</span></div>
-              <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">Gasless payments</span></div>
+              <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">{t('mqSwaps')}</span></div>
+              <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">{t('mqGoogle')}</span></div>
+              <div className="marquee-unit"><span className="marquee-dot" aria-hidden="true"></span><span className="marquee-name">{t('mqGasless')}</span></div>
             </div>
           </div>
         </div>
       </section>
 
       <section className="who-section" id="features">
-        <div className="who-eyebrow"><span className="who-dash"></span>WHO IT'S FOR</div>
-        <h2 className="who-headline">Made for people who transact frequently <span className="who-accent">on-chain.</span></h2>
+        <div className="who-eyebrow"><span className="who-dash"></span>{t('whoEyebrow')}</div>
+        <h2 className="who-headline">{t('whoH')}{sp}<span className="who-accent">{t('whoHAccent')}</span></h2>
         <div className="who-cols">
           <div className="who-col reveal">
-            <p className="who-text">From an instant one-tap send to splitting a payment across many addresses, each with its own flexible allocation and percentage share — all from one instruction.</p>
+            <p className="who-text">{t('who1')}</p>
           </div>
           <div className="who-col reveal" style={{ transitionDelay: '120ms' }}>
-            <p className="who-text">For anyone running repeat payments: salaries, subscriptions, and deals that pay out continuously. Configure it once and Velfi keeps it running.</p>
+            <p className="who-text">{t('who2')}</p>
           </div>
           <div className="who-col reveal" style={{ transitionDelay: '240ms' }}>
-            <p className="who-text">Scheduled payments you set just by texting, and money sent to an email waits until they sign up. Cancel any schedule anytime.</p>
+            <p className="who-text">{t('who3')}</p>
           </div>
         </div>
       </section>
 
       <section className="how-section">
-        <div className="how-eyebrow"><span className="how-dash"></span>HOW TO USE IT</div>
-        <h2 className="how-headline">Four steps from sign-in <span className="how-accent">to autopilot.</span></h2>
+        <div className="how-eyebrow"><span className="how-dash"></span>{t('howEyebrow')}</div>
+        <h2 className="how-headline">{t('howH')}{sp}<span className="how-accent">{t('howHAccent')}</span></h2>
         <div className="how-cards">
           <div className="how-card reveal">
             <span className="how-num">01</span>
-            <h3 className="how-card-title">Sign in with Google</h3>
-            <p className="how-card-body">No seed phrase, no wallet setup. Sign in with Google and Velfi creates your BNB Chain wallet in seconds.</p>
+            <h3 className="how-card-title">{t('step1T')}</h3>
+            <p className="how-card-body">{t('step1B')}</p>
           </div>
           <div className="how-card reveal" style={{ transitionDelay: '150ms' }}>
             <span className="how-num">02</span>
-            <h3 className="how-card-title">Claim your .vel name</h3>
-            <p className="how-card-body">Pick a username like almond.vel. It replaces long wallet addresses for you and everyone who pays you.</p>
+            <h3 className="how-card-title">{t('step2T')}</h3>
+            <p className="how-card-body">{t('step2B')}</p>
           </div>
           <div className="how-card reveal" style={{ transitionDelay: '300ms' }}>
             <span className="how-num">03</span>
-            <h3 className="how-card-title">Tell Velfi what you want</h3>
-            <p className="how-card-body">Type it in plain English — "split rent three ways", "pay my designer every Friday". Velfi builds the workflow.</p>
+            <h3 className="how-card-title">{t('step3T')}</h3>
+            <p className="how-card-body">{t('step3B')}</p>
           </div>
           <div className="how-card reveal" style={{ transitionDelay: '450ms' }}>
             <span className="how-num">04</span>
-            <h3 className="how-card-title">Confirm once, run forever</h3>
-            <p className="how-card-body">Approve with a single tap. Velfi executes and keeps recurring flows running automatically.</p>
+            <h3 className="how-card-title">{t('step4T')}</h3>
+            <p className="how-card-body">{t('step4B')}</p>
           </div>
         </div>
         <div className="how-swipe-hint">
@@ -203,55 +248,55 @@ function App() {
             <path d="M2 13c6 4 14 4 20-1 3-2.5 5-6 4-9-0.6-1.8-2.6-2-3.4-0.3-0.9 2 0.2 4.7 2.4 6.2 2.4 1.6 5.6 1.7 8.4 0.8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
             <path d="M28 16l5-2-2-5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          <span>Swipe to see more</span>
+          <span>{t('swipe')}</span>
         </div>
       </section>
 
       <section className="sec-section">
-        <div className="sec-eyebrow"><span className="who-dash"></span>SECURITY</div>
-        <h2 className="sec-headline">No seed phrases. <span className="who-accent">Only you hold the keys.</span></h2>
+        <div className="sec-eyebrow"><span className="who-dash"></span>{t('secEyebrow')}</div>
+        <h2 className="sec-headline">{t('secH')}{sp}<span className="who-accent">{t('secHAccent')}</span></h2>
         <div className="sec-cards">
           <div className="sec-card reveal">
-            <span className="sec-label">GOOGLE SIGN-IN</span>
-            <h3 className="sec-card-title">Sign in with Google. No seed phrase.</h3>
-            <p className="sec-card-body">Your Velfi wallet lives on BNB Chain and you unlock it with Google. Nothing to write down, nothing to lose — switch phones and the same wallet comes back.</p>
+            <span className="sec-label">{t('sec1L')}</span>
+            <h3 className="sec-card-title">{t('sec1T')}</h3>
+            <p className="sec-card-body">{t('sec1B')}</p>
           </div>
           <div className="sec-card reveal" style={{ transitionDelay: '200ms' }}>
-            <span className="sec-label">NON-CUSTODIAL</span>
-            <h3 className="sec-card-title">Velfi never holds your funds.</h3>
-            <p className="sec-card-body">Every action runs on your instruction. Velfi builds it and pays the fee, but money only leaves your wallet when you sign, or within a schedule you approved. We never hold your balance.</p>
+            <span className="sec-label">{t('sec2L')}</span>
+            <h3 className="sec-card-title">{t('sec2T')}</h3>
+            <p className="sec-card-body">{t('sec2B')}</p>
           </div>
           <div className="sec-card reveal" style={{ transitionDelay: '400ms' }}>
-            <span className="sec-label">ON-CHAIN & VERIFIABLE</span>
-            <h3 className="sec-card-title">Every payment is provable.</h3>
-            <p className="sec-card-body">Every payment settles as a transaction on BNB Chain, so anyone can check it on BscScan. Your history doesn't depend on trusting our servers.</p>
+            <span className="sec-label">{t('sec3L')}</span>
+            <h3 className="sec-card-title">{t('sec3T')}</h3>
+            <p className="sec-card-body">{t('sec3B')}</p>
           </div>
         </div>
       </section>
 
       <section className="own-section">
-        <div className="own-eyebrow"><span className="own-dash"></span>OWNERSHIP</div>
-        <h2 className="own-headline">You own your money. <span className="own-accent">And your memory.</span></h2>
+        <div className="own-eyebrow"><span className="own-dash"></span>{t('ownEyebrow')}</div>
+        <h2 className="own-headline">{t('ownH')}{sp}<span className="own-accent">{t('ownHAccent')}</span></h2>
         <div className="own-cards">
           <div className="own-card reveal">
-            <span className="own-tag">YOUR MONEY</span>
-            <h3 className="own-col-title">Non-custodial by design.</h3>
-            <p className="own-col-body">Velfi builds the workflow, but money only leaves your wallet when you sign, or within a schedule you approved. We never hold your balance.</p>
+            <span className="own-tag">{t('own1Tag')}</span>
+            <h3 className="own-col-title">{t('own1T')}</h3>
+            <p className="own-col-body">{t('own1B')}</p>
           </div>
           <div className="own-card reveal" style={{ transitionDelay: '100ms' }}>
-            <span className="own-tag">YOUR MEMORY</span>
-            <h3 className="own-col-title">Your agent remembers — privately.</h3>
-            <p className="own-col-body">Your agent remembers your contacts and money habits so you don't repeat yourself, across sessions and devices. Clear its memory anytime.</p>
+            <span className="own-tag">{t('own2Tag')}</span>
+            <h3 className="own-col-title">{t('own2T')}</h3>
+            <p className="own-col-body">{t('own2B')}</p>
           </div>
           <div className="own-card reveal" style={{ transitionDelay: '200ms' }}>
-            <span className="own-tag">YOUR KEYS</span>
-            <h3 className="own-col-title">No seed phrase to lose.</h3>
-            <p className="own-col-body">Sign in with Google and your wallet is ready. Switch phones and the same wallet returns — nothing to write down, nothing to leak.</p>
+            <span className="own-tag">{t('own3Tag')}</span>
+            <h3 className="own-col-title">{t('own3T')}</h3>
+            <p className="own-col-body">{t('own3B')}</p>
           </div>
           <div className="own-card reveal" style={{ transitionDelay: '300ms' }}>
-            <span className="own-tag">YOUR RULES</span>
-            <h3 className="own-col-title">The agent obeys your limits.</h3>
-            <p className="own-col-body">Approve a schedule once and Autopilot pays only that person, that amount, on that timetable. BNB Chain caps the total it can ever spend, and you can cancel anytime.</p>
+            <span className="own-tag">{t('own4Tag')}</span>
+            <h3 className="own-col-title">{t('own4T')}</h3>
+            <p className="own-col-body">{t('own4B')}</p>
           </div>
         </div>
         <div className="own-swipe-hint">
@@ -259,37 +304,37 @@ function App() {
             <path d="M2 13c6 4 14 4 20-1 3-2.5 5-6 4-9-0.6-1.8-2.6-2-3.4-0.3-0.9 2 0.2 4.7 2.4 6.2 2.4 1.6 5.6 1.7 8.4 0.8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
             <path d="M28 16l5-2-2-5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          <span>Swipe to see more</span>
+          <span>{t('swipe')}</span>
         </div>
       </section>
 
       <section className="uc-section">
-        <div className="uc-eyebrow"><span className="how-dash"></span>WHAT YOU CAN BUILD</div>
-        <h2 className="uc-headline">One text. <span className="how-accent">Any money flow.</span></h2>
+        <div className="uc-eyebrow"><span className="how-dash"></span>{t('ucEyebrow')}</div>
+        <h2 className="uc-headline">{t('ucH')}{sp}<span className="how-accent">{t('ucHAccent')}</span></h2>
         <div className="uc-grid">
           <div className="uc-card reveal">
-            <span className="uc-tag">Send to anyone</span>
-            <div className="uc-bubble">Send $50 to jordan@gmail.com — they claim it when they sign up.</div>
+            <span className="uc-tag">{t('uc1Tag')}</span>
+            <div className="uc-bubble">{t('uc1')}</div>
           </div>
           <div className="uc-card reveal" style={{ transitionDelay: '90ms' }}>
-            <span className="uc-tag">Stream a salary · soon</span>
-            <div className="uc-bubble">Stream $4,000 to alex.vel over 30 days.</div>
+            <span className="uc-tag">{t('uc2Tag')}</span>
+            <div className="uc-bubble">{t('uc2')}</div>
           </div>
           <div className="uc-card reveal" style={{ transitionDelay: '180ms' }}>
-            <span className="uc-tag">Auto-save · soon</span>
-            <div className="uc-bubble">Move 10% of every payment I receive into savings.</div>
+            <span className="uc-tag">{t('uc3Tag')}</span>
+            <div className="uc-bubble">{t('uc3')}</div>
           </div>
           <div className="uc-card reveal" style={{ transitionDelay: '270ms' }}>
-            <span className="uc-tag">Escrow a deal · soon</span>
-            <div className="uc-bubble">Hold $2,000 until the work is delivered, then release.</div>
+            <span className="uc-tag">{t('uc4Tag')}</span>
+            <div className="uc-bubble">{t('uc4')}</div>
           </div>
           <div className="uc-card reveal" style={{ transitionDelay: '360ms' }}>
-            <span className="uc-tag">Split a bill</span>
-            <div className="uc-bubble">Split this 40/30/30 between three .vel names.</div>
+            <span className="uc-tag">{t('uc5Tag')}</span>
+            <div className="uc-bubble">{t('uc5')}</div>
           </div>
           <div className="uc-card reveal" style={{ transitionDelay: '450ms' }}>
-            <span className="uc-tag">Schedule a payment</span>
-            <div className="uc-bubble">Send rent to landlord.vel every Friday.</div>
+            <span className="uc-tag">{t('uc6Tag')}</span>
+            <div className="uc-bubble">{t('uc6')}</div>
           </div>
         </div>
         <div className="uc-footer-row">
@@ -298,118 +343,118 @@ function App() {
               <path d="M2 13c6 4 14 4 20-1 3-2.5 5-6 4-9-0.6-1.8-2.6-2-3.4-0.3-0.9 2 0.2 4.7 2.4 6.2 2.4 1.6 5.6 1.7 8.4 0.8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
               <path d="M28 16l5-2-2-5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-            <span>Swipe to see more</span>
+            <span>{t('swipe')}</span>
           </div>
         </div>
       </section>
 
       <section className="tk-section" id="token">
-        <div className="who-eyebrow"><span className="who-dash"></span>THE TOKEN</div>
-        <h2 className="tk-headline">Meet $VELFI. <span className="who-accent">The token behind your money agent.</span></h2>
+        <div className="who-eyebrow"><span className="who-dash"></span>{t('tkEyebrow')}</div>
+        <h2 className="tk-headline">{t('tkH')}{sp}<span className="who-accent">{t('tkHAccent')}</span></h2>
         <div className="tk-grid">
           <div className="tk-facts reveal">
-            <p className="tk-intro">$VELFI is Velfi's community token, launching on BNB Chain with a fair launch. Hold it to unlock more of what your agent can do.</p>
+            <p className="tk-intro">{t('tkIntro')}</p>
             <div className="tk-rows">
-              <div className="tk-row"><span>Total supply</span><b>1,000,000,000</b></div>
-              <div className="tk-row"><span>Launch</span><b>Fair launch</b></div>
-              <div className="tk-row"><span>Network</span><b>BNB Chain</b></div>
+              <div className="tk-row"><span>{t('tkSupply')}</span><b>1,000,000,000</b></div>
+              <div className="tk-row"><span>{t('tkLaunch')}</span><b>{t('tkFair')}</b></div>
+              <div className="tk-row"><span>{t('tkNetwork')}</span><b>BNB Chain</b></div>
             </div>
             <TokenCA />
           </div>
           <div className="tk-uses">
             <div className="tk-use reveal">
-              <span className="tk-use-tag">Velfi Pro</span>
-              <h3 className="tk-use-title">Unlock Pro automations</h3>
-              <p className="tk-use-body">Hold $VELFI to unlock team payroll, higher limits and more Autopilot rules.</p>
+              <span className="tk-use-tag">{t('use1Tag')}</span>
+              <h3 className="tk-use-title">{t('use1T')}</h3>
+              <p className="tk-use-body">{t('use1B')}</p>
             </div>
             <div className="tk-use reveal" style={{ transitionDelay: '100ms' }}>
-              <span className="tk-use-tag">Lower fees</span>
-              <h3 className="tk-use-title">Pay fees for less</h3>
-              <p className="tk-use-body">Pay swap and conversion fees in $VELFI at a discount.</p>
+              <span className="tk-use-tag">{t('use2Tag')}</span>
+              <h3 className="tk-use-title">{t('use2T')}</h3>
+              <p className="tk-use-body">{t('use2B')}</p>
             </div>
             <div className="tk-use reveal" style={{ transitionDelay: '200ms' }}>
-              <span className="tk-use-tag">.vel names</span>
-              <h3 className="tk-use-title">Claim premium names</h3>
-              <p className="tk-use-body">Use $VELFI to claim short and reserved .vel names.</p>
+              <span className="tk-use-tag">{t('use3Tag')}</span>
+              <h3 className="tk-use-title">{t('use3T')}</h3>
+              <p className="tk-use-body">{t('use3B')}</p>
             </div>
             <div className="tk-use reveal" style={{ transitionDelay: '300ms' }}>
-              <span className="tk-use-tag">Community</span>
-              <h3 className="tk-use-title">Vote on what ships</h3>
-              <p className="tk-use-body">Holders vote on the next features, tokens and integrations.</p>
+              <span className="tk-use-tag">{t('use4Tag')}</span>
+              <h3 className="tk-use-title">{t('use4T')}</h3>
+              <p className="tk-use-body">{t('use4B')}</p>
             </div>
           </div>
         </div>
         <div className="tk-foot">
-          <p className="tk-disclaimer">Utility is planned and rolls out as features launch. $VELFI is a community token: holding it doesn't entitle you to profits, revenue or returns, and nothing here is financial advice.</p>
-          <a href="/docs/token/velfi" target="_blank" rel="noreferrer" className="tk-docs">Read the token docs <span className="fa">↗</span></a>
+          <p className="tk-disclaimer">{t('tkDisclaimer')}</p>
+          <a href="/docs/token/velfi" target="_blank" rel="noreferrer" className="tk-docs">{t('tkDocs')} <span className="fa">↗</span></a>
         </div>
       </section>
 
       <section className="faq-section">
-        <div className="faq-eyebrow"><span className="faq-dash"></span>FAQ</div>
-        <h2 className="faq-headline">Questions, answered.</h2>
+        <div className="faq-eyebrow"><span className="faq-dash"></span>{t('faqEyebrow')}</div>
+        <h2 className="faq-headline">{t('faqH')}</h2>
         <div className="faq-list">
           <div className="faq-item">
             <button className="faq-q" onClick={() => setOpenFaq(openFaq === 0 ? null : 0)}>
-              <span>Is Velfi custodial?</span>
+              <span>{t('faq0Q')}</span>
               <span className={`faq-icon${openFaq === 0 ? ' open' : ''}`}>+</span>
             </button>
             <div className={`faq-a${openFaq === 0 ? ' open' : ''}`}>
-              <p>No. Your wallet is yours and Velfi never holds your balance. Every payment needs your signature, or a schedule you approved and can cancel anytime. One exception: money you send to an email that isn't on Velfi yet waits in a holding wallet Velfi manages, for up to 7 days, then lands with them when they sign up or comes back to you.</p>
+              <p>{t('faq0A')}</p>
             </div>
           </div>
           <div className="faq-item">
             <button className="faq-q" onClick={() => setOpenFaq(openFaq === 1 ? null : 1)}>
-              <span>What does a .vel name cost?</span>
+              <span>{t('faq1Q')}</span>
               <span className={`faq-icon${openFaq === 1 ? ' open' : ''}`}>+</span>
             </button>
             <div className={`faq-a${openFaq === 1 ? ' open' : ''}`}>
-              <p>Your .vel username is free to claim during early access. It replaces long wallet addresses for you and anyone who pays you.</p>
+              <p>{t('faq1A')}</p>
             </div>
           </div>
           <div className="faq-item">
             <button className="faq-q" onClick={() => setOpenFaq(openFaq === 2 ? null : 2)}>
-              <span>Which chains does Velfi support?</span>
+              <span>{t('faq2Q')}</span>
               <span className={`faq-icon${openFaq === 2 ? ' open' : ''}`}>+</span>
             </button>
             <div className={`faq-a${openFaq === 2 ? ' open' : ''}`}>
-              <p>Velfi is launching on BNB Chain, with near-instant settlement, fees of a fraction of a cent, and stablecoins like USDC built in. More chains may come later, but BNB Chain is our home.</p>
+              <p>{t('faq2A')}</p>
             </div>
           </div>
           <div className="faq-item">
             <button className="faq-q" onClick={() => setOpenFaq(openFaq === 3 ? null : 3)}>
-              <span>Is my money safe?</span>
+              <span>{t('faq3Q')}</span>
               <span className={`faq-icon${openFaq === 3 ? ' open' : ''}`}>+</span>
             </button>
             <div className={`faq-a${openFaq === 3 ? ' open' : ''}`}>
-              <p>Velfi is designed so nothing moves without your approval. You sign in with Google (no seed phrase), payments run on BNB Chain, and every transaction is on-chain and verifiable.</p>
+              <p>{t('faq3A')}</p>
             </div>
           </div>
           <div className="faq-item">
             <button className="faq-q" onClick={() => setOpenFaq(openFaq === 4 ? null : 4)}>
-              <span>Do I need crypto experience?</span>
+              <span>{t('faq4Q')}</span>
               <span className={`faq-icon${openFaq === 4 ? ' open' : ''}`}>+</span>
             </button>
             <div className={`faq-a${openFaq === 4 ? ' open' : ''}`}>
-              <p>Not at all. You sign in with Google, claim a username, and tell Velfi what you want in plain English. No wallets or seed phrases to manage.</p>
+              <p>{t('faq4A')}</p>
             </div>
           </div>
           <div className="faq-item">
             <button className="faq-q" onClick={() => setOpenFaq(openFaq === 5 ? null : 5)}>
-              <span>How do I start?</span>
+              <span>{t('faq5Q')}</span>
               <span className={`faq-icon${openFaq === 5 ? ' open' : ''}`}>+</span>
             </button>
             <div className={`faq-a${openFaq === 5 ? ' open' : ''}`}>
-              <p>Open <a href={APP_URL}>app.velfi.xyz</a>, sign in with Google and claim your .vel name. It runs in your browser, on desktop and phone. A mobile app is coming soon.</p>
+              <p>{rich(t('faq5A'), { app: <a href={APP_URL}>app.velfi.xyz</a> })}</p>
             </div>
           </div>
           <div className="faq-item">
             <button className="faq-q" onClick={() => setOpenFaq(openFaq === 6 ? null : 6)}>
-              <span>Does Velfi have a token?</span>
+              <span>{t('faq6Q')}</span>
               <span className={`faq-icon${openFaq === 6 ? ' open' : ''}`}>+</span>
             </button>
             <div className={`faq-a${openFaq === 6 ? ' open' : ''}`}>
-              <p>Yes. $VELFI is launching on BNB Chain with a total supply of 1,000,000,000 and a fair launch. The contract address isn't live yet, so only trust the one posted on velfi.xyz and @velfixyz. See the <a href="/docs/token/velfi" target="_blank" rel="noreferrer">token docs</a> for details.</p>
+              <p>{rich(t('faq6A'), { docs: <a href="/docs/token/velfi" target="_blank" rel="noreferrer">{t('faq6Docs')}</a> })}</p>
             </div>
           </div>
         </div>
@@ -420,13 +465,13 @@ function App() {
         <div className="wl-inner" style={{ backgroundImage: `url(${waitlistBg})` }}>
           <div className="wl-content">
             <div className="wl-icon">✦</div>
-            <h2 className="wl-headline">Tell your money<br />what to do.</h2>
-            <p className="wl-sub">Sign in with Google and claim your .vel name before someone else takes it.</p>
+            <h2 className="wl-headline">{t('wlH1')}<br />{t('wlH2')}</h2>
+            <p className="wl-sub">{t('wlSub')}</p>
             <div className="wl-form">
-              <a href={APP_URL} className="hero-cta wl-open">Open Velfi</a>
+              <a href={APP_URL} className="hero-cta wl-open">{t('wlOpen')}</a>
               <div className="wl-extras">
-                <span className="wl-ios"> iOS · Coming soon</span>
-                <span className="wl-litepaper">Want the full picture? <a href="/litepaper" target="_blank" rel="noreferrer">Read the litepaper</a>.</span>
+                <span className="wl-ios"> {t('wlIos')}</span>
+                <span className="wl-litepaper">{rich(t('wlLitepaper'), { lp: <a href="/litepaper" target="_blank" rel="noreferrer">{t('wlLitepaperLink')}</a> })}</span>
               </div>
             </div>
           </div>
@@ -436,33 +481,33 @@ function App() {
       <footer className="footer">
         <div className="footer-cols">
           <div className="footer-col">
-            <span className="footer-col-title">Product</span>
-            <a href="#how-it-works">How it works</a>
-            <a href="#features">Features</a>
-            <a href={APP_URL}>Open the app</a>
-            <a href="#security">Security</a>
+            <span className="footer-col-title">{t('ftProduct')}</span>
+            <a href="#how-it-works">{t('navHow')}</a>
+            <a href="#features">{t('navFeatures')}</a>
+            <a href={APP_URL}>{t('ftOpenApp')}</a>
+            <a href="#security">{t('ftSecurity')}</a>
           </div>
           <div className="footer-col">
-            <span className="footer-col-title">Resources</span>
-            <a href="/docs" target="_blank" rel="noreferrer">Docs <span className="fa">↗</span></a>
-            <a href="/docs/guides/sending-money" target="_blank" rel="noreferrer">Guides <span className="fa">↗</span></a>
-            <a href="/litepaper" target="_blank" rel="noreferrer">Litepaper <span className="fa">↗</span></a>
-            <a href="/docs/token/velfi" target="_blank" rel="noreferrer">$VELFI token <span className="fa">↗</span></a>
+            <span className="footer-col-title">{t('navResources')}</span>
+            <a href="/docs" target="_blank" rel="noreferrer">{t('navDocs')} <span className="fa">↗</span></a>
+            <a href="/docs/guides/sending-money" target="_blank" rel="noreferrer">{t('navGuides')} <span className="fa">↗</span></a>
+            <a href="/litepaper" target="_blank" rel="noreferrer">{t('navLitepaper')} <span className="fa">↗</span></a>
+            <a href="/docs/token/velfi" target="_blank" rel="noreferrer">{t('ftToken')} <span className="fa">↗</span></a>
           </div>
           <div className="footer-col">
-            <span className="footer-col-title">Launching on</span>
+            <span className="footer-col-title">{t('ftLaunching')}</span>
             <a href="https://www.bnbchain.org" target="_blank" rel="noreferrer">BNB Chain <span className="fa">↗</span></a>
           </div>
           <div className="footer-col">
-            <span className="footer-col-title">Company</span>
-            <a href="#about">About</a>
-            <a href="#privacy">Privacy</a>
-            <a href="#terms">Terms of Service</a>
+            <span className="footer-col-title">{t('ftCompany')}</span>
+            <a href="#about">{t('ftAbout')}</a>
+            <a href="#privacy">{t('ftPrivacy')}</a>
+            <a href="#terms">{t('ftTerms')}</a>
           </div>
         </div>
 
         <div className="footer-bottom">
-          <p className="footer-copy">© 2026 Velfi. All rights reserved.</p>
+          <p className="footer-copy">{t('ftCopy')}</p>
         </div>
 
         <img src={otter} alt="" className="footer-otter reveal-otter" />

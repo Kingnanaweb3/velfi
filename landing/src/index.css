@@ -10,10 +10,14 @@
   --accent: #7B4FFF;
   --surface: #ffffff;
   --border: rgba(0,0,0,0.08);
+  /* Chinese and Korean glyphs: DM Sans and Space Grotesk have none, so these fill in. */
+  --cjk: 'Noto Sans SC';
 }
+html:lang(zh) { --cjk: 'Noto Sans SC', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei'; }
+html:lang(ko) { --cjk: 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic'; }
 
 html, body {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   background: var(--bg);
   color: var(--text);
   -webkit-font-smoothing: antialiased;
@@ -56,7 +60,7 @@ html, body {
 }
 
 .nav-logo {
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: 'Space Grotesk', var(--cjk), sans-serif;
   font-size: 19px;
   font-weight: 700;
   color: #2a1a3a;
@@ -85,7 +89,7 @@ html, body {
 }
 
 .nav-links a, .nav-dropdown-btn {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 14px;
   font-weight: 500;
   color: #2a1a3a;
@@ -124,7 +128,7 @@ html, body {
 .nav-dropdown.open { display: flex; }
 
 .nav-dropdown a {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 13px;
   color: rgba(255,255,255,0.65);
   text-decoration: none;
@@ -139,7 +143,7 @@ html, body {
 }
 
 .nav-cta {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 13px;
   font-weight: 600;
   color: #fff;
@@ -188,7 +192,7 @@ html, body {
 }
 
 .hero-headline {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: clamp(40px, 5.5vw, 76px);
   font-weight: 600;
   line-height: 1.04;
@@ -198,7 +202,7 @@ html, body {
 }
 
 .hero-body {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 16px;
   color: #4a4560;
   line-height: 1.7;
@@ -211,7 +215,7 @@ html, body {
   display: inline-block;
   background: #2a1a3a;
   color: #fff;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 14px;
   font-weight: 600;
   padding: 13px 32px;
@@ -243,7 +247,7 @@ html, body {
 }
 
 .what-headline {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: clamp(32px, 4vw, 52px);
   font-weight: 500;
   letter-spacing: -0.03em;
@@ -256,7 +260,7 @@ html, body {
   display: inline-block;
   background: #2a1a3a;
   color: #fff;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 13px;
   font-weight: 500;
   padding: 10px 22px;
@@ -268,7 +272,7 @@ html, body {
 .what-explore:hover { opacity: 0.85; }
 
 .what-def {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: clamp(18px, 1.8vw, 24px);
   font-weight: 400;
   line-height: 1.5;
@@ -295,7 +299,7 @@ html, body {
 }
 
 .wcard-title {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 22px;
   font-weight: 500;
   letter-spacing: -0.02em;
@@ -305,7 +309,7 @@ html, body {
 }
 
 .wcard-body {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 14px;
   font-weight: 400;
   line-height: 1.6;
@@ -353,7 +357,7 @@ html, body {
 }
 
 .wcard-title-ov {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 22px;
   font-weight: 500;
   letter-spacing: -0.02em;
@@ -363,7 +367,7 @@ html, body {
 }
 
 .wcard-body-ov {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 13px;
   font-weight: 400;
   line-height: 1.55;
@@ -420,7 +424,7 @@ html, body {
 }
 
 .trust-label {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 15px;
   font-weight: 500;
   color: #8a82a0;
@@ -443,7 +447,7 @@ html, body {
 }
 
 .marquee-item {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 22px;
   font-weight: 500;
   color: #aaa2bb;
@@ -473,7 +477,7 @@ html, body {
 }
 
 .marquee-name {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 15px;
   font-weight: 500;
   color: #8a82a0;
@@ -501,7 +505,7 @@ html, body {
   display: flex;
   align-items: center;
   gap: 16px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.18em;
@@ -517,7 +521,7 @@ html, body {
 }
 
 .who-headline {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: clamp(34px, 4.8vw, 64px);
   font-weight: 500;
   line-height: 1.06;
@@ -539,7 +543,7 @@ html, body {
 }
 
 .who-text {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 16px;
   font-weight: 400;
   line-height: 1.7;
@@ -564,7 +568,7 @@ html, body {
   display: flex;
   align-items: center;
   gap: 16px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.18em;
@@ -573,7 +577,7 @@ html, body {
 }
 
 .sec-headline {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: clamp(34px, 4.8vw, 64px);
   font-weight: 500;
   line-height: 1.06;
@@ -598,7 +602,7 @@ html, body {
 }
 
 .sec-label {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.16em;
@@ -608,7 +612,7 @@ html, body {
 }
 
 .sec-card-title {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 22px;
   font-weight: 600;
   line-height: 1.2;
@@ -618,7 +622,7 @@ html, body {
 }
 
 .sec-card-body {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 15px;
   font-weight: 400;
   line-height: 1.65;
@@ -641,7 +645,7 @@ html, body {
   display: flex;
   align-items: center;
   gap: 16px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.18em;
@@ -657,7 +661,7 @@ html, body {
 }
 
 .how-headline {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: clamp(34px, 4.8vw, 60px);
   font-weight: 500;
   line-height: 1.06;
@@ -700,7 +704,7 @@ html, body {
 }
 
 .how-num {
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: 'Space Grotesk', var(--cjk), sans-serif;
   font-size: 15px;
   font-weight: 600;
   color: #b4a8d0;
@@ -710,7 +714,7 @@ html, body {
 }
 
 .how-card-title {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 20px;
   font-weight: 600;
   line-height: 1.2;
@@ -723,7 +727,7 @@ html, body {
 }
 
 .how-card-body {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 14px;
   font-weight: 400;
   line-height: 1.6;
@@ -763,7 +767,7 @@ html, body {
     gap: 10px;
     margin-top: 20px;
     color: #b4a8d0;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'DM Sans', var(--cjk), sans-serif;
     font-size: 13px;
     font-weight: 500;
     animation: swipe-nudge 1.8s ease-in-out infinite;
@@ -807,7 +811,7 @@ html, body {
 }
 
 .wl-headline {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: clamp(34px, 4.4vw, 56px);
   font-weight: 600;
   line-height: 1.05;
@@ -817,7 +821,7 @@ html, body {
 }
 
 .wl-sub {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 16px;
   font-weight: 500;
   line-height: 1.55;
@@ -839,7 +843,7 @@ html, body {
 }
 
 .wl-input {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 15px;
   border: none;
   background: transparent;
@@ -853,7 +857,7 @@ html, body {
 .wl-input::placeholder { color: #9990aa; }
 
 .wl-suffix {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 15px;
   font-weight: 600;
   color: #6a5a8a;
@@ -874,7 +878,7 @@ html, body {
 }
 
 .wl-submit {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 14px;
   font-weight: 600;
   color: #fff;
@@ -902,7 +906,7 @@ html, body {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 13px;
   font-weight: 500;
   color: #4a4560;
@@ -913,7 +917,7 @@ html, body {
 }
 
 .wl-litepaper {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 13px;
   color: #6a5a8a;
 }
@@ -926,14 +930,14 @@ html, body {
 }
 
 .wl-error {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 13px;
   color: #c0392b;
   margin: 0;
 }
 
 .wl-success {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 24px;
   font-weight: 600;
   color: #2a1a3a;
@@ -981,7 +985,7 @@ html, body {
 }
 
 .footer-col-title {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -990,7 +994,7 @@ html, body {
 }
 
 .footer-col a {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 16px;
   font-weight: 500;
   color: #fff;
@@ -1035,7 +1039,7 @@ html, body {
 .footer-socials a:hover { color: #fff; transform: translateY(-2px); }
 
 .footer-copy {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 13px;
   color: rgba(255,255,255,0.4);
   margin: 0;
@@ -1046,7 +1050,7 @@ html, body {
   bottom: -0.22em;
   left: 50%;
   transform: translateX(-50%);
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: 'Space Grotesk', var(--cjk), sans-serif;
   font-weight: 700;
   font-size: clamp(120px, 26vw, 420px);
   line-height: 0.8;
@@ -1072,7 +1076,7 @@ html, body {
   display: flex;
   align-items: center;
   gap: 16px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.18em;
@@ -1081,7 +1085,7 @@ html, body {
 }
 
 .uc-headline {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: clamp(34px, 4.8vw, 60px);
   font-weight: 500;
   line-height: 1.06;
@@ -1108,7 +1112,7 @@ html, body {
 }
 
 .uc-tag {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.06em;
@@ -1117,7 +1121,7 @@ html, body {
 }
 
 .uc-bubble {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 17px;
   font-weight: 500;
   line-height: 1.45;
@@ -1164,7 +1168,7 @@ html, body {
     gap: 10px;
     margin-top: 20px;
     color: #b4a8d0;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'DM Sans', var(--cjk), sans-serif;
     font-size: 13px;
     font-weight: 500;
     animation: swipe-nudge 1.8s ease-in-out infinite;
@@ -1205,7 +1209,7 @@ html, body {
   display: flex;
   align-items: center;
   gap: 16px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.18em;
@@ -1221,7 +1225,7 @@ html, body {
 }
 
 .faq-headline {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: clamp(34px, 4.8vw, 60px);
   font-weight: 500;
   line-height: 1.06;
@@ -1248,7 +1252,7 @@ html, body {
   justify-content: space-between;
   gap: 24px;
   padding: 20px 0;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: clamp(17px, 1.8vw, 21px);
   font-weight: 500;
   color: var(--text);
@@ -1281,7 +1285,7 @@ html, body {
 }
 
 .faq-a p {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 16px;
   font-weight: 400;
   line-height: 1.7;
@@ -1305,7 +1309,7 @@ html, body {
   display: flex;
   align-items: center;
   gap: 16px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.18em;
@@ -1321,7 +1325,7 @@ html, body {
 }
 
 .faq-headline {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: clamp(34px, 4.8vw, 60px);
   font-weight: 500;
   line-height: 1.06;
@@ -1348,7 +1352,7 @@ html, body {
   justify-content: space-between;
   gap: 24px;
   padding: 20px 0;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: clamp(17px, 1.8vw, 21px);
   font-weight: 500;
   color: var(--text);
@@ -1381,7 +1385,7 @@ html, body {
 }
 
 .faq-a p {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 16px;
   font-weight: 400;
   line-height: 1.7;
@@ -1452,7 +1456,7 @@ html, body {
 }
 
 .mobile-menu a {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 17px;
   font-weight: 500;
   color: rgba(255,255,255,0.85);
@@ -1488,7 +1492,7 @@ html, body {
 
 /* REFERRAL SUCCESS */
 .wl-success-top {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 26px;
   font-weight: 600;
   color: #2a1a3a;
@@ -1496,7 +1500,7 @@ html, body {
 }
 
 .wl-success-sub {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 14px;
   color: #4a4560;
   margin: 0 0 18px;
@@ -1518,7 +1522,7 @@ html, body {
 }
 
 .wl-ref-link {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 14px;
   color: #2a1a3a;
   font-weight: 500;
@@ -1529,7 +1533,7 @@ html, body {
 }
 
 .wl-ref-copy {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 13px;
   font-weight: 600;
   color: #fff;
@@ -1551,7 +1555,7 @@ html, body {
 }
 
 .wl-ref-share {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 13px;
   font-weight: 600;
   color: #2a1a3a;
@@ -1565,7 +1569,7 @@ html, body {
 .wl-ref-share:hover { background: rgba(255,255,255,0.9); }
 
 .wl-ref-count {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-size: 13px;
   font-weight: 500;
   color: #6a5a8a;
@@ -1580,7 +1584,7 @@ html, body {
 }
 
 .uc-claimed {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
   font-style: italic;
   font-size: 15px;
   font-weight: 500;
@@ -1655,7 +1659,7 @@ html, body {
   margin-bottom: 22px; padding: 8px 16px; border-radius: 999px;
   background: rgba(255,255,255,0.62); border: 1px solid rgba(255,255,255,0.85);
   -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
-  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; color: #2a1a3a;
+  font-family: 'DM Sans', var(--cjk), sans-serif; font-size: 13px; font-weight: 600; color: #2a1a3a;
   text-decoration: none; box-shadow: 0 2px 16px rgba(40,20,60,0.06); transition: opacity 0.2s;
 }
 .hero-token:hover { opacity: 0.8; }
@@ -1685,26 +1689,26 @@ html, body {
 
 .tk-section { width: 100%; background: var(--bg); padding: 100px 6%; border-top: 1px solid rgba(0,0,0,0.06); }
 .tk-headline {
-  font-family: 'DM Sans', sans-serif; font-size: clamp(34px, 4.8vw, 64px); font-weight: 500;
+  font-family: 'DM Sans', var(--cjk), sans-serif; font-size: clamp(34px, 4.8vw, 64px); font-weight: 500;
   line-height: 1.06; letter-spacing: -0.03em; color: var(--text); max-width: 900px; margin-bottom: 56px;
 }
 .tk-grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 20px; align-items: stretch; }
 .tk-facts { background: #2a1a3a; border-radius: 24px; padding: 32px 30px; color: #fff; display: flex; flex-direction: column; }
-.tk-intro { font-family: 'DM Sans', sans-serif; font-size: 16px; line-height: 1.65; color: rgba(255,255,255,0.72); margin: 0 0 24px; }
+.tk-intro { font-family: 'DM Sans', var(--cjk), sans-serif; font-size: 16px; line-height: 1.65; color: rgba(255,255,255,0.72); margin: 0 0 24px; }
 .tk-rows { border-top: 1px solid rgba(255,255,255,0.12); }
-.tk-row { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.12); font-family: 'DM Sans', sans-serif; }
+.tk-row { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.12); font-family: 'DM Sans', var(--cjk), sans-serif; }
 .tk-row span { font-size: 14px; color: rgba(255,255,255,0.6); }
 .tk-row b { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; color: #fff; }
 .tk-ca { margin-top: auto; padding-top: 26px; }
-.tk-ca-label { display: block; font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: #b4a8d0; margin-bottom: 10px; }
+.tk-ca-label { display: block; font-family: 'DM Sans', var(--cjk), sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: #b4a8d0; margin-bottom: 10px; }
 .tk-ca-box { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border-radius: 14px; background: rgba(255,255,255,0.06); border: 1px dashed rgba(180,168,208,0.45); }
 .tk-ca-value { font-family: 'SF Mono', Menlo, monospace; font-size: 15px; color: #e1dcfa; }
-.tk-ca-soon { font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #2a1a3a; background: #b4a8d0; border-radius: 20px; padding: 4px 10px; white-space: nowrap; }
-.tk-ca-note { font-family: 'DM Sans', sans-serif; font-size: 13px; line-height: 1.55; color: rgba(255,255,255,0.6); margin: 12px 0 0; }
+.tk-ca-soon { font-family: 'DM Sans', var(--cjk), sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #2a1a3a; background: #b4a8d0; border-radius: 20px; padding: 4px 10px; white-space: nowrap; }
+.tk-ca-note { font-family: 'DM Sans', var(--cjk), sans-serif; font-size: 13px; line-height: 1.55; color: rgba(255,255,255,0.6); margin: 12px 0 0; }
 .tk-ca-note a { color: #e1dcfa; }
 .tk-ca-box-live { border-style: solid; border-color: rgba(225,220,250,0.5); background: rgba(255,255,255,0.09); }
 .tk-ca-addr { font-size: 13.5px; word-break: break-all; line-height: 1.45; min-width: 0; }
-.tk-ca-copy { flex-shrink: 0; font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; color: #2a1a3a; background: #e1dcfa; border: 0; border-radius: 20px; padding: 7px 14px; cursor: pointer; transition: transform .15s ease, background .15s ease; }
+.tk-ca-copy { flex-shrink: 0; font-family: 'DM Sans', var(--cjk), sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; color: #2a1a3a; background: #e1dcfa; border: 0; border-radius: 20px; padding: 7px 14px; cursor: pointer; transition: transform .15s ease, background .15s ease; }
 .tk-ca-copy:hover { background: #ffffff; }
 .tk-ca-copy:active { transform: scale(0.96); }
 .tk-ca-copy:focus-visible { outline: 2px solid #e1dcfa; outline-offset: 2px; }
@@ -1712,18 +1716,18 @@ html, body {
 .tk-ca-test { display: inline-block; margin-left: 10px; vertical-align: 1px; font-size: 10.5px; letter-spacing: 0.08em; color: #3a2410; background: #f3c27a; border-radius: 20px; padding: 3px 9px; }
 .tk-ca-box-test { border-style: dashed; border-color: rgba(243,194,122,0.7); }
 .tk-ca-links { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 12px; }
-.tk-ca-links a { font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; color: #e1dcfa; text-decoration: underline; text-underline-offset: 3px; }
+.tk-ca-links a { font-family: 'DM Sans', var(--cjk), sans-serif; font-size: 13px; font-weight: 600; color: #e1dcfa; text-decoration: underline; text-underline-offset: 3px; }
 .tk-uses { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 .tk-use {
   background: linear-gradient(180deg, #FBFAFE 0%, rgba(251,250,254,0.4) 100%); border: 1px solid rgba(255,255,255,0.7);
   border-radius: 20px; padding: 28px 26px; box-shadow: 0 2px 20px rgba(40,20,60,0.04); display: flex; flex-direction: column;
 }
-.tk-use-tag { font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: #9990aa; margin-bottom: 28px; }
-.tk-use-title { font-family: 'DM Sans', sans-serif; font-size: 22px; font-weight: 600; line-height: 1.2; letter-spacing: -0.02em; color: var(--text); margin: auto 0 10px; }
-.tk-use-body { font-family: 'DM Sans', sans-serif; font-size: 15px; line-height: 1.6; color: #5b5470; margin: 0; }
+.tk-use-tag { font-family: 'DM Sans', var(--cjk), sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: #9990aa; margin-bottom: 28px; }
+.tk-use-title { font-family: 'DM Sans', var(--cjk), sans-serif; font-size: 22px; font-weight: 600; line-height: 1.2; letter-spacing: -0.02em; color: var(--text); margin: auto 0 10px; }
+.tk-use-body { font-family: 'DM Sans', var(--cjk), sans-serif; font-size: 15px; line-height: 1.6; color: #5b5470; margin: 0; }
 .tk-foot { display: flex; align-items: center; justify-content: space-between; gap: 32px; margin-top: 28px; }
-.tk-disclaimer { font-family: 'DM Sans', sans-serif; font-size: 13px; line-height: 1.6; color: #8a82a0; max-width: 760px; margin: 0; }
-.tk-docs { flex: none; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; color: #fff; background: #2a1a3a; padding: 12px 24px; border-radius: 999px; text-decoration: none; transition: opacity 0.2s; }
+.tk-disclaimer { font-family: 'DM Sans', var(--cjk), sans-serif; font-size: 13px; line-height: 1.6; color: #8a82a0; max-width: 760px; margin: 0; }
+.tk-docs { flex: none; font-family: 'DM Sans', var(--cjk), sans-serif; font-size: 14px; font-weight: 600; color: #fff; background: #2a1a3a; padding: 12px 24px; border-radius: 999px; text-decoration: none; transition: opacity 0.2s; }
 .tk-docs:hover { opacity: 0.85; }
 
 @media (max-width: 900px) {
@@ -1740,3 +1744,63 @@ html, body {
 /* Get started (replaced the waitlist form) */
 .wl-open { align-self: flex-start; padding: 15px 36px; font-size: 15px; }
 @media (max-width: 768px) { .wl-open { align-self: stretch; text-align: center; } }
+
+/* LANGUAGE SWITCH */
+.nav-right { display: flex; align-items: center; gap: 18px; }
+.lang-switch { position: relative; }
+.lang-btn {
+  display: flex; align-items: center; gap: 6px;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
+  font-size: 14px; font-weight: 500; color: #2a1a3a;
+  background: none; border: none; cursor: pointer; padding: 6px 2px;
+  transition: opacity 0.2s, color 0.2s;
+}
+.lang-btn:hover { opacity: 0.7; }
+.nav.scrolled .lang-btn { color: rgba(255,255,255,0.75); }
+.lang-menu { left: auto; right: -8px; transform: none; min-width: 128px; }
+.lang-menu button {
+  font-family: 'DM Sans', var(--cjk), sans-serif;
+  font-size: 13px; text-align: left;
+  color: rgba(255,255,255,0.65);
+  background: none; border: none; cursor: pointer;
+  padding: 9px 14px; border-radius: 9px;
+  transition: background 0.15s, color 0.15s;
+}
+.lang-menu button:hover, .lang-menu button.on { background: rgba(255,255,255,0.07); color: #fff; }
+.mobile-langs { display: flex; gap: 8px; margin-top: 18px; }
+.mobile-langs button {
+  flex: 1;
+  font-family: 'DM Sans', var(--cjk), sans-serif;
+  font-size: 15px; font-weight: 500;
+  color: rgba(255,255,255,0.75);
+  background: none; border: 1px solid rgba(255,255,255,0.16); border-radius: 999px;
+  padding: 11px 0; cursor: pointer;
+}
+.mobile-langs button.on { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.4); color: #fff; }
+@media (max-width: 768px) {
+  .lang-switch { display: none; }
+  .nav-right { gap: 0; }
+}
+
+/* CHINESE AND KOREAN: tight Latin tracking and line height crowd these scripts */
+html:lang(zh) .hero-headline, html:lang(ko) .hero-headline,
+html:lang(zh) .what-headline, html:lang(ko) .what-headline,
+html:lang(zh) .who-headline, html:lang(ko) .who-headline,
+html:lang(zh) .how-headline, html:lang(ko) .how-headline,
+html:lang(zh) .sec-headline, html:lang(ko) .sec-headline,
+html:lang(zh) .own-headline, html:lang(ko) .own-headline,
+html:lang(zh) .uc-headline, html:lang(ko) .uc-headline,
+html:lang(zh) .tk-headline, html:lang(ko) .tk-headline,
+html:lang(zh) .faq-headline, html:lang(ko) .faq-headline,
+html:lang(zh) .wl-headline, html:lang(ko) .wl-headline {
+  letter-spacing: -0.01em;
+  line-height: 1.22;
+}
+html:lang(zh) .who-eyebrow, html:lang(ko) .who-eyebrow,
+html:lang(zh) .how-eyebrow, html:lang(ko) .how-eyebrow,
+html:lang(zh) .sec-eyebrow, html:lang(ko) .sec-eyebrow,
+html:lang(zh) .own-eyebrow, html:lang(ko) .own-eyebrow,
+html:lang(zh) .uc-eyebrow, html:lang(ko) .uc-eyebrow,
+html:lang(zh) .faq-eyebrow, html:lang(ko) .faq-eyebrow { letter-spacing: 0.08em; }
+html:lang(ko) body { word-break: keep-all; overflow-wrap: break-word; }
+html:lang(zh) body { line-break: strict; }

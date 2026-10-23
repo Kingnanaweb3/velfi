@@ -1,8 +1,36 @@
 {
   "rewrites": [
-    { "source": "/waitlist", "destination": "/" },
-    { "source": "/litepaper", "destination": "/litepaper.html" },
-    { "source": "/docs", "destination": "/docs.html" },
-    { "source": "/docs/:path*", "destination": "/docs.html" }
+    {
+      "source": "/zh",
+      "destination": "/zh/index.html"
+    },
+    {
+      "source": "/zh/",
+      "destination": "/zh/index.html"
+    },
+    {
+      "source": "/ko",
+      "destination": "/ko/index.html"
+    },
+    {
+      "source": "/ko/",
+      "destination": "/ko/index.html"
+    },
+    {
+      "source": "/waitlist",
+      "destination": "/"
+    },
+    {
+      "source": "/litepaper",
+      "destination": "/litepaper.html"
+    },
+    {
+      "source": "/docs",
+      "destination": "/docs.html"
+    },
+    {
+      "source": "/docs/:path*",
+      "destination": "/docs.html"
+    }
   ]
 }
