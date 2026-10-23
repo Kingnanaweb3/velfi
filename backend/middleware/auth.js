@@ -8,6 +8,10 @@ export function requireAuth(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET)
+    // Sessions from the Solana version carry a Solana address. Send those people
+    // back through sign in so they get their BNB Chain wallet.
+    if (!/^0x[0-9a-fA-F]{40}$/.test(String(decoded.address || '')))
+      return res.status(401).json({ error: 'Please sign in again.', reauth: true })
     req.user = decoded
     next()
   } catch {

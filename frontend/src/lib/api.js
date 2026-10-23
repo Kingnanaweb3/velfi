@@ -16,6 +16,7 @@ export async function api(token, path, { method = 'GET', body } = {}) {
     body: body !== undefined ? JSON.stringify(body) : undefined,
   })
   const d = await r.json().catch(() => ({}))
+  if (r.status === 401 && d.reauth) { try { window.dispatchEvent(new Event('velfi:reauth')) } catch {} }
   if (!r.ok) throw Object.assign(new Error(d.error || 'Something went wrong. Try again.'), { status: r.status, data: d })
   return d
 }
