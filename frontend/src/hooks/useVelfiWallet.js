@@ -4,6 +4,7 @@ import { useCallback } from 'react'
 import { useWallets, useSignTransaction } from '@privy-io/react-auth'
 import { parseTransaction, recoverTransactionAddress } from 'viem'
 import { CHAIN_ID } from '../lib/chain.js'
+import { t } from '../i18n/index.jsx'
 
 function limit(promise, ms, message) {
   let t
@@ -39,7 +40,7 @@ export function useVelfiWallet() {
   // Velfi's server checks every signed one matches what it prepared, covers any
   // missing network fee, and only then sends them.
   const sign = useCallback(async (txs) => {
-    if (!wallet || !ready) throw new Error('Your wallet is still loading. Try again in a second.')
+    if (!wallet || !ready) throw new Error(t('walletLoading'))
     const list = Array.isArray(txs) ? txs : [txs]
     if (wallet.chainId !== `eip155:${CHAIN_ID}`) {
       try { await wallet.switchChain(CHAIN_ID) } catch (e) { console.warn('Velfi: switchChain', e) }

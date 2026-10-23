@@ -15,6 +15,7 @@ import { startInviteRunner } from './lib/invites.js'
 import { CLUSTER, MODE, CHAIN_ID, feePayer, feePayerWei, checkTokens } from './lib/bnb.js'
 import { TOKEN_LIST } from './lib/tokens.js'
 import { startupProblems } from './lib/config.js'
+import { replyInTheirLanguage } from './lib/translate.js'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -25,6 +26,8 @@ const ORIGINS = String(process.env.APP_ORIGINS || '').split(',').map(s => s.trim
 app.use(cors(ORIGINS.length ? { origin: ORIGINS } : {}))
 app.disable('x-powered-by')
 app.use(express.json({ limit: '200kb' }))
+// Chinese and Korean callers get their replies translated (amounts and names kept exact).
+app.use(replyInTheirLanguage)
 
 app.get('/', (req, res) => {
   res.json({ 

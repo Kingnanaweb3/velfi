@@ -6,6 +6,7 @@ import { usePoll, ago, dayLabel, counterparty, shortAddr } from '../lib/api.js'
 import { explorerTx, explorerAddress, IS_MAINNET, EXPLORER_NAME } from '../lib/chain.js'
 import bnbCoin from '../assets/bnb_coin.svg'
 import usdcCoin from '../assets/usdc_coin.png'
+import { t, t as tr } from '../i18n/index.jsx'
 
 export const coinFor = (sym) => (sym === 'BNB' ? bnbCoin : sym === 'USDC' ? usdcCoin : null)
 export const isMainnet = IS_MAINNET
@@ -13,27 +14,27 @@ export const isMainnet = IS_MAINNET
 // ── Receive ──────────────────────────────────────────────────────────────
 export function ReceiveSheet({ open, onClose, username, address }) {
   const { copied, copy } = useCopy()
-  const handle = `${username || 'you'}.vel`
+  const handle = `${username || t('you')}.vel`
   const qr = address ? `https://api.qrserver.com/v1/create-qr-code/?size=360x360&margin=0&data=${encodeURIComponent(address)}` : null
   async function share() {
-    const text = `Pay me on Velfi: ${handle}${address ? `\nOr send USDC or BNB on BNB Chain to ${address}` : ''}`
-    try { if (navigator.share) await navigator.share({ title: 'Pay me on Velfi', text }); else copy(text, 'share') } catch {}
+    const text = `${t('payMeText', { handle })}${address ? `\n${t('payMeOr', { address })}` : ''}`
+    try { if (navigator.share) await navigator.share({ title: t('payMeTitle'), text }); else copy(text, 'share') } catch {}
   }
   return (
-    <Sheet open={open} onClose={onClose} title="Receive">
+    <Sheet open={open} onClose={onClose} title={t('receiveTitle')}>
       <div style={{ display: 'grid', justifyItems: 'center', gap: 10, paddingTop: 4 }}>
         <div style={{ width: 196, height: 196, borderRadius: 28, background: '#fff', padding: 16, boxShadow: 'var(--shadow-card)' }}>
-          {qr ? <img src={qr} alt="QR code of your wallet address" width="164" height="164" /> : <Skeleton h={164} r={12} />}
+          {qr ? <img src={qr} alt={t('qrAlt')} width="164" height="164" /> : <Skeleton h={164} r={12} />}
         </div>
         <p style={{ fontSize: 28, fontWeight: 500, letterSpacing: '-.03em' }}>{handle}</p>
-        <p className="eyebrow" style={{ textAlign: 'center' }}>Friends on Velfi can pay this name</p>
+        <p className="eyebrow" style={{ textAlign: 'center' }}>{t('friendsCanPay')}</p>
       </div>
       <div className="panel" style={{ boxShadow: 'none', background: 'var(--card-2)', padding: '6px 16px' }}>
-        <Row title="Your .vel name" sub={handle} onClick={() => copy(handle, 'h')} chevron={copied === 'h' ? <Check size={18} /> : <Copy size={17} />} />
-        <Row title="Wallet address" sub={address ? shortAddr(address) + ' · for other apps and exchanges' : 'Loading…'} onClick={() => address && copy(address, 'a')} chevron={copied === 'a' ? <Check size={18} /> : <Copy size={17} />} />
+        <Row title={t('velName')} sub={handle} onClick={() => copy(handle, 'h')} chevron={copied === 'h' ? <Check size={18} /> : <Copy size={17} />} />
+        <Row title={t('walletAddress')} sub={address ? t('forOtherApps', { addr: shortAddr(address) }) : t('loading')} onClick={() => address && copy(address, 'a')} chevron={copied === 'a' ? <Check size={18} /> : <Copy size={17} />} />
       </div>
-      <p className="flow-note warn">Only send USDC or BNB on the BNB Chain network{isMainnet ? '' : ' (this is a test network)'}. Money sent on another network can't be recovered.</p>
-      <button className="btn primary block" onClick={share}><Share2 size={18} /> {copied === 'share' ? 'Copied' : 'Share'}</button>
+      <p className="flow-note warn">{isMainnet ? t('receiveWarn') : t('receiveWarnTest')}</p>
+      <button className="btn primary block" onClick={share}><Share2 size={18} /> {copied === 'share' ? t('copied') : t('share')}</button>
     </Sheet>
   )
 }
@@ -42,21 +43,21 @@ export function ReceiveSheet({ open, onClose, username, address }) {
 export function TokensSheet({ open, onClose, tokens = [], total = 0, address }) {
   const list = [...tokens].sort((a, b) => (b.usd || 0) - (a.usd || 0))
   return (
-    <Sheet open={open} onClose={onClose} title="Your money">
+    <Sheet open={open} onClose={onClose} title={t('tokensTitle')}>
       <div style={{ textAlign: 'center' }}>
         <p className="amount-big">{fmtUsd(total)}</p>
-        <p className="eyebrow" style={{ marginTop: 6 }}>{list.length} {list.length === 1 ? 'token' : 'tokens'} in your wallet</p>
+        <p className="eyebrow" style={{ marginTop: 6 }}>{list.length === 1 ? t('tokenCount1', { n: 1 }) : t('tokenCountN', { n: list.length })}</p>
       </div>
       <ul className="feed">
-        {list.length === 0 && <li><Empty title="Nothing here yet">Add USDC or BNB from Receive and it shows up here.</Empty></li>}
+        {list.length === 0 && <li><Empty title={t('nothingHere')}>{t('nothingHereBody')}</Empty></li>}
         {list.map(t => (
           <li key={t.mint}>
             <Row icon={coinFor(t.symbol) ? <img src={coinFor(t.symbol)} alt="" /> : (t.symbol || '?')[0]} title={t.name || t.symbol}
-              sub={`${fmtAmt(t.human)} ${t.symbol}`} end={t.usd != null ? fmtUsd(t.usd) : '—'} endSub={t.recognized ? null : 'No price'} />
+              sub={`${fmtAmt(t.human)} ${t.symbol}`} end={t.usd != null ? fmtUsd(t.usd) : '—'} endSub={t.recognized ? null : tr('noPrice')} />
           </li>
         ))}
       </ul>
-      {address && <a className="btn ghost block" href={explorerAddress(address)} target="_blank" rel="noreferrer">See your wallet on {EXPLORER_NAME}</a>}
+      {address && <a className="btn ghost block" href={explorerAddress(address)} target="_blank" rel="noreferrer">{t('seeWalletOn', { name: EXPLORER_NAME })}</a>}
     </Sheet>
   )
 }
@@ -68,10 +69,10 @@ export function txIcon(t) {
   return t.direction === 'in' ? { icon: <ArrowDownLeft size={18} />, tone: 'good' } : { icon: <ArrowUpRight size={18} />, tone: '' }
 }
 export function txVerb(t) {
-  if (t.type === 'swap') return 'Swap'
-  if (t.type === 'schedule') return 'Scheduled'
-  if (t.type === 'stream') return 'Stream'
-  return t.direction === 'in' ? 'Received' : 'Sent'
+  if (t.type === 'swap') return tr('verbSwap')
+  if (t.type === 'schedule') return tr('verbScheduled')
+  if (t.type === 'stream') return tr('verbStream')
+  return t.direction === 'in' ? tr('verbReceived') : tr('verbSent')
 }
 export function TxRow({ t }) {
   const { icon, tone } = txIcon(t)
@@ -95,7 +96,7 @@ export function ActivityList({ rows, filter = 'all' }) {
     return out
   }, [list])
   if (rows === null) return <div style={{ display: 'grid', gap: 10 }}><Skeleton h={56} /><Skeleton h={56} /><Skeleton h={56} /></div>
-  if (!list.length) return <Empty title={filter === 'in' ? 'Nothing received yet' : filter === 'out' ? 'Nothing sent yet' : 'No payments yet'}>When money moves, it shows up here with a public receipt you can check.</Empty>
+  if (!list.length) return <Empty title={filter === 'in' ? t('nothingReceived') : filter === 'out' ? t('nothingSent') : t('noPayments')}>{t('moneyMovesBody')}</Empty>
   return groups.map(g => (
     <div key={g.day} style={{ marginTop: 6 }}>
       <p className="eyebrow" style={{ padding: '8px 0 2px' }}>{g.day}</p>
@@ -108,8 +109,8 @@ export function ActivitySheet({ open, onClose }) {
   const { data } = usePoll(open ? '/agent/activity?limit=50' : null, 0)
   const [filter, setFilter] = useState('all')
   return (
-    <Sheet open={open} onClose={onClose} title="Activity">
-      <Seg label="Show" value={filter} onChange={setFilter} options={[{ id: 'all', label: 'All' }, { id: 'out', label: 'Sent' }, { id: 'in', label: 'Received' }]} />
+    <Sheet open={open} onClose={onClose} title={t('activityTitle')}>
+      <Seg label={t('show')} value={filter} onChange={setFilter} options={[{ id: 'all', label: t('all') }, { id: 'out', label: t('sent') }, { id: 'in', label: t('received') }]} />
       <div><ActivityList rows={data ? data.transactions || [] : null} filter={filter} /></div>
     </Sheet>
   )
@@ -122,16 +123,16 @@ export function markAlertsSeen() { try { localStorage.setItem(SEEN, String(Date.
 
 export function AlertsSheet({ open, onClose, items }) {
   return (
-    <Sheet open={open} onClose={onClose} title="Alerts">
+    <Sheet open={open} onClose={onClose} title={t('alertsTitle')}>
       {items === null ? <Skeleton h={120} /> : !items?.length
-        ? <Empty title="You're all caught up">Payments, schedules and invites will let you know here.</Empty>
+        ? <Empty title={t('caughtUp')}>{t('caughtUpBody')}</Empty>
         : <ul className="feed">{items.map(n => (
             <li key={n.id}>
               <Row icon={<Bell size={17} />} tone={/fail|refund/.test(n.type || '') ? 'warn' : n.type === 'payment_received' ? 'good' : ''}
-                title={n.title || 'Update'} sub={`${n.body ? n.body + ' · ' : ''}${ago(n.created_at)}`} href={n.action_url || undefined} />
+                title={n.title || t('update')} sub={`${n.body ? n.body + ' · ' : ''}${ago(n.created_at)}`} href={n.action_url || undefined} />
             </li>))}
           </ul>}
-      {!isMainnet && <Pill tone="amber">Test network: these are not real funds</Pill>}
+      {!isMainnet && <Pill tone="amber">{t('testFunds')}</Pill>}
     </Sheet>
   )
 }

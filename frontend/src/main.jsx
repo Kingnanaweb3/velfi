@@ -8,6 +8,7 @@ import { initTheme } from './lib/theme.js'
 import { AuthProvider } from './context/AuthContext.jsx'
 import { ToastProvider } from './ui/kit.jsx'
 import App from './App.jsx'
+import { LangProvider } from './i18n/index.jsx'
 import './ui/velfi.css'
 
 initTheme()
@@ -37,7 +38,9 @@ createRoot(document.getElementById('root')).render(
       <BrowserRouter>
         <AuthProvider>
           <ToastProvider>
-            <App />
+            <LangProvider>
+              <App />
+            </LangProvider>
           </ToastProvider>
         </AuthProvider>
       </BrowserRouter>

@@ -2,6 +2,7 @@
 // screens fetch, these draw. Styles live in velfi.css.
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { X } from 'lucide-react'
+import { t, t as tr } from '../i18n/index.jsx'
 
 export const reducedMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
@@ -43,7 +44,7 @@ export const fmtAmt = (n) => {
 // Each digit is a column 0-9 that slides into place. Screen readers get the whole amount once.
 export function RollingMoney({ value, hidden = false }) {
   const text = fmtUsd(value)
-  if (hidden) return <span aria-label="Balance hidden">••••••</span>
+  if (hidden) return <span aria-label={t('balanceHidden')}>••••••</span>
   const [whole, cents = '00'] = text.split('.')
   const roll = (str, cls = '') => str.split('').map((ch, i) => /\d/.test(ch)
     ? <span key={`${cls}${str.length - i}`} className="roll" aria-hidden="true">
@@ -188,7 +189,7 @@ export function Sheet({ open, onClose, label, title, pale = false, children, dis
           <div className="sheet-head">
             <span />
             <h2>{title}</h2>
-            <button className="done" onClick={onClose}>Done</button>
+            <button className="done" onClick={onClose}>{t('done')}</button>
           </div>
         )}
         {children}
@@ -197,7 +198,7 @@ export function Sheet({ open, onClose, label, title, pale = false, children, dis
   )
 }
 
-export function CloseButton({ onClick, label = 'Close' }) {
+export function CloseButton({ onClick, label = t('close') }) {
   return <button className="circle-btn" aria-label={label} onClick={onClick}><X size={20} strokeWidth={1.9} /></button>
 }
 
@@ -218,7 +219,7 @@ export function ToastProvider({ children }) {
         {list.map(t => (
           <div key={t.id} className={`toast ${t.tone || ''}`}>
             <span>{t.text}</span>
-            {t.href && <a href={t.href} target="_blank" rel="noreferrer">{t.linkText || 'View'}</a>}
+            {t.href && <a href={t.href} target="_blank" rel="noreferrer">{t.linkText || tr('view')}</a>}
           </div>
         ))}
       </div>

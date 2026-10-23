@@ -2,6 +2,7 @@
 import { useState, useCallback, useRef } from 'react'
 import { useLoginWithOAuth, usePrivy, useCreateWallet } from '@privy-io/react-auth'
 import { useAuth } from '../context/AuthContext.jsx'
+import { t, getLang } from '../i18n/index.jsx'
 
 const API = '/api'
 const sleep = (ms) => new Promise(r => setTimeout(r, ms))
@@ -32,23 +33,23 @@ export function useVelfiSignIn({ onSignedIn } = {}) {
       const accessToken = await getAccessToken()
       const r = await fetch(`${API}/auth/privy`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+        headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true', 'x-velfi-lang': getLang() },
         body: JSON.stringify({ accessToken }),
       })
       const d = await r.json().catch(() => ({}))
       if (r.status === 409) { if (attempt === 4) await ensureWallet(); await sleep(1000); continue }
-      if (!r.ok) throw new Error(d.error || 'Sign-in failed. Please try again.')
+      if (!r.ok) throw new Error(d.error || t('signInFailed'))
       login(d.token, { ...d.user, address: d.address })
       return d
     }
-    throw new Error('Your wallet is taking longer than usual to set up. Please try again.')
+    throw new Error(t('walletSlow'))
   }, [getAccessToken, login, ensureWallet])
 
   const { initOAuth } = useLoginWithOAuth({
     onComplete: async () => {
       try { onSignedIn?.() } catch (e) { setError(e.message) }
     },
-    onError: (e) => { setError(String(e?.message || e || 'Sign-in was cancelled.')); setLoading(false) },
+    onError: (e) => { setError(String(e?.message || e || t('signInCancelled'))); setLoading(false) },
   })
 
   async function startGoogleLogin() {

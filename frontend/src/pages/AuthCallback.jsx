@@ -4,9 +4,10 @@ import { usePrivy } from '@privy-io/react-auth'
 import { useVelfiSignIn } from '../hooks/useVelfiSignIn.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { Pill } from '../ui/kit.jsx'
+import { t, getLang } from '../i18n/index.jsx'
 
 const BACKEND = '/api'
-const COPY = ['Signing you in…', 'Setting up your wallet…', 'Almost ready…']
+const COPY = ['cbSigning', 'cbWallet', 'cbAlmost']
 
 export default function AuthCallback() {
   const navigate = useNavigate()
@@ -45,7 +46,7 @@ export default function AuthCallback() {
         if (isNew) setPhase('username')
         else navigate('/', { replace: true })
       } catch (err) {
-        setError(err.message || 'Something went wrong.')
+        setError(err.message || t('somethingWrong'))
         setPhase('error')
       }
     })()
@@ -72,11 +73,11 @@ export default function AuthCallback() {
     try {
       const res = await fetch(`${BACKEND}/auth/register`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'ngrok-skip-browser-warning': 'true' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'ngrok-skip-browser-warning': 'true', 'x-velfi-lang': getLang() },
         body: JSON.stringify({ username: claimName })
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Could not claim that name.')
+      if (!res.ok) throw new Error(data.error || t('couldNotClaim'))
       login(data.token || token, { ...user, username: claimName })
       navigate('/', { replace: true })
     } catch (err) {
@@ -92,11 +93,11 @@ export default function AuthCallback() {
     <main className="auth screen" style={{ gridTemplateRows: '1fr', gridTemplateColumns: '1fr', maxWidth: 520 }}>
       {phase === 'error' ? (
         <div className="auth-art">
-          <h1 style={{ fontSize: 34 }}>That didn’t work</h1>
+          <h1 style={{ fontSize: 34 }}>{t('didntWork')}</h1>
           <p className="auth-err" role="alert">{error}</p>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
-            <button className="btn primary" onClick={() => window.location.reload()}>Try again</button>
-            <button className="btn ghost" onClick={() => navigate('/login')}>Back to sign in</button>
+            <button className="btn primary" onClick={() => window.location.reload()}>{t('tryAgain')}</button>
+            <button className="btn ghost" onClick={() => navigate('/login')}>{t('backToSignIn')}</button>
           </div>
         </div>
       ) : phase === 'loading' ? (
@@ -109,27 +110,27 @@ export default function AuthCallback() {
               <line style={{ '--d': '0.75s' }} x1="9" y1="20" x2="31" y2="20" pathLength="1" />
             </svg>
           </div>
-          <h1 style={{ fontSize: 34, marginTop: 10 }}>{returning ? 'Welcome back' : 'Creating your account'}</h1>
-          <p className="lede" key={step}>{COPY[step]}</p>
+          <h1 style={{ fontSize: 34, marginTop: 10 }}>{returning ? t('welcomeBack') : t('creatingAccount')}</h1>
+          <p className="lede" key={step}>{t(COPY[step])}</p>
           <div className="steps-dots"><i className={step >= 0 ? 'on' : ''} /><i className={step >= 1 ? 'on' : ''} /><i className={step >= 2 ? 'on' : ''} /></div>
         </div>
       ) : (
         <div className="stack" style={{ alignContent: 'center' }}>
-          <Pill tone="lime">Your wallet is ready</Pill>
-          <h1 className="flow-title" style={{ fontSize: 40 }}>Claim your name</h1>
-          <p className="lede" style={{ color: 'var(--t2)' }}>People pay you with this name instead of a long wallet address. Pick carefully.</p>
+          <Pill tone="lime">{t('walletReady')}</Pill>
+          <h1 className="flow-title" style={{ fontSize: 40 }}>{t('claimName')}</h1>
+          <p className="lede" style={{ color: 'var(--t2)' }}>{t('claimLede')}</p>
           <label className="claim-box">
-            <span className="sr">Your name</span>
+            <span className="sr">{t('yourName')}</span>
             <input value={username} onChange={e => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))}
               placeholder="yourname" maxLength={20} autoFocus autoCapitalize="none" autoCorrect="off" spellCheck={false}
               onKeyDown={e => { if (e.key === 'Enter' && ok) handleClaim() }} />
             <span aria-hidden="true">.vel</span>
           </label>
           <div aria-live="polite" style={{ minHeight: 30 }}>
-            {username.length > 0 && username.length < 3 && <Pill tone="soft">At least 3 letters or numbers</Pill>}
-            {status === 'checking' && <Pill tone="soft">Checking…</Pill>}
-            {ok && <Pill tone="lime">{username}.vel is free</Pill>}
-            {status === 'taken' && <Pill tone="amber">{username}.vel is taken</Pill>}
+            {username.length > 0 && username.length < 3 && <Pill tone="soft">{t('min3')}</Pill>}
+            {status === 'checking' && <Pill tone="soft">{t('checking')}</Pill>}
+            {ok && <Pill tone="lime">{t('nameFree', { name: username })}</Pill>}
+            {status === 'taken' && <Pill tone="amber">{t('nameTaken', { name: username })}</Pill>}
           </div>
           {status === 'taken' && suggestions.length > 0 && (
             <div className="chips-row" style={{ marginTop: 0 }}>
@@ -138,7 +139,7 @@ export default function AuthCallback() {
           )}
           {error && <p className="auth-err" role="alert">{error}</p>}
           <button className="btn primary block" style={{ minHeight: 56 }} onClick={() => handleClaim()} disabled={claiming || !ok}>
-            {claiming ? <span className="spin" /> : 'Claim and continue'}
+            {claiming ? <span className="spin" /> : t('claimContinue')}
           </button>
         </div>
       )}

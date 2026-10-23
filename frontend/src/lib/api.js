@@ -2,6 +2,7 @@
 // every screen shares. Polling pauses while the tab is hidden.
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
+import { t, t as tr, getLang, getLocale } from '../i18n/index.jsx'
 
 export const API = '/api'
 
@@ -12,6 +13,7 @@ export async function api(token, path, { method = 'GET', body } = {}) {
       ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       'ngrok-skip-browser-warning': 'true',
+      'x-velfi-lang': getLang(),
     },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   })
@@ -49,31 +51,31 @@ export const useActivity = (limit = 6) => usePoll(`/agent/activity?limit=${limit
 export const useNotifications = () => usePoll('/account/notifications', 30000)
 
 // Relative time in plain words.
-export function ago(t) {
-  if (!t) return ''
-  const d = Date.now() - new Date(t).getTime()
-  if (d < 60_000) return 'just now'
-  if (d < 3_600_000) return `${Math.floor(d / 60_000)}m ago`
-  if (d < 86_400_000) return `${Math.floor(d / 3_600_000)}h ago`
-  if (d < 7 * 86_400_000) return `${Math.floor(d / 86_400_000)}d ago`
-  return new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+export function ago(ts) {
+  if (!ts) return ''
+  const d = Date.now() - new Date(ts).getTime()
+  if (d < 60_000) return t('justNow')
+  if (d < 3_600_000) return t('mAgo', { n: Math.floor(d / 60_000) })
+  if (d < 86_400_000) return t('hAgo', { n: Math.floor(d / 3_600_000) })
+  if (d < 7 * 86_400_000) return t('dAgo', { n: Math.floor(d / 86_400_000) })
+  return new Date(ts).toLocaleDateString(getLocale(), { month: 'short', day: 'numeric' })
 }
 
-export function dayLabel(t) {
-  if (!t) return ''
-  const d = new Date(t), n = new Date()
+export function dayLabel(ts) {
+  if (!ts) return ''
+  const d = new Date(ts), n = new Date()
   const same = (a, b) => a.toDateString() === b.toDateString()
-  if (same(d, n)) return 'Today'
+  if (same(d, n)) return t('today')
   const y = new Date(n); y.setDate(n.getDate() - 1)
-  if (same(d, y)) return 'Yesterday'
-  return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
+  if (same(d, y)) return t('yesterday')
+  return d.toLocaleDateString(getLocale(), { weekday: 'short', month: 'short', day: 'numeric' })
 }
 
 export const shortAddr = (a) => (a ? `${a.slice(0, 4)}…${a.slice(-4)}` : '')
 
 // Who a transaction was with, from the backend's activity rows.
 export function counterparty(t) {
-  return t.counterparty || String(t.label || '').replace(/^(Streamed to|Scheduled payment to|Sent to|Received from|Sent|Received|Swapped)\s*/i, '').trim() || (t.direction === 'in' ? 'Someone' : 'Payment')
+  return t.counterparty || String(t.label || '').replace(/^(Streamed to|Scheduled payment to|Sent to|Received from|Sent|Received|Swapped)\s*/i, '').trim() || (t.direction === 'in' ? tr('someone') : tr('payment'))
 }
 
 // Hand text to the chat screen. `draft` fills the box for the person to finish;

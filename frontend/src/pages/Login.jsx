@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { useVelfiSignIn } from '../hooks/useVelfiSignIn.js'
 import { Logo, Pill } from '../ui/kit.jsx'
 import otterScene from '../assets/otter-scene.webp'
+import { t, useLang, LANGS } from '../i18n/index.jsx'
 
 function GoogleG() {
   return (
@@ -18,6 +19,16 @@ function GoogleG() {
   )
 }
 
+// Small EN · 中文 · 한국어 switch for people who haven't signed in yet.
+function LangPills() {
+  const { lang, setLang } = useLang()
+  return (
+    <span className="lang-pills" role="group" aria-label={t('language')}>
+      {LANGS.map(l => <button key={l.code} type="button" lang={l.html} className={l.code === lang ? 'on' : ''} aria-pressed={l.code === lang} onClick={() => setLang(l.code)}>{l.label}</button>)}
+    </span>
+  )
+}
+
 export default function Login() {
   const navigate = useNavigate()
   // After Google, finish on /auth/callback (wallet set-up and .vel name).
@@ -28,23 +39,23 @@ export default function Login() {
   return (
     <div className="auth-dark">
     <main className="auth screen">
-      <div className="brand"><Logo size={26} /> Velfi</div>
+      <div className="brand" style={{ justifyContent: 'space-between', width: '100%' }}><span style={{ display: 'flex', alignItems: 'center', gap: 10 }}><Logo size={26} /> Velfi</span><LangPills /></div>
 
       <div className="auth-art">
-        <h1>Tell your money<br /><span>what to do.</span></h1>
-        <p className="lede">Send, split and schedule payments on BNB Chain by just saying it. You approve every one.</p>
+        <h1>{t('loginH1a')}<br /><span>{t('loginH1b')}</span></h1>
+        <p className="lede">{t('loginLede')}</p>
         <div className="auth-steps">
-          <Pill tone="soft">1 · Google</Pill><Pill tone="soft">2 · Claim a .vel name</Pill><Pill tone="soft">3 · Just say it</Pill>
+          <Pill tone="soft">{t('step1')}</Pill><Pill tone="soft">{t('step2')}</Pill><Pill tone="soft">{t('step3')}</Pill>
         </div>
         <div className="auth-visual"><img src={otterScene} alt="" /></div>
       </div>
 
       <div className="auth-foot">
         <button className="gbtn" onClick={startGoogleLogin} disabled={loading}>
-          {loading ? <span className="spin" /> : <><GoogleG /> Continue with Google</>}
+          {loading ? <span className="spin" /> : <><GoogleG /> {t('continueGoogle')}</>}
         </button>
         {error && <p className="auth-err" role="alert">{error}</p>}
-        <p className="auth-note">New or returning, it’s the same button. Your BNB Chain wallet is created for you, with no seed phrase.</p>
+        <p className="auth-note">{t('loginNote')}</p>
       </div>
     </main>
     </div>

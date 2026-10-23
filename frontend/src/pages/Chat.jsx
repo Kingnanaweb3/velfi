@@ -8,9 +8,11 @@ import { api, dayLabel, shortAddr } from '../lib/api.js'
 import { Sheet, CloseButton, Pill, Row, useToast, fmtAmt } from '../ui/kit.jsx'
 import otterAgent from '../assets/otter-agent.webp'
 import otterFace from '../assets/otter-face.webp'
+import { t, getLocale } from '../i18n/index.jsx'
+import { freqLabel } from '../i18n/format.js'
 
 const STORE = 'velfi_chat_v1'
-const clock = () => new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+const clock = () => new Date().toLocaleTimeString(getLocale(), { hour: 'numeric', minute: '2-digit' })
 // A wallet that never answers must not leave the slider spinning forever.
 function withTimeout(promise, ms, message) {
   let t
@@ -18,31 +20,31 @@ function withTimeout(promise, ms, message) {
 }
 const sym = (p) => (p?.currency && p.currency !== 'USD') ? p.currency : 'USDC'
 const recipientsOf = (p) => (p?.recipients || []).map(r => ({
-  label: r.resolved?.label || r.name || r.email || r.resolved?.email || shortAddr(r.resolved?.address) || 'recipient',
+  label: r.resolved?.label || r.name || r.email || r.resolved?.email || shortAddr(r.resolved?.address) || t('recipient'),
   amount: r.amount ?? p?.token_amount ?? p?.amount,
   token: r.token,
 }))
-const humanDur = (s) => { s = Number(s) || 0; if (s >= 86400 && s % 86400 === 0) { const d = s / 86400; return d + (d === 1 ? ' day' : ' days') } if (s >= 3600) return Math.round(s / 3600) + ' hours'; if (s >= 60) return Math.round(s / 60) + ' min'; return s + 's' }
+const humanDur = (s) => { s = Number(s) || 0; if (s >= 86400 && s % 86400 === 0) { const d = s / 86400; return t(d === 1 ? 'dur_day' : 'dur_days', { n: d }) } if (s >= 3600) return t('dur_hours', { n: Math.round(s / 3600) }); if (s >= 60) return t('dur_min', { n: Math.round(s / 60) }); return t('dur_s', { n: s }) }
 
 // What a proposal will do, in the person's words.
 function describe(p) {
   const intent = p?.intent, pay = p?.payment || {}
   if (intent === 'swap') {
     const sw = pay.swap || {}
-    return { kind: 'swap', title: 'Swap', done: 'Swapped', rows: [{ label: `${sw.from_token} → ${sw.to_token}`, amount: sw.amount, token: sw.from_token }], note: p.summary || null, fee: 'Small BNB fee' }
+    return { kind: 'swap', title: t('swapT'), done: t('swapped'), rows: [{ label: `${sw.from_token} → ${sw.to_token}`, amount: sw.amount, token: sw.from_token }], note: p.summary || null, fee: t('smallFee') }
   }
   if (intent === 'stream') {
     const st = pay.stream || {}
-    return { kind: 'stream', title: 'Stream', done: 'Started', rows: [{ label: st.recipientName || 'recipient', amount: st.total_amount, token: st.token }], note: `Pays out every second over ${humanDur(st.duration_secs)}. They can claim anytime.` }
+    return { kind: 'stream', title: t('streamT'), done: t('started'), rows: [{ label: st.recipientName || t('recipient'), amount: st.total_amount, token: st.token }], note: t('streamNote', { dur: humanDur(st.duration_secs) }) }
   }
   if (intent === 'schedule') {
     const sc = pay.sched || {}
-    return { kind: 'schedule', title: 'Schedule', done: 'Set', each: true, rows: [{ label: sc.recipientName || 'recipient', amount: sc.amount, token: sc.token }],
-      note: `${sc.frequency || 'Recurring'}${sc.occurrences ? `, ${sc.occurrences} payments` : ''}. Cancel anytime in Flows.` }
+    return { kind: 'schedule', title: t('scheduleT'), done: t('setDone'), each: true, rows: [{ label: sc.recipientName || t('recipient'), amount: sc.amount, token: sc.token }],
+      note: sc.occurrences ? t('schedNoteN', { freq: freqLabel(sc.frequency), n: sc.occurrences }) : t('schedNote', { freq: freqLabel(sc.frequency) }) }
   }
   const s = sym(pay)
   const rows = recipientsOf(pay).map(r => ({ ...r, token: r.token || s }))
-  return { kind: intent === 'split' ? 'split' : 'send', title: intent === 'split' ? 'Split' : 'Send', done: intent === 'split' ? 'Split' : 'Sent', rows, note: null }
+  return { kind: intent === 'split' ? 'split' : 'send', title: intent === 'split' ? t('splitT') : t('sendT'), done: intent === 'split' ? t('splitDone') : t('sentDone'), rows, note: null }
 }
 function totalOf(rows) {
   const by = {}
@@ -65,11 +67,11 @@ function rich(text) {
   })
 }
 
-const STARTERS = [
-  { text: 'Send 5 USDC to ', label: 'Send money', sub: 'to a .vel name, email or address' },
-  { text: 'Split 30 USDC between ', label: 'Split a bill', sub: 'one amount, many people' },
-  { text: 'Every month send ', label: 'Pay on a schedule', sub: 'rent, allowance, subscriptions' },
-  { text: "What's my balance?", label: 'Check my money', sub: 'see what you hold', send: true },
+const STARTERS = () => [
+  { text: t('st1Text'), label: t('st1Label'), sub: t('st1Sub') },
+  { text: t('st2Text'), label: t('st2Label'), sub: t('st2Sub') },
+  { text: t('st3Text'), label: t('st3Label'), sub: t('st3Sub') },
+  { text: t('st4Text'), label: t('st4Label'), sub: t('st4Sub'), send: true },
 ]
 
 export default function Chat() {
@@ -99,18 +101,18 @@ export default function Chat() {
   useEffect(() => { scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: 'smooth' }) }, [messages, busy])
 
   async function send(text) {
-    const t = (text ?? input).trim(); if (!t || busy) return
-    setInput(''); push({ role: 'user', text: t }); setBusy(true)
+    const msg = (text ?? input).trim(); if (!msg || busy) return
+    setInput(''); push({ role: 'user', text: msg }); setBusy(true)
     try {
-      const d = await api(token, '/agent/message', { method: 'POST', body: { message: t } })
+      const d = await api(token, '/agent/message', { method: 'POST', body: { message: msg } })
       if (d.mode === 'propose') {
         const p = { id: d.pendingTxId, summary: d.summary, payment: d.payment, intent: d.intent }
         if (pending) dropProposal(pending.id)
-        setPending(p); push({ role: 'assistant', text: d.summary || 'Here’s what I’ll do:', proposal: p })
+        setPending(p); push({ role: 'assistant', text: d.summary || t('heresWhat'), proposal: p })
       }
-      else if (d.mode === 'choose_token') push({ role: 'assistant', text: d.reply || 'Which token would you like to use?', tokens: ['USDC', 'BNB'] })
-      else push({ role: 'assistant', text: d.reply || d.summary || 'Okay.' })
-    } catch (e) { push({ role: 'assistant', text: e.status ? e.message : 'I couldn’t reach Velfi just now. Check your connection and try again.' }) }
+      else if (d.mode === 'choose_token') push({ role: 'assistant', text: d.reply || t('whichToken'), tokens: ['USDC', 'BNB'] })
+      else push({ role: 'assistant', text: d.reply || d.summary || t('okay') })
+    } catch (e) { push({ role: 'assistant', text: e.status ? e.message : t('cantReach') }) }
     finally { setBusy(false) }
   }
 
@@ -118,7 +120,7 @@ export default function Chat() {
   async function approve() {
     if (!pending) return
     const p = pending
-    setSheet({ type: 'confirm', running: 'Preparing…' })
+    setSheet({ type: 'confirm', running: t('preparing') })
     let prep
     try {
       prep = await api(token, `/agent/prepare/${p.id}`, { method: 'POST', body: {} })
@@ -127,16 +129,16 @@ export default function Chat() {
       setSheet({ type: 'failed', message: e.message }); return
     }
     let signedTx
-    setSheet({ type: 'confirm', running: 'Signing…' })
-    try { signedTx = await withTimeout(wallet.sign(prep.tx), 70_000, 'Your wallet didn’t respond in time') }
+    setSheet({ type: 'confirm', running: t('signing') })
+    try { signedTx = await withTimeout(wallet.sign(prep.tx), 70_000, t('walletTimeout')) }
     catch (e) {
       console.error('Velfi sign failed:', e)
       setSheet(null)
       const why = String(e?.message || e || '').slice(0, 400)
-      toast(/reject|denied|cancel|closed/i.test(why) ? 'You didn’t sign it, so nothing was sent.' : `Your wallet couldn’t sign that, so nothing was sent.${why ? ` (${why})` : ''}`)
+      toast(/reject|denied|cancel|closed/i.test(why) ? t('notSignedChat') : `${t('walletCouldnt')}${why ? ` (${why})` : ''}`)
       return
     }
-    setSheet({ type: 'confirm', running: 'Sending…' })
+    setSheet({ type: 'confirm', running: t('sending') })
     try {
       const d = await api(token, `/agent/approve/${p.id}`, { method: 'POST', body: { prepId: prep.prepId, signedTx } })
       dropProposal(p.id); setPending(null)
@@ -152,7 +154,7 @@ export default function Chat() {
     if (pending) api(token, `/agent/cancel/${pending.id}`, { method: 'POST', body: {} }).catch(() => {})
     if (pending) dropProposal(pending.id)
     setPending(null); setSheet(null)
-    push({ role: 'assistant', text: 'Cancelled. Nothing was sent.' })
+    push({ role: 'assistant', text: t('cancelledNothing') })
   }
   function revise() {
     if (pending) api(token, `/agent/cancel/${pending.id}`, { method: 'POST', body: {} }).catch(() => {})
@@ -171,10 +173,10 @@ export default function Chat() {
   return (
     <div className="chat">
       <header className="chat-top">
-        <button className="circle-btn" onClick={() => navigate('/')} aria-label="Back to home"><ArrowLeft size={20} /></button>
+        <button className="circle-btn" onClick={() => navigate('/')} aria-label={t('backHome')}><ArrowLeft size={20} /></button>
         <img className="chat-ava" src={otterAgent} alt="" />
-        <div className="top-title"><small>Your money agent</small><b>Velfi</b></div>
-        <button className="circle-btn" onClick={newChat} aria-label="New chat"><SquarePen size={18} /></button>
+        <div className="top-title"><small>{t('yourAgent')}</small><b>Velfi</b></div>
+        <button className="circle-btn" onClick={newChat} aria-label={t('newChat')}><SquarePen size={18} /></button>
       </header>
 
       <div className="chat-scroll" ref={scroller}>
@@ -182,10 +184,10 @@ export default function Chat() {
           {messages.length === 0 && !busy && (
             <div className="welcome">
               <img src={otterFace} alt="" />
-              <h1>What should your money do?</h1>
-              <p>Say it the way you’d text a friend. I’ll show you exactly what will happen, and nothing moves until you approve it.</p>
+              <h1>{t('welcomeH')}</h1>
+              <p>{t('welcomeP')}</p>
               <div className="starters">
-                {STARTERS.map(s => (
+                {STARTERS().map(s => (
                   <button key={s.label} className="starter" onClick={() => start(s)}>
                     <b>{s.label}</b><small>{s.sub}</small><ArrowRight size={16} aria-hidden="true" />
                   </button>
@@ -204,7 +206,7 @@ export default function Chat() {
             )
           })}
 
-          {busy && <div className="c-row left"><div className="c-bubble them c-typing" aria-label="Velfi is typing"><span /><span /><span /></div></div>}
+          {busy && <div className="c-row left"><div className="c-bubble them c-typing" aria-label={t('typing')}><span /><span /><span /></div></div>}
         </div>
       </div>
 
@@ -212,12 +214,12 @@ export default function Chat() {
         <div className="chat-col">
           {messages.length > 0 && (
             <div className="c-chips">
-              {['What can I do?', 'Check my balance', 'Recent activity'].map(c => <button key={c} className="pill soft" onClick={() => send(c)}>{c}</button>)}
+              {[t('chip1'), t('chip2'), t('chip3')].map(c => <button key={c} className="pill soft" onClick={() => send(c)}>{c}</button>)}
             </div>
           )}
           <form className="ask" onSubmit={e => { e.preventDefault(); send() }}>
-            <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)} placeholder="Tell your money what to do…" aria-label="Message Velfi" enterKeyHint="send" />
-            <button className="go" type="submit" disabled={busy || !input.trim()} aria-label="Send"><ArrowUp size={20} strokeWidth={2.2} /></button>
+            <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)} placeholder={t('askPlaceholder')} aria-label={t('messageVelfi')} enterKeyHint="send" />
+            <button className="go" type="submit" disabled={busy || !input.trim()} aria-label={t('send')}><ArrowUp size={20} strokeWidth={2.2} /></button>
           </form>
         </div>
       </div>
@@ -235,7 +237,7 @@ function Message({ m, onReview, onCancel, onRevise, onSend }) {
     <div className="c-row left">
       <div className="c-stack">
         {m.text && <div className="c-bubble them">{rich(m.text)}<span className="c-time">{m.time}</span></div>}
-        {m.txDigest && <a className="link-btn" href={explorerTx(m.txDigest)} target="_blank" rel="noreferrer">View on {EXPLORER_NAME}</a>}
+        {m.txDigest && <a className="link-btn" href={explorerTx(m.txDigest)} target="_blank" rel="noreferrer">{t('viewOn', { name: EXPLORER_NAME })}</a>}
         {m.tokens && <div className="c-chips">{m.tokens.map(tk => <button key={tk} className="pill" onClick={() => onSend(tk)}>{tk}</button>)}</div>}
         {m.proposal && <Proposal p={m.proposal} onReview={onReview} onCancel={onCancel} onRevise={onRevise} />}
         {m.done && <Done done={m.done} />}
@@ -248,14 +250,14 @@ function warningsFor(p, d, bals) {
   const out = []
   const recs = p.payment?.recipients || []
   if (recs.some(r => (r.resolved?.address || r.address) && !(r.name || r.email || r.resolved?.label)))
-    out.push('You’re paying a raw wallet address. If it’s even slightly wrong, the money can’t be recovered.')
+    out.push(t('warnRaw'))
   if (d.kind !== 'swap' && bals?.tokens) {
     for (const [tok, total] of Object.entries(d.rows.reduce((a, r) => ({ ...a, [r.token]: (a[r.token] || 0) + (Number(r.amount) || 0) }), {}))) {
       const held = bals.tokens.find(t => String(t.symbol).toUpperCase() === String(tok).toUpperCase())?.human || 0
-      if (held > 0 && total / held >= 0.5) out.push(`This moves ${Math.round((total / held) * 100)}% of your ${tok}.`)
+      if (held > 0 && total / held >= 0.5) out.push(t('warnPct', { pct: Math.round((total / held) * 100), tok }))
     }
   }
-  if (d.kind === 'swap') out.push('Swaps fill at the live price, so what you get can shift a little before it lands.')
+  if (d.kind === 'swap') out.push(t('warnSwap'))
   return out
 }
 
@@ -268,8 +270,8 @@ function Proposal({ p, onReview, onCancel, onRevise }) {
   return (
     <div className="prop">
       <div className="prop-top">
-        <span className="eyebrow">{d.title}{d.each ? ' · each payment' : ''}</span>
-        <Pill tone={d.kind === 'swap' ? 'amber' : 'lime'}>{d.fee ? d.fee : 'Fee covered'}</Pill>
+        <span className="eyebrow">{d.title}{d.each ? t('eachPaymentSuffix') : ''}</span>
+        <Pill tone={d.kind === 'swap' ? 'amber' : 'lime'}>{d.fee ? d.fee : t('feeCovered')}</Pill>
       </div>
       <p className="amount-big">{totalOf(d.rows)}</p>
       <ul className="feed">
@@ -279,8 +281,8 @@ function Proposal({ p, onReview, onCancel, onRevise }) {
       {warns.length > 0 && (
         <div className="warnbox">{warns.map((w, i) => <p key={i}><TriangleAlert size={15} aria-hidden="true" /> <span>{w}</span></p>)}</div>
       )}
-      <button className="btn primary block" onClick={onReview}>Review and approve</button>
-      <div className="prop-sub"><button onClick={onRevise}>Change it</button><span aria-hidden="true">·</span><button onClick={onCancel}>Cancel</button></div>
+      <button className="btn primary block" onClick={onReview}>{t('reviewApprove')}</button>
+      <div className="prop-sub"><button onClick={onRevise}>{t('changeIt')}</button><span aria-hidden="true">·</span><button onClick={onCancel}>{t('cancel')}</button></div>
     </div>
   )
 }
@@ -291,7 +293,7 @@ function Done({ done }) {
     <div className="done-card">
       <span className="done-ic"><Check size={16} strokeWidth={3} /></span>
       <div><b>{d.done} {totalOf(d.rows)}</b>
-        {done.digest && <a href={explorerTx(done.digest)} target="_blank" rel="noreferrer">Public receipt on {EXPLORER_NAME}</a>}</div>
+        {done.digest && <a href={explorerTx(done.digest)} target="_blank" rel="noreferrer">{t('publicReceipt', { name: EXPLORER_NAME })}</a>}</div>
     </div>
   )
 }
@@ -300,20 +302,20 @@ function ConfirmSheet({ open, pending, running, onApprove, onClose }) {
   if (!pending) return null
   const d = describe(pending)
   return (
-    <Sheet open={open} onClose={onClose} pale label={`Approve: ${d.title}`} dismissable={!running}>
+    <Sheet open={open} onClose={onClose} pale label={t('approveLabel', { title: d.title })} dismissable={!running}>
       <div className="flow-head">
-        <CloseButton onClick={onClose} label="Close" />
-        <Pill tone={d.kind === 'swap' ? 'amber' : 'lime'}>{d.fee || 'Velfi pays the fee'}</Pill>
+        <CloseButton onClick={onClose} label={t('close')} />
+        <Pill tone={d.kind === 'swap' ? 'amber' : 'lime'}>{d.fee || t('velfiPaysFee')}</Pill>
       </div>
       <h2 className="flow-title">{d.title}</h2>
-      <p className="flow-sub">From your Velfi wallet</p>
+      <p className="flow-sub">{t('fromWallet')}</p>
       <div className="amount-card">
-        <div className="amount-top"><span>{d.each ? 'Each payment' : 'Total'}</span><span>{d.rows.length} {d.rows.length === 1 ? 'recipient' : 'recipients'}</span></div>
+        <div className="amount-top"><span>{d.each ? t('eachPayment') : t('total')}</span><span>{d.rows.length === 1 ? t('recipients1', { n: 1 }) : t('recipientsN', { n: d.rows.length })}</span></div>
         <p className="amount-big">{totalOf(d.rows)}</p>
         <ul className="feed">{d.rows.map((r, i) => <li key={i}><Row title={r.label} end={`${fmtAmt(r.amount)} ${r.token}`} /></li>)}</ul>
       </div>
       {d.note && <p className="flow-note">{d.note}</p>}
-      <p className="flow-note" style={{ display: 'flex', gap: 8, alignItems: 'center' }}><ShieldCheck size={16} aria-hidden="true" /> Your wallet signs this, not Velfi. Nothing moves until you slide.</p>
+      <p className="flow-note" style={{ display: 'flex', gap: 8, alignItems: 'center' }}><ShieldCheck size={16} aria-hidden="true" /> {t('walletSigns')}</p>
       <SlideToApprove running={running} onApprove={onApprove} />
     </Sheet>
   )
@@ -324,19 +326,19 @@ function SuccessSheet({ open, data, onClose }) {
   const d = describe(data.pending)
   const big = d.done.length > 5
   return (
-    <Sheet open={open} onClose={onClose} pale label="Payment complete">
-      <div className="flow-head"><Pill tone="lime">Confirmed on BNB Chain</Pill><span /></div>
+    <Sheet open={open} onClose={onClose} pale label={t('paymentComplete')}>
+      <div className="flow-head"><Pill tone="lime">{t('confirmedBnb')}</Pill><span /></div>
       <div className={`stamp ${d.kind === 'swap' ? 'blue' : d.kind === 'schedule' ? 'lav' : ''}`}><span style={big ? { fontSize: 'clamp(60px, 19vw, 100px)' } : undefined}>{d.done}</span></div>
       <div className="amount-card">
-        <div className="amount-top"><span>{d.title}</span><span>Just now</span></div>
+        <div className="amount-top"><span>{d.title}</span><span>{t('justNowCap')}</span></div>
         <p className="amount-big">{totalOf(d.rows)}</p>
         <ul className="feed">{d.rows.map((r, i) => <li key={i}><Row icon={<Check size={16} strokeWidth={2.6} />} tone="good" title={r.label} end={`${fmtAmt(r.amount)} ${r.token}`} /></li>)}</ul>
-        <div className="kv"><div><small>Network fee</small><b>{d.fee ? 'Paid by you' : 'Paid by Velfi'}</b></div><div><small>Receipt</small><b>{data.digest ? shortAddr(data.digest) : '—'}</b></div></div>
+        <div className="kv"><div><small>{t('networkFee')}</small><b>{d.fee ? t('paidByYou') : t('paidByVelfi')}</b></div><div><small>{t('receipt')}</small><b>{data.digest ? shortAddr(data.digest) : '—'}</b></div></div>
       </div>
       {data.message && <p className="flow-note">{data.message}</p>}
       <div className="actions-row">
-        {data.digest ? <a className="btn pale" href={explorerTx(data.digest)} target="_blank" rel="noreferrer">View receipt</a> : <span />}
-        <button className="round" onClick={onClose} aria-label="Done"><Check size={22} strokeWidth={2.4} /></button>
+        {data.digest ? <a className="btn pale" href={explorerTx(data.digest)} target="_blank" rel="noreferrer">{t('viewReceipt')}</a> : <span />}
+        <button className="round" onClick={onClose} aria-label={t('done')}><Check size={22} strokeWidth={2.4} /></button>
       </div>
     </Sheet>
   )
@@ -344,16 +346,16 @@ function SuccessSheet({ open, data, onClose }) {
 
 function FailedSheet({ open, message, canRetry, onRetry, onClose }) {
   return (
-    <Sheet open={open} onClose={onClose} pale label="Payment not sent">
-      <div className="flow-head"><Pill tone="amber">Nothing was sent</Pill><span /></div>
-      <div className="stamp" style={{ background: 'linear-gradient(180deg, #FFD9A8 0%, #F7A86A 100%)' }}><span style={{ fontSize: 'clamp(60px, 19vw, 100px)' }}>Not sent</span></div>
+    <Sheet open={open} onClose={onClose} pale label={t('notSentLabel')}>
+      <div className="flow-head"><Pill tone="amber">{t('nothingWasSent')}</Pill><span /></div>
+      <div className="stamp" style={{ background: 'linear-gradient(180deg, #FFD9A8 0%, #F7A86A 100%)' }}><span style={{ fontSize: 'clamp(60px, 19vw, 100px)' }}>{t('notSentStamp')}</span></div>
       <div className="amount-card">
-        <p style={{ fontSize: 17 }}>{message || 'That didn’t go through.'}</p>
-        <p className="flow-note">Your money is still in your wallet.</p>
+        <p style={{ fontSize: 17 }}>{message || t('didntGoThrough')}</p>
+        <p className="flow-note">{t('stillInWallet')}</p>
       </div>
       <div className="actions-row">
-        {canRetry ? <button className="btn pale" onClick={onRetry}>Try again</button> : <span />}
-        <button className="round" onClick={onClose} aria-label="Close"><Check size={22} strokeWidth={2.4} /></button>
+        {canRetry ? <button className="btn pale" onClick={onRetry}>{t('tryAgain')}</button> : <span />}
+        <button className="round" onClick={onClose} aria-label={t('close')}><Check size={22} strokeWidth={2.4} /></button>
       </div>
     </Sheet>
   )
@@ -381,11 +383,11 @@ function SlideToApprove({ onApprove, running }) {
   return (
     <div className="slide" ref={track}>
       <span className="slide-fill" style={{ width: x + KNOB + 8 }} />
-      <span className="slide-label">{running ? (typeof running === 'string' ? running : 'Signing…') : done ? 'Approved' : 'Slide to approve'}</span>
+      <span className="slide-label">{running ? (typeof running === 'string' ? running : t('signing')) : done ? t('approved') : t('slideToApprove')}</span>
       <button className="slide-knob" style={{ transform: `translateX(${x}px)`, transition: drag ? 'none' : 'transform .3s var(--ease)' }}
         onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
         onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && !running && !done) { e.preventDefault(); finish() } }}
-        aria-label="Approve and sign. Drag to the end, or press Enter." disabled={running}>
+        aria-label={t('slideAria')} disabled={running}>
         {running ? <span className="spin" /> : <ArrowRight size={22} strokeWidth={2.4} />}
       </button>
     </div>

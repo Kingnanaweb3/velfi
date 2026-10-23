@@ -7,17 +7,19 @@ import { Top, Vault, Tile, NextCard, Panel, SectionTitle, Empty, Pill, Skeleton,
 import { ReceiveSheet, TokensSheet, ActivitySheet, AlertsSheet, TxRow, coinFor, isMainnet, lastSeenAlerts, markAlertsSeen } from '../components/sheets.jsx'
 import otterFace from '../assets/otter-face.webp'
 import otterPeek from '../assets/otter-peek.webp'
+import { t, getLocale } from '../i18n/index.jsx'
+import { freqLabel } from '../i18n/format.js'
 
 
 function greeting() {
   const h = new Date().getHours()
-  return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'
+  return h < 12 ? t('goodMorning') : h < 17 ? t('goodAfternoon') : t('goodEvening')
 }
 function when(ts) {
-  if (!ts) return 'soon'
+  if (!ts) return t('whenSoon')
   const d = new Date(ts)
-  if (d.getTime() <= Date.now() + 60_000) return 'now'
-  return d.toLocaleString(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' })
+  if (d.getTime() <= Date.now() + 60_000) return t('whenNow')
+  return d.toLocaleString(getLocale(), { weekday: 'short', hour: 'numeric', minute: '2-digit' })
 }
 
 export default function Home() {
@@ -49,63 +51,63 @@ export default function Home() {
   let next
   if (!bal.data) next = <Skeleton h={210} r={28} />
   else if (empty) next = (
-    <NextCard tone="sky" eyebrow="To get started" title="Add money to your wallet"
-      chips={['USDC or BNB', 'On BNB Chain']}
-      action={{ label: 'Receive money', onClick: () => setSheet('receive'), icon: <ArrowDownLeft size={22} /> }}
+    <NextCard tone="sky" eyebrow={t('getStarted')} title={t('addMoneyTitle')}
+      chips={[t('chipUsdcBnb'), t('chipOnBnb')]}
+      action={{ label: t('receiveMoney'), onClick: () => setSheet('receive'), icon: <ArrowDownLeft size={22} /> }}
       art={<img src={otterPeek} alt="" />} />
   )
   else if (nextPay) next = (
-    <NextCard tone="peach" eyebrow={`Next payment · ${when(nextPay.next_run_at)}`} title={`${fmtAmt(nextPay.amount)} ${nextPay.token} to ${nextPay.to}`}
-      chips={[nextPay.frequency, `${nextPay.occurrences_done || 0} of ${nextPay.occurrences || '∞'} sent`]}
-      action={{ label: 'See your flows', onClick: () => navigate('/flows'), icon: <ArrowRight size={22} /> }}
+    <NextCard tone="peach" eyebrow={t('nextPayment', { when: when(nextPay.next_run_at) })} title={t('payTo', { amount: fmtAmt(nextPay.amount), token: nextPay.token, to: nextPay.to })}
+      chips={[freqLabel(nextPay.frequency), t('sentOf', { done: nextPay.occurrences_done || 0, total: nextPay.occurrences || '∞' })]}
+      action={{ label: t('seeFlows'), onClick: () => navigate('/flows'), icon: <ArrowRight size={22} /> }}
       art={<img src={otterPeek} alt="" />} />
   )
   else next = (
-    <NextCard tone="lav" eyebrow="Try this" title="Split a bill with friends in one sentence"
-      chips={['You see it first', 'You approve it']}
-      action={{ label: 'Split a bill', onClick: () => ask('Split '), icon: <ArrowRight size={22} /> }}
+    <NextCard tone="lav" eyebrow={t('tryThis')} title={t('splitTitle')}
+      chips={[t('chipSeeFirst'), t('chipApprove')]}
+      action={{ label: t('splitBill'), onClick: () => ask(t('draftSplit')), icon: <ArrowRight size={22} /> }}
       art={<img src={otterPeek} alt="" />} />
   )
 
   return (
     <main className="page screen">
       <Top
-        left={<button className="avatar" onClick={() => navigate('/account')} aria-label="Account"><img src={otterFace} alt="" /></button>}
-        eyebrow={greeting()} title={`${user?.username || 'you'}.vel`}
+        left={<button className="avatar" onClick={() => navigate('/account')} aria-label={t('account')}><img src={otterFace} alt="" /></button>}
+        eyebrow={greeting()} title={`${user?.username || t('you')}.vel`}
         right={<>
-          {!isMainnet && <Pill tone="amber">Test</Pill>}
-          <button className="icon-btn" onClick={openAlerts} aria-label={fresh ? 'Alerts, new' : 'Alerts'}><Bell size={20} strokeWidth={1.8} />{fresh && <span className="badge" />}</button>
+          {!isMainnet && <Pill tone="amber">{t('test')}</Pill>}
+          <button className="icon-btn" onClick={openAlerts} aria-label={fresh ? t('alertsNew') : t('alerts')}><Bell size={20} strokeWidth={1.8} />{fresh && <span className="badge" />}</button>
         </>} />
 
       <div className="stack">
-        <Vault label="Your money"
-          labelExtra={<button onClick={toggleHidden} aria-label={hidden ? 'Show balance' : 'Hide balance'}>{hidden ? <EyeOff size={16} /> : <Eye size={16} />}</button>}
+        <Vault label={t('yourMoney')}
+          labelExtra={<button onClick={toggleHidden} aria-label={hidden ? t('showBalance') : t('hideBalance')}>{hidden ? <EyeOff size={16} /> : <Eye size={16} />}</button>}
           amount={usd} hidden={hidden}
-          sub={usd === null ? ' ' : hidden ? 'Hidden' : usd > 0 ? 'USDC and BNB on BNB Chain' : 'Add USDC or BNB to start'}
+          sub={usd === null ? ' ' : hidden ? t('hidden') : usd > 0 ? t('vaultSub') : t('vaultEmpty')}
           actions={<>
-            <button className="vbtn" onClick={() => ask('Send ')}><Send size={16} /> Send</button>
-            <button className="vbtn glass" onClick={() => setSheet('receive')}><ArrowDownLeft size={17} /> Receive</button>
-            <button className="vbtn glass" onClick={() => ask('Split ')}><Users size={16} /> Split</button>
+            <button className="vbtn" onClick={() => ask(t('draftSend'))}><Send size={16} /> {t('send')}</button>
+            <button className="vbtn glass" onClick={() => setSheet('receive')}><ArrowDownLeft size={17} /> {t('receive')}</button>
+            <button className="vbtn glass" onClick={() => ask(t('draftSplit'))}><Users size={16} /> {t('split')}</button>
           </>} />
 
         <button className="ask" onClick={() => navigate('/chat')}>
-          <span>Tell your money what to do…</span>
+          <span>{t('askPlaceholder')}</span>
           <span className="go" aria-hidden="true"><ArrowUp size={20} strokeWidth={2.2} /></span>
         </button>
 
         <div className="tiles">
           <Tile tone="lav" icon={<img src={coinFor('USDC')} alt="" />} value={bal.data ? fmtAmt(usdc?.human || 0) : '—'} label="USDC" onClick={() => setSheet('tokens')} />
           <Tile tone="sage" icon={<img src={coinFor('BNB')} alt="" />} value={bal.data ? fmtAmt(bnb?.human || 0) : '—'} label="BNB" onClick={() => setSheet('tokens')} />
-          <Tile tone="butter" icon={<Repeat size={16} />} value={flows.data ? activeCount : '—'} label={activeCount === 1 ? 'Active flow' : 'Active flows'} onClick={() => navigate('/flows')} />
+          <Tile tone="butter" icon={<Repeat size={16} />} value={flows.data ? activeCount : '—'} label={activeCount === 1 ? t('activeFlow') : t('activeFlows')} onClick={() => navigate('/flows')} />
         </div>
 
         {next}
 
         <Panel>
-          <SectionTitle title="Recent" sub="Your latest payments, newest first."
-            action={<button className="link-btn" onClick={() => setSheet('activity')}>See all</button>} />
+          <SectionTitle title={t('recent')} sub={t('recentSub')}
+            action={<button className="link-btn" onClick={() => setSheet('activity')}>{t('seeAll')}</button>} />
           {!act.data ? <div style={{ display: 'grid', gap: 10 }}><Skeleton h={52} /><Skeleton h={52} /></div>
-            : !(act.data.transactions || []).length ? <Empty title="No payments yet">When you send or receive money, it shows up here.</Empty>
+            : !(act.data.transactions || []).length ? <Empty title={t('noPayments')}>{t('noPaymentsBody')}</Empty>
             : <ul className="feed">{act.data.transactions.slice(0, 5).map(t => <li key={t.id || t.digest}><TxRow t={t} /></li>)}</ul>}
         </Panel>
       </div>

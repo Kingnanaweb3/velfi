@@ -11,12 +11,13 @@ import Account from './pages/Account.jsx'
 import Chat from './pages/Chat.jsx'
 import Login from './pages/Login.jsx'
 import AuthCallback from './pages/AuthCallback.jsx'
+import { t } from './i18n/index.jsx'
 
 const TABS = [
-  { path: '/', label: 'Home', Icon: House },
-  { path: '/flows', label: 'Flows', Icon: Repeat },
-  { path: '/invest', label: 'Invest', Icon: Sprout },
-  { path: '/account', label: 'Account', Icon: UserRound },
+  { path: '/', key: 'tabHome', Icon: House },
+  { path: '/flows', key: 'tabFlows', Icon: Repeat },
+  { path: '/invest', key: 'tabInvest', Icon: Sprout },
+  { path: '/account', key: 'tabAccount', Icon: UserRound },
 ]
 
 function Loading() {
@@ -46,19 +47,19 @@ function Nav() {
   return (
     <>
       <aside className="side">
-        <button className="side-logo" onClick={() => go('/')} aria-label="Velfi home"><Logo size={24} /></button>
-        <nav aria-label="Sections">
-          {TABS.map(({ path, label, Icon }) => (
+        <button className="side-logo" onClick={() => go('/')} aria-label={t('velfiHome')}><Logo size={24} /></button>
+        <nav aria-label={t('navSections')}>
+          {TABS.map(({ path, key, Icon }) => (
             <button key={path} className={pathname === path ? 'on' : ''} aria-current={pathname === path ? 'page' : undefined} onClick={() => go(path)}>
-              <Icon size={21} strokeWidth={1.8} />{label}
+              <Icon size={21} strokeWidth={1.8} />{t(key)}
             </button>
           ))}
         </nav>
       </aside>
-      <nav className="tabs" aria-label="Sections">
-        {TABS.map(({ path, label, Icon }) => (
-          <button key={path} className={pathname === path ? 'on' : ''} aria-label={label} aria-current={pathname === path ? 'page' : undefined} onClick={() => go(path)}>
-            <Icon size={22} strokeWidth={1.8} /><span className="lbl">{label}</span>
+      <nav className="tabs" aria-label={t('navSections')}>
+        {TABS.map(({ path, key, Icon }) => (
+          <button key={path} className={pathname === path ? 'on' : ''} aria-label={t(key)} aria-current={pathname === path ? 'page' : undefined} onClick={() => go(path)}>
+            <Icon size={22} strokeWidth={1.8} /><span className="lbl">{t(key)}</span>
           </button>
         ))}
       </nav>

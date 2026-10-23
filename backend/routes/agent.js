@@ -266,8 +266,8 @@ router.post('/message', requireAuth, async (req, res) => {
 
     // --- MULTI-TURN: awaiting confirmation to drop a self-recipient and send to the rest ---
     if (convo?.pending_state === 'awaiting_drop_self_confirm' && convo?.pending_parse) {
-      const yes = /\b(yes|yeah|yep|sure|ok|okay|go ahead|do it|send|proceed|confirm)\b/i.test(message)
-      const no = /\b(no|nope|cancel|stop|don'?t)\b/i.test(message)
+      const yes = /\b(yes|yeah|yep|sure|ok|okay|go ahead|do it|send|proceed|confirm)\b/i.test(message) || /(是|好|可以|确认|发送|行|对|네|예|응|좋아|확인|보내)/.test(message)
+      const no = /\b(no|nope|cancel|stop|don'?t)\b/i.test(message) || /(不|取消|别|아니|취소|하지 마|싫어)/.test(message)
       if (yes && !no) {
         const parsed = convo.pending_parse
         // recipients already resolved + self stripped when we saved this state

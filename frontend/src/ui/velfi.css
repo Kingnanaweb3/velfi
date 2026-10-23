@@ -74,7 +74,7 @@
 html, body { background: var(--bg); color: var(--ink); }
 body {
   --ease: cubic-bezier(.2, .8, .2, 1);
-  font-family: "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family: "Geist", var(--cjk), system-ui, -apple-system, "Segoe UI", sans-serif;
   font-size: 17px; line-height: 1.42;
   -webkit-font-smoothing: antialiased;
   min-height: 100dvh;
@@ -469,3 +469,17 @@ button.tile:active { transform: scale(.97); }
 @media (min-width: 900px) {
   .auth-dark .auth-foot { background: rgba(37, 26, 49, .72); backdrop-filter: blur(18px); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .07), 0 24px 60px rgba(0, 0, 0, .35); }
 }
+
+/* ── Chinese and Korean ─────────────────────────────────────────────────── */
+:root { --cjk: "Noto Sans SC"; }
+html:lang(zh) { --cjk: "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei"; }
+html:lang(ko) { --cjk: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic"; }
+/* Tight Latin tracking crowds these scripts. */
+html:lang(zh) body *, html:lang(ko) body * { letter-spacing: 0; }
+html:lang(ko) body { word-break: keep-all; overflow-wrap: break-word; }
+html:lang(zh) body { line-break: strict; }
+
+/* EN · 中文 · 한국어 on the sign-in screen */
+.lang-pills { display: inline-flex; gap: 4px; padding: 3px; border-radius: 999px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); }
+.lang-pills button { font: inherit; font-size: 13px; font-weight: 500; letter-spacing: 0; color: rgba(255,255,255,.72); background: none; border: 0; padding: 6px 11px; border-radius: 999px; cursor: pointer; }
+.lang-pills button.on { background: rgba(255,255,255,.92); color: #15111F; }

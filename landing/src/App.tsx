@@ -52,6 +52,8 @@ function App() {
   const { t, lang } = useLang()
   // Chinese runs a headline straight into its accent part; English and Korean keep a space.
   const sp = lang === 'zh' ? '' : ' '
+  // The app opens in the same language as the page.
+  const appUrl = lang === 'en' ? APP_URL : `${APP_URL}/?lang=${lang}`
   const [scrolled, setScrolled] = useState(false)
   const [resourcesOpen, setResourcesOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -125,7 +127,7 @@ function App() {
         </div>
         <div className="nav-right">
           <LangSwitch />
-          <a href={APP_URL} className="nav-cta">{t('navOpenApp')}</a>
+          <a href={appUrl} className="nav-cta">{t('navOpenApp')}</a>
         </div>
         <button className={`nav-burger${menuOpen ? ' open' : ''}`} onClick={() => setMenuOpen(!menuOpen)} aria-label={t('navMenu')}>
           <span></span><span></span><span></span>
@@ -140,7 +142,7 @@ function App() {
         <a href="/docs/guides/sending-money" target="_blank" rel="noreferrer" onClick={() => setMenuOpen(false)}>{t('navGuides')}</a>
         <a href="/litepaper" target="_blank" rel="noreferrer" onClick={() => setMenuOpen(false)}>{t('navLitepaper')}</a>
         <LangSwitch mobile onPick={() => setMenuOpen(false)} />
-        <a href={APP_URL} className="mobile-menu-cta" onClick={() => setMenuOpen(false)}>{t('navOpenApp')}</a>
+        <a href={appUrl} className="mobile-menu-cta" onClick={() => setMenuOpen(false)}>{t('navOpenApp')}</a>
       </div>
 
       <section className="hero">
@@ -148,7 +150,7 @@ function App() {
           <HeroToken />
           <h1 className="hero-headline">{t('heroH1a')}<br />{t('heroH1b')}</h1>
           <p className="hero-body">{t('heroBody')}</p>
-          <a href={APP_URL} className="hero-cta">{t('heroCta')}</a>
+          <a href={appUrl} className="hero-cta">{t('heroCta')}</a>
         </div>
       </section>
 
@@ -156,7 +158,7 @@ function App() {
         <div className="what-top">
           <div className="what-left">
             <h2 className="what-headline">{t('whatH')}</h2>
-            <a href={APP_URL} className="what-explore">{t('whatExplore')}</a>
+            <a href={appUrl} className="what-explore">{t('whatExplore')}</a>
           </div>
           <p className="what-def">{t('whatDef')}</p>
         </div>
@@ -445,7 +447,7 @@ function App() {
               <span className={`faq-icon${openFaq === 5 ? ' open' : ''}`}>+</span>
             </button>
             <div className={`faq-a${openFaq === 5 ? ' open' : ''}`}>
-              <p>{rich(t('faq5A'), { app: <a href={APP_URL}>app.velfi.xyz</a> })}</p>
+              <p>{rich(t('faq5A'), { app: <a href={appUrl}>app.velfi.xyz</a> })}</p>
             </div>
           </div>
           <div className="faq-item">
@@ -468,7 +470,7 @@ function App() {
             <h2 className="wl-headline">{t('wlH1')}<br />{t('wlH2')}</h2>
             <p className="wl-sub">{t('wlSub')}</p>
             <div className="wl-form">
-              <a href={APP_URL} className="hero-cta wl-open">{t('wlOpen')}</a>
+              <a href={appUrl} className="hero-cta wl-open">{t('wlOpen')}</a>
               <div className="wl-extras">
                 <span className="wl-ios"> {t('wlIos')}</span>
                 <span className="wl-litepaper">{rich(t('wlLitepaper'), { lp: <a href="/litepaper" target="_blank" rel="noreferrer">{t('wlLitepaperLink')}</a> })}</span>
@@ -484,7 +486,7 @@ function App() {
             <span className="footer-col-title">{t('ftProduct')}</span>
             <a href="#how-it-works">{t('navHow')}</a>
             <a href="#features">{t('navFeatures')}</a>
-            <a href={APP_URL}>{t('ftOpenApp')}</a>
+            <a href={appUrl}>{t('ftOpenApp')}</a>
             <a href="#security">{t('ftSecurity')}</a>
           </div>
           <div className="footer-col">
