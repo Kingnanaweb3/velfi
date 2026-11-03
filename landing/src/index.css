@@ -1804,3 +1804,16 @@ html:lang(zh) .uc-eyebrow, html:lang(ko) .uc-eyebrow,
 html:lang(zh) .faq-eyebrow, html:lang(ko) .faq-eyebrow { letter-spacing: 0.08em; }
 html:lang(ko) body { word-break: keep-all; overflow-wrap: break-word; }
 html:lang(zh) body { line-break: strict; }
+
+/* X link in the nav */
+.nav-x {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  color: inherit;
+  opacity: 0.75;
+  transition: opacity 0.2s;
+}
+.nav-x:hover { opacity: 1; }

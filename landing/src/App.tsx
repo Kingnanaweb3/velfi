@@ -11,6 +11,7 @@ import type { Lang } from './i18n'
 
 // The Velfi web app (sign in with Google, claim a .vel name).
 const APP_URL = 'https://app.velfi.xyz'
+const X_URL = 'https://x.com/velfixyz'
 
 // EN · 中文 · 한국어 picker in the top bar (desktop) and the mobile menu.
 function LangSwitch({ mobile = false, onPick }: { mobile?: boolean; onPick?: () => void }) {
@@ -126,6 +127,7 @@ function App() {
           </div>
         </div>
         <div className="nav-right">
+          <a href={X_URL} className="nav-x" target="_blank" rel="noreferrer" aria-label="Velfi on X"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
           <LangSwitch />
           <a href={appUrl} className="nav-cta">{t('navOpenApp')}</a>
         </div>
@@ -141,6 +143,7 @@ function App() {
         <a href="/docs" target="_blank" rel="noreferrer" onClick={() => setMenuOpen(false)}>{t('navDocs')}</a>
         <a href="/docs/guides/sending-money" target="_blank" rel="noreferrer" onClick={() => setMenuOpen(false)}>{t('navGuides')}</a>
         <a href="/litepaper" target="_blank" rel="noreferrer" onClick={() => setMenuOpen(false)}>{t('navLitepaper')}</a>
+        <a href={X_URL} target="_blank" rel="noreferrer" onClick={() => setMenuOpen(false)}>X (Twitter) ↗</a>
         <LangSwitch mobile onPick={() => setMenuOpen(false)} />
         <a href={appUrl} className="mobile-menu-cta" onClick={() => setMenuOpen(false)}>{t('navOpenApp')}</a>
       </div>
